@@ -8,13 +8,23 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/')
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, role, box_id, boxes(name)')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) redirect('/onboarding')
+
+  const boxes = profile.boxes as { name: string }[] | null
+  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : ''
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white rounded-xl shadow-sm border p-8 w-full max-w-sm">
-        <h1 className="text-xl font-bold mb-1">Dashboard</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Logged in as <span className="font-medium text-gray-800">{user.email}</span>
-        </p>
+        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{boxName}</p>
+        <h1 className="text-xl font-bold mb-1">Welcome, {profile.full_name}</h1>
+        <p className="text-sm text-gray-500 mb-6 capitalize">{profile.role}</p>
         <SignOutButton />
       </div>
     </main>

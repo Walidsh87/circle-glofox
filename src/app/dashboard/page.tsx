@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { SignOutButton } from './_components/sign-out-button'
 
 export default async function DashboardPage() {
@@ -25,6 +26,14 @@ export default async function DashboardPage() {
         <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{boxName}</p>
         <h1 className="text-xl font-bold mb-1">Welcome, {profile.full_name}</h1>
         <p className="text-sm text-gray-500 mb-6 capitalize">{profile.role}</p>
+        <div className="flex flex-col gap-2 mb-6">
+          {profile.role === 'owner' && (
+            <Link href="/dashboard/members"
+              className="text-sm text-primary underline-offset-4 hover:underline">
+              Members →
+            </Link>
+          )}
+        </div>
         <SignOutButton />
       </div>
     </main>

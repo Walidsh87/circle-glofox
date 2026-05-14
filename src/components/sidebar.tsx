@@ -196,10 +196,8 @@ export function Sidebar({
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--c-ink-muted)', fontSize: 12, padding: '4px 6px',
-            borderRadius: 6, transition: 'background .1s',
+            borderRadius: 6,
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--c-surface-alt)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
         >
           Sign out
         </button>

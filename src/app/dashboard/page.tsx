@@ -105,16 +105,7 @@ function NavCard({ href, label, description, accent }: {
       border: `1px solid ${accent ? '#222' : 'var(--c-border)'}`,
       borderRadius: 14, textDecoration: 'none',
       boxShadow: 'var(--c-shadow-sm)',
-      transition: 'box-shadow .1s, transform .1s',
     }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = 'var(--c-shadow-md)'
-        e.currentTarget.style.transform = 'translateY(-1px)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'var(--c-shadow-sm)'
-        e.currentTarget.style.transform = 'translateY(0)'
-      }}
     >
       <div style={{
         fontFamily: 'var(--font-space-grotesk)', fontSize: 15,

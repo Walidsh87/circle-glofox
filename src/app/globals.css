@@ -10,6 +10,7 @@
 
 @layer base {
   :root {
+    /* shadcn/ui tokens (kept for Button, Select, etc.) */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -30,32 +31,107 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+
+    /* Circle brand */
+    --circle-lime: #C0E050;
+    --circle-lime-hover: #B4D63E;
+    --circle-lime-soft: oklch(0.96 0.07 122);
+    --circle-lime-ink: oklch(0.42 0.13 122);
+    --circle-ink: #0A0A0A;
+    --circle-steel: #B0B0B0;
+
+    /* surfaces */
+    --c-bg: oklch(0.985 0.003 240);
+    --c-surface: #ffffff;
+    --c-surface-alt: oklch(0.97 0.004 240);
+    --c-surface-sunk: oklch(0.955 0.005 240);
+    --c-border: oklch(0.91 0.006 240);
+    --c-border-strong: oklch(0.82 0.009 240);
+    --c-divider: oklch(0.93 0.005 240);
+
+    /* text */
+    --c-ink: oklch(0.18 0.01 60);
+    --c-ink-2: oklch(0.32 0.01 60);
+    --c-ink-muted: oklch(0.52 0.012 60);
+    --c-ink-faint: oklch(0.68 0.012 60);
+
+    /* status */
+    --c-ok: oklch(0.62 0.14 148);
+    --c-ok-soft: oklch(0.95 0.05 148);
+    --c-ok-ink: oklch(0.34 0.10 148);
+    --c-warn: oklch(0.78 0.15 82);
+    --c-warn-soft: oklch(0.96 0.07 88);
+    --c-warn-ink: oklch(0.40 0.10 70);
+    --c-danger: oklch(0.58 0.20 28);
+    --c-danger-soft: oklch(0.95 0.05 28);
+    --c-danger-ink: oklch(0.40 0.16 28);
+
+    /* shadows */
+    --c-shadow-sm: 0 1px 2px rgba(20,15,10,0.04), 0 1px 1px rgba(20,15,10,0.03);
+    --c-shadow-md: 0 4px 14px rgba(20,15,10,0.06), 0 1px 2px rgba(20,15,10,0.04);
   }
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
+
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Circle dark scope — whiteboard */
+.circle-dark {
+  --c-bg: #0A0A0A;
+  --c-surface: #141414;
+  --c-surface-alt: #1C1C1C;
+  --c-surface-sunk: #0F0F0F;
+  --c-border: #262626;
+  --c-border-strong: #383838;
+  --c-divider: #1F1F1F;
+  --c-ink: #FAFAFA;
+  --c-ink-2: #D4D4D4;
+  --c-ink-muted: #888888;
+  --c-ink-faint: #5A5A5A;
+  --c-ok-soft: oklch(0.30 0.08 148);
+  --c-warn-soft: oklch(0.30 0.10 82);
+  --c-danger-soft: oklch(0.30 0.10 28);
+  color: var(--c-ink);
+  background: var(--c-bg);
+}
+
+/* Circle logo mark — lime ring with diagonal steel slash */
+.circle-mark {
+  width: 22px;
+  height: 22px;
+  position: relative;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.circle-mark::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid var(--circle-lime);
+  box-sizing: border-box;
+}
+.circle-mark::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -10%;
+  width: 14%;
+  height: 120%;
+  background: var(--circle-steel);
+  transform: translateX(-50%) rotate(20deg);
+  transform-origin: center;
+}
+.circle-mark-on-dark::before {
+  border-color: var(--circle-lime);
+}
+
+/* Mono numbers */
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1, "zero" 1;
 }

@@ -1,13 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
+import { Sidebar } from '@/components/sidebar'
 import { AddMembershipForm } from './_components/add-membership-form'
 import { PaymentActions } from './_components/payment-actions'
 
-const STATUS_STYLES: Record<string, string> = {
-  paid:    'bg-green-100 text-green-700',
-  unpaid:  'bg-yellow-100 text-yellow-700',
-  overdue: 'bg-red-100 text-red-700',
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  paid:    { bg: 'var(--c-ok-soft)',    color: 'var(--c-ok-ink)' },
+  unpaid:  { bg: 'var(--c-warn-soft)',  color: 'var(--c-warn-ink)' },
+  overdue: { bg: 'var(--c-danger-soft)', color: 'var(--c-danger-ink)' },
 }
 
 export default async function PaymentsPage() {
@@ -17,12 +17,15 @@ export default async function PaymentsPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('box_id, role')
+    .select('full_name, role, box_id, boxes(name)')
     .eq('id', user.id)
     .single()
 
   if (!profile) redirect('/onboarding')
   if (profile.role !== 'owner') redirect('/dashboard')
+
+  const boxes = profile.boxes as { name: string }[] | { name: string } | null
+  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
   const [{ data: memberships }, { data: athletes }] = await Promise.all([
     supabase
@@ -40,72 +43,144 @@ export default async function PaymentsPage() {
   ])
 
   const unpaidCount = memberships?.filter((m) => m.payment_status !== 'paid').length ?? 0
+  const paidCount = memberships?.filter((m) => m.payment_status === 'paid').length ?? 0
+  const overdueCount = memberships?.filter((m) => m.payment_status === 'overdue').length ?? 0
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-800">← Dashboard</Link>
-          <h1 className="text-xl font-bold">Payments</h1>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
+      <Sidebar active="payments" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <header style={{
+          height: 60, borderBottom: '1px solid var(--c-border)',
+          display: 'flex', alignItems: 'center', padding: '0 32px',
+          background: 'var(--c-surface)', flexShrink: 0, gap: 12,
+        }}>
+          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
+            Payments
+          </h1>
           {unpaidCount > 0 && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+              background: 'var(--c-warn-soft)', color: 'var(--c-warn-ink)',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
               {unpaidCount} unpaid
             </span>
           )}
-        </div>
+        </header>
 
-        <div className="bg-white rounded-xl border p-4 mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-3">Add membership</p>
-          <AddMembershipForm athletes={athletes ?? []} />
-        </div>
+        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
+          {/* KPI strip */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20, maxWidth: 500 }}>
+            <KpiCard label="Paid" value={paidCount} variant="ok" />
+            <KpiCard label="Unpaid" value={unpaidCount} variant="warn" />
+            <KpiCard label="Overdue" value={overdueCount} variant="danger" />
+          </div>
 
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Athlete</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Plan</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500">Price (AED)</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Start</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Last paid</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {memberships?.map((m) => {
-                const athleteProfile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
-                return (
-                  <tr key={m.id} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-medium">{athleteProfile?.full_name ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{m.plan_name}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">
-                      {m.monthly_price_aed ? `${m.monthly_price_aed}` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{m.start_date}</td>
-                    <td className="px-4 py-3 text-gray-500">{m.last_paid_date ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLES[m.payment_status] ?? ''}`}>
-                        {m.payment_status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <PaymentActions membershipId={m.id} currentStatus={m.payment_status} />
+          {/* Add membership */}
+          <div style={{
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: 14, padding: '18px 20px', marginBottom: 20,
+            boxShadow: 'var(--c-shadow-sm)',
+          }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Add membership</p>
+            <AddMembershipForm athletes={athletes ?? []} />
+          </div>
+
+          {/* Memberships table */}
+          <div style={{
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-surface-sunk)' }}>
+                  <Th>Athlete</Th>
+                  <Th>Plan</Th>
+                  <Th align="right">Price (AED)</Th>
+                  <Th>Start</Th>
+                  <Th>Last paid</Th>
+                  <Th>Status</Th>
+                  <th style={{ padding: '10px 16px' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {memberships?.map((m) => {
+                  const athleteProfile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+                  const s = STATUS_STYLES[m.payment_status] ?? STATUS_STYLES.unpaid
+                  return (
+                    <tr key={m.id} style={{ borderBottom: '1px solid var(--c-divider)' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--c-ink)' }}>
+                        {athleteProfile?.full_name ?? '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: 'var(--c-ink-2)' }}>{m.plan_name}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <span className="mono" style={{ color: 'var(--c-ink-2)' }}>
+                          {m.monthly_price_aed ? `${m.monthly_price_aed}` : '—'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span className="mono" style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>{m.start_date}</span>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span className="mono" style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>{m.last_paid_date ?? '—'}</span>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '2px 8px', borderRadius: 999,
+                          fontSize: 11.5, fontWeight: 600, textTransform: 'capitalize',
+                          background: s.bg, color: s.color,
+                        }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
+                          {m.payment_status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <PaymentActions membershipId={m.id} currentStatus={m.payment_status} />
+                      </td>
+                    </tr>
+                  )
+                })}
+                {(!memberships || memberships.length === 0) && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
+                      No memberships yet.
                     </td>
                   </tr>
-                )
-              })}
-              {(!memberships || memberships.length === 0) && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No memberships yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </main>
+    </div>
+  )
+}
+
+function KpiCard({ label, value, variant }: { label: string; value: number; variant: 'ok' | 'warn' | 'danger' }) {
+  const styles = {
+    ok:     { bg: 'var(--c-ok-soft)',     color: 'var(--c-ok-ink)' },
+    warn:   { bg: 'var(--c-warn-soft)',   color: 'var(--c-warn-ink)' },
+    danger: { bg: 'var(--c-danger-soft)', color: 'var(--c-danger-ink)' },
+  }[variant]
+  return (
+    <div style={{ padding: '14px 16px', borderRadius: 12, background: styles.bg }}>
+      <div className="mono" style={{ fontSize: 10.5, color: styles.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div className="mono" style={{ fontSize: 26, color: styles.color, marginTop: 4, letterSpacing: '-0.02em', fontWeight: 700 }}>{value}</div>
+    </div>
+  )
+}
+
+function Th({ children, align }: { children: React.ReactNode; align?: 'right' }) {
+  return (
+    <th style={{
+      padding: '10px 16px', textAlign: align ?? 'left',
+      fontFamily: 'var(--font-geist-mono)', fontSize: 10.5,
+      fontWeight: 500, color: 'var(--c-ink-muted)',
+      textTransform: 'uppercase', letterSpacing: '0.06em',
+    }}>{children}</th>
   )
 }

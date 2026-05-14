@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
+import { Sidebar } from '@/components/sidebar'
 import { LiftForm } from './_components/lift-form'
 import { LIFT_NAMES } from './_lib/lift-names'
 import { Calculator } from './_components/calculator'
@@ -12,11 +12,14 @@ export default async function LiftsPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('box_id')
+    .select('full_name, role, box_id, boxes(name)')
     .eq('id', user.id)
     .single()
 
   if (!profile) redirect('/onboarding')
+
+  const boxes = profile.boxes as { name: string }[] | { name: string } | null
+  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
   const { data: lifts } = await supabase
     .from('athlete_lifts')
@@ -25,54 +28,83 @@ export default async function LiftsPage() {
     .order('lift_name')
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
-          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-800">
-            ← Dashboard
-          </Link>
-          <h1 className="text-xl font-bold">My 1RMs</h1>
-        </div>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
+      <Sidebar active="lifts" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
 
-        {/* Log form */}
-        <div className="bg-white rounded-xl border p-5 mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-4">Log or update a 1RM</p>
-          <LiftForm lifts={lifts ?? []} />
-        </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <header style={{
+          height: 60, borderBottom: '1px solid var(--c-border)',
+          display: 'flex', alignItems: 'center', padding: '0 32px',
+          background: 'var(--c-surface)', flexShrink: 0,
+        }}>
+          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>
+            My 1RMs
+          </h1>
+        </header>
 
-        {/* Current 1RMs table */}
-        {lifts && lifts.length > 0 && (
-          <div className="bg-white rounded-xl border overflow-hidden mb-6">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Lift</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">1RM (kg)</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Recorded</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lifts.map((lift) => (
-                  <tr key={lift.lift_name} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-medium">
-                      {LIFT_NAMES.find((l) => l.value === lift.lift_name)?.label ?? lift.lift_name}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold">
-                      {lift.one_rm_grams / 1000} kg
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-400 text-xs">
-                      {lift.recorded_on}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
+          <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Log form */}
+            <div style={{
+              background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+              borderRadius: 14, padding: '20px 22px', boxShadow: 'var(--c-shadow-sm)',
+            }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 14 }}>Log or update a 1RM</p>
+              <LiftForm lifts={lifts ?? []} />
+            </div>
+
+            {/* Current 1RMs table */}
+            {lifts && lifts.length > 0 && (
+              <div style={{
+                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-surface-sunk)' }}>
+                      <Th>Lift</Th>
+                      <Th align="right">1RM (kg)</Th>
+                      <Th align="right">Recorded</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lifts.map((lift) => (
+                      <tr key={lift.lift_name} style={{ borderBottom: '1px solid var(--c-divider)' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--c-ink)' }}>
+                          {LIFT_NAMES.find((l) => l.value === lift.lift_name)?.label ?? lift.lift_name}
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          <span className="mono" style={{ fontSize: 16, fontWeight: 600, color: 'var(--circle-lime-ink)' }}>
+                            {lift.one_rm_grams / 1000}
+                          </span>
+                          <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginLeft: 4 }}>kg</span>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{lift.recorded_on}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* THE WEDGE */}
+            <Calculator lifts={lifts ?? []} />
           </div>
-        )}
-
-        {/* THE WEDGE: percentage calculator */}
-        <Calculator lifts={lifts ?? []} />
+        </div>
       </div>
-    </main>
+    </div>
+  )
+}
+
+function Th({ children, align }: { children: React.ReactNode; align?: 'right' }) {
+  return (
+    <th style={{
+      padding: '10px 16px', textAlign: align ?? 'left',
+      fontFamily: 'var(--font-geist-mono)', fontSize: 10.5,
+      fontWeight: 500, color: 'var(--c-ink-muted)',
+      textTransform: 'uppercase', letterSpacing: '0.06em',
+    }}>{children}</th>
   )
 }

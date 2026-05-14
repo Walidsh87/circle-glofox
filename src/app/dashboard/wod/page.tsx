@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Sidebar } from '@/components/sidebar'
 import { WodForm } from './_components/wod-form'
 import { ScoreSection } from './_components/score-section'
 
@@ -44,29 +45,23 @@ function formatDate(date: string): string {
   }).format(new Date(date + 'T00:00:00Z'))
 }
 
-export default async function WodPage({
-  searchParams,
-}: {
-  searchParams: { date?: string }
-}) {
+export default async function WodPage({ searchParams }: { searchParams: { date?: string } }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('box_id, role')
+    .select('full_name, role, box_id, boxes(name)')
     .eq('id', user.id)
     .single()
 
   if (!profile) redirect('/onboarding')
 
-  const { data: box } = await supabase
-    .from('boxes')
-    .select('timezone')
-    .eq('id', profile.box_id)
-    .single()
+  const boxes = profile.boxes as { name: string }[] | { name: string } | null
+  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
+  const { data: box } = await supabase.from('boxes').select('timezone').eq('id', profile.box_id).single()
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const today = todayInTimezone(timezone)
   const date = searchParams.date ?? today
@@ -89,84 +84,109 @@ export default async function WodPage({
 
   const myScore = scores?.find((s) => s.athlete_id === user.id) ?? null
 
-
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-800">
-            ← Dashboard
-          </Link>
-          <h1 className="text-xl font-bold">WOD</h1>
-        </div>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
+      <Sidebar active="wod" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
 
-        {/* Date navigation */}
-        <div className="flex items-center justify-between mb-6">
-          <Link href={`/dashboard/wod?date=${prevDay(date)}`}
-            className="text-sm px-3 py-1 rounded-md border hover:bg-white">
-            ← Prev
-          </Link>
-          <div className="text-center">
-            <p className="font-semibold">{formatDate(date)}</p>
-            {!isToday && (
-              <Link href="/dashboard/wod" className="text-xs text-primary hover:underline">
-                Back to today
-              </Link>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <header style={{
+          height: 60, borderBottom: '1px solid var(--c-border)',
+          display: 'flex', alignItems: 'center', padding: '0 32px',
+          background: 'var(--c-surface)', flexShrink: 0, gap: 12,
+        }}>
+          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
+            Daily WOD
+          </h1>
+        </header>
+
+        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
+          <div style={{ maxWidth: 640 }}>
+            {/* Date navigation */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: 24,
+              background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+              borderRadius: 12, padding: '12px 16px',
+              boxShadow: 'var(--c-shadow-sm)',
+            }}>
+              <Link href={`/dashboard/wod?date=${prevDay(date)}`} style={{
+                fontSize: 13, padding: '6px 12px', borderRadius: 8,
+                border: '1px solid var(--c-border)', color: 'var(--c-ink-2)',
+                textDecoration: 'none',
+              }}>← Prev</Link>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-ink)' }}>{formatDate(date)}</div>
+                {!isToday && (
+                  <Link href="/dashboard/wod" style={{ fontSize: 12, color: 'var(--circle-lime-ink)', textDecoration: 'none' }}>
+                    Back to today
+                  </Link>
+                )}
+              </div>
+              <Link href={`/dashboard/wod?date=${nextDay(date)}`} style={{
+                fontSize: 13, padding: '6px 12px', borderRadius: 8,
+                border: '1px solid var(--c-border)', color: 'var(--c-ink-2)',
+                textDecoration: 'none',
+              }}>Next →</Link>
+            </div>
+
+            {/* WOD card */}
+            {wod && (
+              <div style={{
+                background: 'var(--circle-ink)', borderRadius: 16, padding: '24px 28px',
+                marginBottom: 16, position: 'relative', overflow: 'hidden',
+              }}>
+                <div style={{ position: 'absolute', right: -60, top: -60, width: 200, height: 200, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.2 }} />
+                <div style={{ position: 'relative' }}>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                    {SCORING_LABELS[wod.scoring_type] ?? wod.scoring_type}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 36, fontWeight: 700, color: 'var(--circle-lime)', letterSpacing: '-0.03em', marginBottom: 12 }}>
+                    {wod.title}
+                  </div>
+                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-geist-mono)', fontSize: 14, color: 'rgba(250,250,250,0.85)', lineHeight: 1.7, margin: 0 }}>
+                    {wod.description}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* Scores */}
+            {wod && (
+              <div style={{ marginBottom: 16 }}>
+                <ScoreSection
+                  workoutId={wod.id}
+                  scoringType={wod.scoring_type}
+                  myScore={myScore ?? null}
+                  scores={scores ?? []}
+                />
+              </div>
+            )}
+
+            {/* Staff WOD form */}
+            {isStaff && (
+              <div style={{
+                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                borderRadius: 14, padding: '20px 22px', boxShadow: 'var(--c-shadow-sm)',
+              }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 14 }}>
+                  {wod ? 'Edit WOD' : 'Post WOD'}
+                </p>
+                <WodForm date={date} existing={wod ?? null} />
+              </div>
+            )}
+
+            {!wod && !isStaff && (
+              <div style={{
+                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                borderRadius: 14, padding: '48px 24px', textAlign: 'center',
+                color: 'var(--c-ink-muted)', fontSize: 13,
+              }}>
+                No WOD posted for this day yet.
+              </div>
             )}
           </div>
-          <Link href={`/dashboard/wod?date=${nextDay(date)}`}
-            className="text-sm px-3 py-1 rounded-md border hover:bg-white">
-            Next →
-          </Link>
         </div>
-
-        {/* WOD display */}
-        {wod && (
-          <div className="bg-white rounded-xl border p-6 mb-6">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div>
-                <h2 className="text-2xl font-bold">{wod.title}</h2>
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                  {SCORING_LABELS[wod.scoring_type] ?? wod.scoring_type}
-                </span>
-              </div>
-            </div>
-            <pre className="whitespace-pre-wrap font-sans text-gray-700 text-sm leading-relaxed">
-              {wod.description}
-            </pre>
-          </div>
-        )}
-
-        {/* Score logging + leaderboard */}
-        {wod && (
-          <div className="mb-6">
-            <ScoreSection
-              workoutId={wod.id}
-              scoringType={wod.scoring_type}
-              myScore={myScore ?? null}
-              scores={scores ?? []}
-            />
-          </div>
-        )}
-
-        {/* Form for staff */}
-        {isStaff && (
-          <div className="bg-white rounded-xl border p-6">
-            <p className="text-sm font-medium text-gray-700 mb-4">
-              {wod ? 'Edit WOD' : 'Post WOD'}
-            </p>
-            <WodForm date={date} existing={wod ?? null} />
-          </div>
-        )}
-
-        {/* No WOD, not staff */}
-        {!wod && !isStaff && (
-          <div className="bg-white rounded-xl border p-8 text-center text-gray-400 text-sm">
-            No WOD posted for this day yet.
-          </div>
-        )}
       </div>
-    </main>
+    </div>
   )
 }

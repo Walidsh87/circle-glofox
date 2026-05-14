@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -14,59 +13,181 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
-
     setLoading(false)
-    if (error) {
-      setError(error.message)
-    } else {
-      setSubmitted(true)
-    }
-  }
-
-  if (submitted) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white rounded-xl shadow-sm border p-8 w-full max-w-sm text-center">
-          <div className="text-2xl mb-2">✉️</div>
-          <h1 className="text-lg font-semibold mb-1">Check your email</h1>
-          <p className="text-sm text-gray-500">
-            We sent a magic link to <span className="font-medium text-gray-700">{email}</span>.
-            Click it to sign in.
-          </p>
-        </div>
-      </main>
-    )
+    if (error) setError(error.message)
+    else setSubmitted(true)
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white rounded-xl shadow-sm border p-8 w-full max-w-sm">
-        <h1 className="text-xl font-bold mb-1">Circle</h1>
-        <p className="text-sm text-gray-500 mb-6">Enter your email to sign in</p>
+    <div style={{
+      display: 'grid', gridTemplateColumns: '1fr 1fr',
+      minHeight: '100vh', fontFamily: 'var(--font-geist-sans)',
+    }}>
+      {/* Left — form */}
+      <section style={{
+        padding: '56px 64px', display: 'flex', flexDirection: 'column',
+        justifyContent: 'space-between', background: 'var(--c-surface)',
+      }}>
+        {/* Logo */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 9,
+          fontFamily: 'var(--font-space-grotesk)', fontWeight: 700,
+          fontSize: 18, letterSpacing: '0.02em', textTransform: 'uppercase',
+          color: 'var(--c-ink)',
+        }}>
+          <span className="circle-mark" />
+          <span>Circle</span>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            required
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-          />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Sending…' : 'Send magic link'}
-          </Button>
-        </form>
-      </div>
-    </main>
+        {/* Form body */}
+        <div style={{ maxWidth: 380, width: '100%' }}>
+          {submitted ? (
+            <>
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: 'var(--circle-lime-soft)',
+                border: '1px solid var(--circle-lime)',
+                display: 'grid', placeItems: 'center', marginBottom: 22,
+              }}>
+                <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--circle-lime-ink)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" />
+                </svg>
+              </div>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Check your inbox</div>
+              <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 32, letterSpacing: '-0.025em', marginBottom: 12, color: 'var(--c-ink)' }}>
+                Magic link sent.
+              </h1>
+              <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 22 }}>
+                We sent a sign-in link to{' '}
+                <span className="mono" style={{ color: 'var(--c-ink)', fontWeight: 600 }}>{email}</span>.
+                The link expires in 15 minutes.
+              </p>
+              <div style={{
+                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--circle-lime)', flexShrink: 0 }} />
+                <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-2)' }}>Waiting for you to click the link…</span>
+              </div>
+              <button
+                onClick={() => setSubmitted(false)}
+                style={{
+                  marginTop: 14, background: 'none',
+                  border: '1px solid var(--c-border)', borderRadius: 8,
+                  padding: '8px 14px', fontSize: 13, cursor: 'pointer',
+                  color: 'var(--c-ink-2)',
+                }}
+              >← Use a different email</button>
+            </>
+          ) : (
+            <>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Sign in</div>
+              <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 38, lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 8, color: 'var(--c-ink)' }}>
+                The best hour<br />of your day.
+              </h1>
+              <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 32 }}>
+                Enter your email and we&apos;ll send a magic link. No password needed.
+              </p>
+
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <label>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Email</div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{
+                      width: '100%', height: 46, padding: '0 14px',
+                      border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
+                      background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
+                      fontFamily: 'inherit', outline: 'none',
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
+                  />
+                </label>
+                {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    height: 46, background: 'var(--circle-lime)',
+                    border: 'none', borderRadius: 10,
+                    fontSize: 14.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+                    color: 'var(--circle-ink)', letterSpacing: '0.01em',
+                    opacity: loading ? 0.7 : 1, transition: 'opacity .12s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}
+                >
+                  {loading ? 'Sending…' : 'Send magic link →'}
+                </button>
+              </form>
+
+              <p style={{ marginTop: 22, fontSize: 12, color: 'var(--c-ink-muted)' }}>
+                New to Circle?{' '}
+                <span style={{ color: 'var(--c-ink)', fontWeight: 600 }}>Ask your coach for an invite</span>.
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: 'var(--c-ink-muted)' }}>
+          <div className="mono">© Circle · GCC</div>
+          <div style={{ display: 'flex', gap: 14 }}>
+            <span>Privacy</span>
+            <span>Terms</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Right — brand panel */}
+      <aside style={{
+        background: 'var(--circle-ink)', color: '#fafafa',
+        position: 'relative', overflow: 'hidden',
+        padding: 48, display: 'flex', flexDirection: 'column',
+        justifyContent: 'space-between',
+      }}>
+        {/* Decorative rings */}
+        <div style={{ position: 'absolute', right: -160, top: -160, width: 520, height: 520, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.35 }} />
+        <div style={{ position: 'absolute', right: -80, bottom: -180, width: 360, height: 360, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.2 }} />
+        <div style={{ position: 'absolute', right: 80, top: 80, transform: 'rotate(20deg)', width: 6, height: 380, background: '#B0B0B0', opacity: 0.25 }} />
+
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="mono" style={{ fontSize: 11, color: 'rgba(250,250,250,0.55)', textTransform: 'uppercase', letterSpacing: '0.16em' }}>Gym Management</div>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600 }}>GCC</div>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 72, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.95, color: 'var(--circle-lime)' }}>
+            Manage.<br />Track.<br />Win.
+          </div>
+          <div className="mono" style={{ fontSize: 15, color: 'rgba(250,250,250,0.75)', marginTop: 20, lineHeight: 1.7, letterSpacing: '0.02em' }}>
+            Classes · Members · WODs<br />
+            1RMs · Leaderboards · Payments
+          </div>
+          <div style={{ width: 36, height: 1.5, background: 'var(--circle-lime)', margin: '24px 0' }} />
+          <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 18, fontWeight: 500, letterSpacing: '-0.01em', maxWidth: 360, lineHeight: 1.4, color: '#fafafa' }}>
+            Built for CrossFit boxes and boutique gyms across the GCC.
+          </div>
+        </div>
+
+        <div style={{ position: 'relative', display: 'flex', gap: 18, alignItems: 'center', fontSize: 12, color: 'rgba(250,250,250,0.6)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--circle-lime)', boxShadow: '0 0 10px var(--circle-lime)' }} />
+            <span className="mono" style={{ letterSpacing: '0.06em', textTransform: 'uppercase' }}>Live platform</span>
+          </div>
+          <div style={{ width: 1, height: 14, background: '#333' }} />
+          <span className="mono">UAE · KSA · Qatar · Kuwait</span>
+        </div>
+      </aside>
+    </div>
   )
 }

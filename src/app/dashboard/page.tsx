@@ -33,6 +33,16 @@ export default async function DashboardPage() {
               Members →
             </Link>
           )}
+          {['owner', 'coach'].includes(profile.role) && (
+            <Link href="/dashboard/classes"
+              className="text-sm text-primary underline-offset-4 hover:underline">
+              Class Schedule →
+            </Link>
+          )}
+          <Link href="/dashboard/schedule"
+            className="text-sm text-primary underline-offset-4 hover:underline">
+            Book a Class →
+          </Link>
         </div>
         <SignOutButton />
       </div>

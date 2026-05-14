@@ -49,6 +49,22 @@ export default async function DashboardPage() {
               Whiteboard →
             </Link>
           )}
+          {['owner', 'coach'].includes(profile.role) && (
+            <Link href="/dashboard/wod"
+              className="text-sm text-primary underline-offset-4 hover:underline">
+              Daily WOD →
+            </Link>
+          )}
+          <Link href="/dashboard/lifts"
+            className="text-sm text-primary underline-offset-4 hover:underline">
+            My 1RMs →
+          </Link>
+          {profile.role === 'owner' && (
+            <Link href="/dashboard/payments"
+              className="text-sm text-primary underline-offset-4 hover:underline">
+              Payments →
+            </Link>
+          )}
         </div>
         <SignOutButton />
       </div>

@@ -92,7 +92,7 @@ export default async function WhiteboardPage() {
         </Link>
       </div>
 
-      {instances?.length === 0 && (
+      {(!instances || instances.length === 0) && (
         <div className="text-center text-gray-500 mt-24 text-lg">
           No classes scheduled for today.
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CircleMark } from '@/components/circle-mark'
 
@@ -9,6 +9,12 @@ export default function LoginPage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const err = params.get('error')
+    if (err) setError(`Auth failed: ${err}`)
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

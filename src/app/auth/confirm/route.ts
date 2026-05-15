@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.verifyOtp({ type, token_hash })
     if (!error) return redirectResponse
+    return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, request.url))
   }
 
-  return NextResponse.redirect(new URL('/?error=auth_failed', request.url))
+  return NextResponse.redirect(new URL('/?error=missing_token', request.url))
 }

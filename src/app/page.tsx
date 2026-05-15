@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { CircleMark } from '@/components/circle-mark'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -37,17 +38,17 @@ export default function LoginPage() {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 9,
           fontFamily: 'var(--font-space-grotesk)', fontWeight: 700,
-          fontSize: 18, letterSpacing: '0.02em', textTransform: 'uppercase',
+          fontSize: 18, letterSpacing: '0.04em', textTransform: 'uppercase',
           color: 'var(--c-ink)',
         }}>
-          <span className="circle-mark" />
+          <CircleMark size={24} />
           <span>Circle</span>
         </div>
 
         {/* Form body */}
         <div style={{ maxWidth: 380, width: '100%' }}>
           {submitted ? (
-            <>
+            <div className="c-stage-in">
               <div style={{
                 width: 52, height: 52, borderRadius: '50%',
                 background: 'var(--circle-lime-soft)',
@@ -83,9 +84,9 @@ export default function LoginPage() {
                   color: 'var(--c-ink-2)',
                 }}
               >← Use a different email</button>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="c-stage-in">
               <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Sign in</div>
               <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 38, lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 8, color: 'var(--c-ink)' }}>
                 The best hour<br />of your day.
@@ -134,7 +135,7 @@ export default function LoginPage() {
                 New to Circle?{' '}
                 <span style={{ color: 'var(--c-ink)', fontWeight: 600 }}>Ask your coach for an invite</span>.
               </p>
-            </>
+            </div>
           )}
         </div>
 
@@ -181,7 +182,7 @@ export default function LoginPage() {
 
         <div style={{ position: 'relative', display: 'flex', gap: 18, alignItems: 'center', fontSize: 12, color: 'rgba(250,250,250,0.6)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--circle-lime)', boxShadow: '0 0 10px var(--circle-lime)' }} />
+            <span className="c-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--circle-lime)', flexShrink: 0 }} />
             <span className="mono" style={{ letterSpacing: '0.06em', textTransform: 'uppercase' }}>Live platform</span>
           </div>
           <div style={{ width: 1, height: 14, background: '#333' }} />

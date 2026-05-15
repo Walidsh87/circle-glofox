@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CheckInButton } from './_components/checkin-button'
+import { CircleMark } from '@/components/circle-mark'
 
 const TIMEZONE_OFFSETS: Record<string, number> = {
   'Asia/Dubai':   4,
@@ -87,7 +88,7 @@ export default async function WhiteboardPage() {
           fontSize: 17, letterSpacing: '0.02em', textTransform: 'uppercase',
           color: 'var(--c-ink)',
         }}>
-          <span className="circle-mark circle-mark-on-dark" />
+          <CircleMark size={22} onDark />
           <span>Circle</span>
           <span className="mono" style={{
             fontSize: 11, color: 'var(--circle-lime)', marginLeft: 8,
@@ -99,7 +100,7 @@ export default async function WhiteboardPage() {
         <div style={{ width: 1, height: 26, background: 'var(--c-border)' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--circle-lime)', boxShadow: '0 0 12px var(--circle-lime)' }} />
+          <span className="c-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--circle-lime)', flexShrink: 0 }} />
           <span className="mono" style={{ fontSize: 13, color: 'var(--c-ink)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             Live · {box?.name}
           </span>

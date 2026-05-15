@@ -76,6 +76,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
   }
 }
 
@@ -131,7 +134,69 @@
 }
 
 /* Mono numbers */
-.mono {
+.mono, [data-mono] {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-feature-settings: "tnum" 1, "zero" 1;
 }
+
+/* Motion — prefers-reduced-motion kills all durations */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Motion tokens */
+:root {
+  --t-fast: 120ms;
+  --t-med: 200ms;
+  --t-slow: 320ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.2, 0.4, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Live indicator — Whiteboard breathing pulse */
+@keyframes c-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--circle-lime), 0 0 12px var(--circle-lime); opacity: 1; }
+  50%       { box-shadow: 0 0 0 6px rgba(192,224,80,0); opacity: 0.85; }
+}
+.c-pulse { animation: c-pulse 2.2s ease-in-out infinite; }
+
+/* Working-athlete dot */
+@keyframes c-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+.c-breathe { animation: c-breathe 1.6s ease-in-out infinite; }
+
+/* Stage enter — opacity + 8px translate + blur (Jakub recipe) */
+@keyframes c-stage-in {
+  from { opacity: 0; transform: translateY(8px); filter: blur(6px); }
+  to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
+}
+.c-stage-in { animation: c-stage-in 380ms var(--ease-spring) both; }
+
+/* Stage exit */
+@keyframes c-stage-out {
+  from { opacity: 1; transform: translateY(0);   filter: blur(0); }
+  to   { opacity: 0; transform: translateY(-4px); filter: blur(4px); }
+}
+.c-stage-out { animation: c-stage-out 200ms var(--ease-in) both; }
+
+/* Soft fade-up for row appearance */
+@keyframes c-fade-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.c-fade-up { animation: c-fade-up 240ms var(--ease-out) both; }
+
+/* PR celebration glow */
+@keyframes c-pr {
+  0%   { box-shadow: 0 0 0 0 var(--circle-lime), 0 0 0 0 var(--circle-lime); }
+  60%  { box-shadow: 0 0 0 8px rgba(192,224,80,0.35), 0 0 24px rgba(192,224,80,0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(192,224,80,0), 0 0 0 0 rgba(192,224,80,0); }
+}
+.c-pr { animation: c-pr 1.4s ease-out; }

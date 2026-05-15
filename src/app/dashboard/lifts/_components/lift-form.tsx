@@ -2,16 +2,34 @@
 
 import { useFormState, useFormStatus } from 'react-dom'
 import { saveLift } from '../_actions/save-lift'
-import { Button } from '@/components/ui/button'
 import { useEffect, useRef } from 'react'
 import { LIFT_NAMES } from '../_lib/lift-names'
+
+const inputStyle: React.CSSProperties = {
+  height: 38, padding: '0 12px',
+  border: '1px solid var(--c-border-strong)', borderRadius: 8,
+  background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)',
+  fontFamily: 'inherit', outline: 'none',
+}
 
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" size="sm" disabled={pending}>
-      {pending ? 'Saving...' : 'Save 1RM'}
-    </Button>
+    <button
+      type="submit"
+      disabled={pending}
+      style={{
+        height: 38, padding: '0 18px',
+        background: pending ? 'var(--c-surface-alt)' : 'var(--circle-lime)',
+        border: 'none', borderRadius: 8,
+        fontSize: 13.5, fontWeight: 700, cursor: pending ? 'not-allowed' : 'pointer',
+        color: pending ? 'var(--c-ink-muted)' : 'var(--circle-ink)',
+        letterSpacing: '0.01em',
+        transition: 'opacity 120ms',
+      }}
+    >
+      {pending ? 'Saving…' : 'Save 1RM'}
+    </button>
   )
 }
 
@@ -28,14 +46,12 @@ export function LiftForm({ lifts }: { lifts: Lift[] }) {
   const liftMap = Object.fromEntries(lifts.map((l) => [l.lift_name, l.one_rm_grams / 1000]))
 
   return (
-    <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-3">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Lift</label>
-        <select
-          name="liftName"
-          required
-          className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
+    <form ref={formRef} action={formAction} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <label className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          Lift
+        </label>
+        <select name="liftName" required style={{ ...inputStyle, minWidth: 200, paddingRight: 8 }}>
           <option value="">Select lift</option>
           {LIFT_NAMES.map((l) => (
             <option key={l.value} value={l.value}>
@@ -44,22 +60,26 @@ export function LiftForm({ lifts }: { lifts: Lift[] }) {
           ))}
         </select>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">1RM (kg)</label>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <label className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          1RM (kg)
+        </label>
         <input
           name="weightKg"
           type="number"
-          min={1}
-          max={500}
-          step={0.5}
+          min={1} max={500} step={0.5}
           required
           placeholder="e.g. 100"
-          className="w-28 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          style={{ ...inputStyle, width: 110 }}
         />
       </div>
-      <div className="flex items-center gap-3 pb-0.5">
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <SubmitButton />
-        {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+        {state.error && (
+          <span style={{ fontSize: 12.5, color: 'var(--c-danger)' }}>{state.error}</span>
+        )}
       </div>
     </form>
   )

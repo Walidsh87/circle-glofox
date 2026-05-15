@@ -70,7 +70,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
 
   const { data: wod } = await supabase
     .from('workouts')
-    .select('id, title, description, scoring_type')
+    .select('id, title, description, scoring_type, strength_title, strength_description')
     .eq('box_id', profile.box_id)
     .eq('date', date)
     .single()
@@ -129,6 +129,27 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
               }}>Next →</Link>
             </div>
 
+            {/* Strength card */}
+            {wod?.strength_title && (
+              <div style={{
+                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                borderRadius: 14, padding: '20px 24px', marginBottom: 12,
+                boxShadow: 'var(--c-shadow-sm)',
+              }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                  Strength
+                </div>
+                <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 22, fontWeight: 700, color: 'var(--c-ink)', letterSpacing: '-0.02em', marginBottom: wod.strength_description ? 10 : 0 }}>
+                  {wod.strength_title}
+                </div>
+                {wod.strength_description && (
+                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-geist-mono)', fontSize: 13.5, color: 'var(--c-ink-2)', lineHeight: 1.7, margin: 0 }}>
+                    {wod.strength_description}
+                  </pre>
+                )}
+              </div>
+            )}
+
             {/* WOD card */}
             {wod && (
               <div style={{
@@ -171,7 +192,13 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 14 }}>
                   {wod ? 'Edit WOD' : 'Post WOD'}
                 </p>
-                <WodForm date={date} existing={wod ?? null} />
+                <WodForm date={date} existing={wod ? {
+                  title: wod.title,
+                  description: wod.description,
+                  scoring_type: wod.scoring_type,
+                  strength_title: wod.strength_title,
+                  strength_description: wod.strength_description,
+                } : null} />
               </div>
             )}
 

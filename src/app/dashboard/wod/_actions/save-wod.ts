@@ -11,6 +11,8 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
   const title = (formData.get('title') as string)?.trim()
   const description = (formData.get('description') as string)?.trim()
   const scoringType = formData.get('scoringType') as string
+  const strengthTitle = (formData.get('strengthTitle') as string)?.trim() || null
+  const strengthDescription = (formData.get('strengthDescription') as string)?.trim() || null
 
   if (!date || !title || !description || !scoringType) {
     return { error: 'All fields are required.' }
@@ -42,6 +44,8 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
       title,
       description,
       scoring_type: scoringType,
+      strength_title: strengthTitle,
+      strength_description: strengthDescription,
       created_by: user.id,
     },
     { onConflict: 'box_id,date' }

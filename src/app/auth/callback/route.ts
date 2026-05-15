@@ -40,9 +40,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, request.url))
   }
 
-  // Debug: show what params actually arrived
-  const allParams = Object.fromEntries(searchParams.entries())
-  return NextResponse.redirect(
-    new URL(`/?error=${encodeURIComponent('no_params: ' + JSON.stringify(allParams))}`, request.url)
-  )
+  return NextResponse.redirect(new URL('/?error=missing_token', request.url))
 }

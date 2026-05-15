@@ -160,7 +160,7 @@
 
 /* Live indicator — Whiteboard breathing pulse */
 @keyframes c-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 var(--circle-lime), 0 0 12px var(--circle-lime); opacity: 1; }
+  0%, 100% { box-shadow: 0 0 0 0 #C0E050, 0 0 12px #C0E050; opacity: 1; }
   50%       { box-shadow: 0 0 0 6px rgba(192,224,80,0); opacity: 0.85; }
 }
 .c-pulse { animation: c-pulse 2.2s ease-in-out infinite; }
@@ -172,30 +172,30 @@
 }
 .c-breathe { animation: c-breathe 1.6s ease-in-out infinite; }
 
-/* Stage enter — opacity + 8px translate + blur (Jakub recipe) */
+/* Stage enter — opacity + 8px translate + blur */
 @keyframes c-stage-in {
-  from { opacity: 0; transform: translateY(8px); filter: blur(6px); }
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
   to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
 }
-.c-stage-in { animation: c-stage-in 380ms var(--ease-spring) both; }
+.c-stage-in { animation: c-stage-in 360ms cubic-bezier(0.34, 1.2, 0.4, 1) both; }
 
 /* Stage exit */
 @keyframes c-stage-out {
   from { opacity: 1; transform: translateY(0);   filter: blur(0); }
   to   { opacity: 0; transform: translateY(-4px); filter: blur(4px); }
 }
-.c-stage-out { animation: c-stage-out 200ms var(--ease-in) both; }
+.c-stage-out { animation: c-stage-out 200ms cubic-bezier(0.4, 0, 1, 1) both; }
 
 /* Soft fade-up for row appearance */
 @keyframes c-fade-up {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.c-fade-up { animation: c-fade-up 240ms var(--ease-out) both; }
+.c-fade-up { animation: c-fade-up 240ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /* PR celebration glow */
 @keyframes c-pr {
-  0%   { box-shadow: 0 0 0 0 var(--circle-lime), 0 0 0 0 var(--circle-lime); }
+  0%   { box-shadow: 0 0 0 0 #C0E050, 0 0 0 0 #C0E050; }
   60%  { box-shadow: 0 0 0 8px rgba(192,224,80,0.35), 0 0 24px rgba(192,224,80,0.4); }
   100% { box-shadow: 0 0 0 0 rgba(192,224,80,0), 0 0 0 0 rgba(192,224,80,0); }
 }

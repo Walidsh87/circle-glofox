@@ -5,33 +5,44 @@ import { createServerClient } from '@supabase/ssr'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
-  const type = searchParams.get('type') as EmailOtpType | null
-  const next = searchParams.get('next') ?? '/dashboard'
+  const type       = searchParams.get('type') as EmailOtpType | null
+  const code       = searchParams.get('code')
+  const next       = searchParams.get('next') ?? '/dashboard'
 
-  if (token_hash && type) {
-    const redirectResponse = NextResponse.redirect(new URL(next, request.url))
+  const redirectResponse = NextResponse.redirect(new URL(next, request.url))
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              redirectResponse.cookies.set(name, value, options)
-            )
-          },
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return request.cookies.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            redirectResponse.cookies.set(name, value, options)
+          )
         },
-      }
-    )
+      },
+    }
+  )
 
+  // PKCE code exchange (newer Supabase flow)
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) return redirectResponse
+    return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, request.url))
+  }
+
+  // OTP token_hash flow (older / implicit flow)
+  if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash })
     if (!error) return redirectResponse
     return NextResponse.redirect(new URL(`/?error=${encodeURIComponent(error.message)}`, request.url))
   }
 
-  return NextResponse.redirect(new URL('/?error=missing_token', request.url))
+  // Debug: show what params actually arrived
+  const allParams = Object.fromEntries(searchParams.entries())
+  return NextResponse.redirect(
+    new URL(`/?error=${encodeURIComponent('no_params: ' + JSON.stringify(allParams))}`, request.url)
+  )
 }

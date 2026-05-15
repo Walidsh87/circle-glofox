@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 
 export function SignOutButton() {
   const router = useRouter()
@@ -14,8 +13,18 @@ export function SignOutButton() {
   }
 
   return (
-    <Button variant="outline" onClick={handleSignOut}>
+    <button
+      onClick={handleSignOut}
+      style={{
+        height: 32, padding: '0 14px',
+        background: 'transparent',
+        border: '1px solid var(--c-border)',
+        borderRadius: 8, cursor: 'pointer',
+        fontSize: 13, fontWeight: 500,
+        color: 'var(--c-ink-2)', fontFamily: 'inherit',
+      }}
+    >
       Sign out
-    </Button>
+    </button>
   )
 }

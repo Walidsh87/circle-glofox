@@ -30,18 +30,20 @@ export function CheckInButton({
     <button
       onClick={handleTap}
       disabled={loading || done}
-      className={`
-        w-full rounded-xl px-4 py-4 text-left font-semibold text-base transition-colors
-        ${done
-          ? 'bg-green-100 text-green-700 cursor-default'
-          : 'bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-800'}
-      `}
+      style={{
+        width: '100%', borderRadius: 12, padding: '14px 16px',
+        textAlign: 'left', fontWeight: 600, fontSize: 15,
+        cursor: done ? 'default' : 'pointer',
+        background: done ? 'var(--c-ok-soft)' : 'var(--c-surface-alt)',
+        border: `1px solid ${done ? 'var(--c-ok-soft)' : 'var(--c-border)'}`,
+        color: done ? 'var(--c-ok-ink)' : 'var(--c-ink)',
+        fontFamily: 'inherit', transition: 'background 150ms',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}
     >
-      <span className="flex items-center gap-3">
-        {done && <span className="text-green-500">✓</span>}
-        {athleteName}
-        {loading && <span className="text-xs text-gray-400 ml-auto">...</span>}
-      </span>
+      {done && <span style={{ fontSize: 14 }}>✓</span>}
+      <span style={{ flex: 1 }}>{athleteName}</span>
+      {loading && <span style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>…</span>}
     </button>
   )
 }

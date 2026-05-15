@@ -2,14 +2,12 @@
 
 import { useState } from 'react'
 import { generateInstances } from '../_actions/generate-instances'
-import { Button } from '@/components/ui/button'
 
 export function GenerateForm() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Default to today's date
   const today = new Date().toISOString().split('T')[0]
   const [startDate, setStartDate] = useState(today)
 
@@ -27,26 +25,42 @@ export function GenerateForm() {
   }
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <div className="flex items-center gap-2">
-        <label className="text-sm text-gray-600">Start date</label>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>Start date</label>
         <input
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          style={{
+            height: 34, padding: '0 10px',
+            border: '1px solid var(--c-border-strong)', borderRadius: 8,
+            background: 'var(--c-surface)', fontSize: 13, color: 'var(--c-ink)',
+            fontFamily: 'inherit', outline: 'none',
+          }}
         />
       </div>
-      <Button size="sm" onClick={handleGenerate} disabled={loading || !startDate}>
-        {loading ? 'Generating...' : 'Generate 7 days'}
-      </Button>
+      <button
+        onClick={handleGenerate}
+        disabled={loading || !startDate}
+        style={{
+          height: 34, padding: '0 16px',
+          background: loading || !startDate ? 'var(--c-surface-alt)' : 'var(--circle-lime)',
+          border: 'none', borderRadius: 8,
+          fontSize: 13, fontWeight: 700, cursor: loading || !startDate ? 'not-allowed' : 'pointer',
+          color: loading || !startDate ? 'var(--c-ink-muted)' : 'var(--circle-ink)',
+          fontFamily: 'inherit', transition: 'opacity 120ms',
+        }}
+      >
+        {loading ? 'Generating…' : 'Generate 7 days'}
+      </button>
       {result && (
-        <p className="text-sm text-gray-600">
+        <span style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>
           {result.created} instance{result.created !== 1 ? 's' : ''} created
           {result.skipped > 0 ? `, ${result.skipped} already existed` : ''}.
-        </p>
+        </span>
       )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <span style={{ fontSize: 13, color: 'var(--c-danger)' }}>{error}</span>}
     </div>
   )
 }

@@ -2,26 +2,34 @@
 
 import { useState } from 'react'
 import { markPaid, markUnpaid } from '../_actions/mark-paid'
-import { Button } from '@/components/ui/button'
 
 export function PaymentActions({ membershipId, currentStatus }: { membershipId: string; currentStatus: string }) {
   const [loading, setLoading] = useState(false)
+  const isPaid = currentStatus === 'paid'
 
   async function handleToggle() {
     setLoading(true)
-    const { error } = currentStatus === 'paid'
-      ? await markUnpaid(membershipId)
-      : await markPaid(membershipId)
+    const { error } = isPaid ? await markUnpaid(membershipId) : await markPaid(membershipId)
     if (error) alert(error)
     setLoading(false)
   }
 
   return (
-    <Button variant="ghost" size="sm" onClick={handleToggle} disabled={loading}
-      className={currentStatus === 'paid'
-        ? 'text-gray-500 hover:text-gray-700'
-        : 'text-green-600 hover:text-green-700 hover:bg-green-50'}>
-      {loading ? '...' : currentStatus === 'paid' ? 'Mark unpaid' : 'Mark paid'}
-    </Button>
+    <button
+      onClick={handleToggle}
+      disabled={loading}
+      style={{
+        height: 30, padding: '0 12px',
+        background: 'transparent',
+        border: '1px solid var(--c-border)',
+        borderRadius: 6, cursor: loading ? 'not-allowed' : 'pointer',
+        fontSize: 12.5, fontWeight: 500,
+        color: isPaid ? 'var(--c-ink-muted)' : 'var(--c-ok-ink)',
+        fontFamily: 'inherit', transition: 'opacity 120ms',
+        opacity: loading ? 0.5 : 1,
+      }}
+    >
+      {loading ? '…' : isPaid ? 'Mark unpaid' : 'Mark paid'}
+    </button>
   )
 }

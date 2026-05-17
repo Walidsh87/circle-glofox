@@ -43,6 +43,7 @@ These were committed in a stress-test session. You enforce them.
 - ❌ Offline-first / sync engines
 - ❌ Athlete personal-phone logging (whiteboard tablet only for v1)
 
+
 ## Tech stack (locked)
 - Next.js 14 App Router + TypeScript
 - Supabase (Postgres + Auth + RLS)

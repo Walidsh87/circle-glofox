@@ -1,33 +1,45 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CircleMark } from '@/components/circle-mark'
 
+type Step = 'email' | 'code'
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [step, setStep]       = useState<Step>('email')
+  const [email, setEmail]     = useState('')
+  const [code, setCode]       = useState('')
+  const [error, setError]     = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const err = params.get('error')
-    if (err) setError(`Auth failed: ${err}`)
-  }, [])
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSendCode(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    })
+    const { error } = await supabase.auth.signInWithOtp({ email })
     setLoading(false)
     if (error) setError(error.message)
-    else setSubmitted(true)
+    else setStep('code')
+  }
+
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    const supabase = createClient()
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code.trim(),
+      type: 'email',
+    })
+    setLoading(false)
+    if (error) {
+      setError(error.message)
+    } else {
+      window.location.href = '/dashboard'
+    }
   }
 
   return (
@@ -53,55 +65,17 @@ export default function LoginPage() {
 
         {/* Form body */}
         <div style={{ maxWidth: 380, width: '100%' }}>
-          {submitted ? (
-            <div className="c-stage-in">
-              <div style={{
-                width: 52, height: 52, borderRadius: '50%',
-                background: 'var(--circle-lime-soft)',
-                border: '1px solid var(--circle-lime)',
-                display: 'grid', placeItems: 'center', marginBottom: 22,
-              }}>
-                <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--circle-lime-ink)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" />
-                </svg>
-              </div>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Check your inbox</div>
-              <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 32, letterSpacing: '-0.025em', marginBottom: 12, color: 'var(--c-ink)' }}>
-                Magic link sent.
-              </h1>
-              <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 22 }}>
-                We sent a sign-in link to{' '}
-                <span className="mono" style={{ color: 'var(--c-ink)', fontWeight: 600 }}>{email}</span>.
-                The link expires in 15 minutes.
-              </p>
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', gap: 10,
-              }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--circle-lime)', flexShrink: 0 }} />
-                <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-2)' }}>Waiting for you to click the link…</span>
-              </div>
-              <button
-                onClick={() => setSubmitted(false)}
-                style={{
-                  marginTop: 14, background: 'none',
-                  border: '1px solid var(--c-border)', borderRadius: 8,
-                  padding: '8px 14px', fontSize: 13, cursor: 'pointer',
-                  color: 'var(--c-ink-2)',
-                }}
-              >← Use a different email</button>
-            </div>
-          ) : (
+          {step === 'email' ? (
             <div className="c-stage-in">
               <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Sign in</div>
               <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 38, lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 8, color: 'var(--c-ink)' }}>
                 The best hour<br />of your day.
               </h1>
               <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 32 }}>
-                Enter your email and we&apos;ll send a magic link. No password needed.
+                Enter your email and we&apos;ll send a 6-digit sign-in code.
               </p>
 
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form onSubmit={handleSendCode} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <label>
                   <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Email</div>
                   <input
@@ -114,7 +88,7 @@ export default function LoginPage() {
                       width: '100%', height: 46, padding: '0 14px',
                       border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
                       background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
-                      fontFamily: 'inherit', outline: 'none',
+                      fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
                     }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
                     onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
@@ -130,10 +104,9 @@ export default function LoginPage() {
                     fontSize: 14.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
                     color: 'var(--circle-ink)', letterSpacing: '0.01em',
                     opacity: loading ? 0.7 : 1, transition: 'opacity .12s',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
                 >
-                  {loading ? 'Sending…' : 'Send magic link →'}
+                  {loading ? 'Sending…' : 'Send code →'}
                 </button>
               </form>
 
@@ -141,6 +114,77 @@ export default function LoginPage() {
                 New to Circle?{' '}
                 <span style={{ color: 'var(--c-ink)', fontWeight: 600 }}>Ask your coach for an invite</span>.
               </p>
+            </div>
+          ) : (
+            <div className="c-stage-in">
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: 'var(--circle-lime-soft)',
+                border: '1px solid var(--circle-lime)',
+                display: 'grid', placeItems: 'center', marginBottom: 22,
+              }}>
+                <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--circle-lime-ink)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" />
+                </svg>
+              </div>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Check your inbox</div>
+              <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 32, letterSpacing: '-0.025em', marginBottom: 12, color: 'var(--c-ink)' }}>
+                Enter your code.
+              </h1>
+              <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 24 }}>
+                We sent a 6-digit code to{' '}
+                <span className="mono" style={{ color: 'var(--c-ink)', fontWeight: 600 }}>{email}</span>.
+              </p>
+
+              <form onSubmit={handleVerifyCode} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <label>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>6-digit code</div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    required
+                    placeholder="123456"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    style={{
+                      width: '100%', height: 54, padding: '0 14px',
+                      border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
+                      background: 'var(--c-surface)', fontSize: 28, color: 'var(--c-ink)',
+                      fontFamily: 'var(--font-geist-mono)', outline: 'none',
+                      letterSpacing: '0.2em', textAlign: 'center', boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
+                    autoFocus
+                  />
+                </label>
+                {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading || code.length !== 6}
+                  style={{
+                    height: 46, background: 'var(--circle-lime)',
+                    border: 'none', borderRadius: 10,
+                    fontSize: 14.5, fontWeight: 700,
+                    cursor: (loading || code.length !== 6) ? 'not-allowed' : 'pointer',
+                    color: 'var(--circle-ink)', letterSpacing: '0.01em',
+                    opacity: (loading || code.length !== 6) ? 0.6 : 1, transition: 'opacity .12s',
+                  }}
+                >
+                  {loading ? 'Verifying…' : 'Sign in →'}
+                </button>
+              </form>
+
+              <button
+                onClick={() => { setStep('email'); setCode(''); setError(null) }}
+                style={{
+                  marginTop: 14, background: 'none',
+                  border: '1px solid var(--c-border)', borderRadius: 8,
+                  padding: '8px 14px', fontSize: 13, cursor: 'pointer',
+                  color: 'var(--c-ink-2)', width: '100%',
+                }}
+              >← Use a different email</button>
             </div>
           )}
         </div>
@@ -162,7 +206,6 @@ export default function LoginPage() {
         padding: 48, display: 'flex', flexDirection: 'column',
         justifyContent: 'space-between',
       }}>
-        {/* Decorative rings */}
         <div style={{ position: 'absolute', right: -160, top: -160, width: 520, height: 520, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.35 }} />
         <div style={{ position: 'absolute', right: -80, bottom: -180, width: 360, height: 360, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.2 }} />
         <div style={{ position: 'absolute', right: 80, top: 80, transform: 'rotate(20deg)', width: 6, height: 380, background: '#B0B0B0', opacity: 0.25 }} />

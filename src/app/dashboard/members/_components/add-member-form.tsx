@@ -31,7 +31,7 @@ function SubmitButton() {
   )
 }
 
-export function AddMemberForm() {
+export function AddMemberForm({ defaultRole = 'athlete' }: { defaultRole?: 'athlete' | 'coach' }) {
   const [state, formAction] = useFormState(addMember, { error: null })
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -46,7 +46,7 @@ export function AddMemberForm() {
       <input name="fullName" type="text" required placeholder="Full name" style={{ ...inputStyle, width: 180 }} />
       <input name="email" type="email" required placeholder="Email" style={{ ...inputStyle, width: 200 }} />
       <input name="phone" type="tel" placeholder="Phone (optional)" style={{ ...inputStyle, width: 160 }} />
-      <select name="role" required defaultValue="athlete" style={{ ...inputStyle, width: 120 }}>
+      <select name="role" required defaultValue={defaultRole} style={{ ...inputStyle, width: 120 }}>
         <option value="athlete">Athlete</option>
         <option value="coach">Coach</option>
       </select>

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { removeMember } from '../_actions/remove-member'
-import { Button } from '@/components/ui/button'
 
 export function RemoveMemberButton({ memberId, memberName }: { memberId: string; memberName: string }) {
   const [loading, setLoading] = useState(false)
@@ -16,9 +15,17 @@ export function RemoveMemberButton({ memberId, memberName }: { memberId: string;
   }
 
   return (
-    <Button variant="ghost" size="sm" onClick={handleRemove} disabled={loading}
-      className="text-destructive hover:text-destructive hover:bg-destructive/10">
-      {loading ? 'Removing...' : 'Remove'}
-    </Button>
+    <button
+      onClick={handleRemove}
+      disabled={loading}
+      style={{
+        padding: '4px 12px', borderRadius: 7, fontSize: 12.5,
+        background: 'none', border: '1px solid var(--c-border)',
+        color: loading ? 'var(--c-ink-muted)' : 'var(--c-danger)',
+        cursor: loading ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {loading ? 'Removing…' : 'Remove'}
+    </button>
   )
 }

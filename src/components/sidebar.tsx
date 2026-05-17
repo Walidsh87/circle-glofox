@@ -99,8 +99,13 @@ export function Sidebar({
     router.push('/')
   }
 
+  // Flatten nav items for mobile bottom bar (first 4 most relevant)
+  const allItems = groups.flatMap((g) => g.items)
+  const mobileItems = allItems.slice(0, 4)
+
   return (
-    <aside style={{
+    <>
+    <aside className="c-sidebar" style={{
       width: 248,
       borderRight: '1px solid var(--c-border)',
       padding: '20px 14px',
@@ -226,5 +231,28 @@ export function Sidebar({
         </button>
       </div>
     </aside>
+
+    {/* Mobile bottom nav */}
+    <nav className="c-mobile-nav" style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+      background: 'var(--c-surface)', borderTop: '1px solid var(--c-border)',
+      padding: '8px 0 env(safe-area-inset-bottom, 8px)',
+      justifyContent: 'space-around', alignItems: 'center',
+    }}>
+      {mobileItems.map((item) => {
+        const on = item.key === active
+        return (
+          <a key={item.key} href={item.href} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+            padding: '4px 12px', borderRadius: 8, textDecoration: 'none',
+            color: on ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)',
+          }}>
+            <CIcon name={item.icon} size={22} />
+            <span style={{ fontSize: 10, fontWeight: on ? 700 : 500 }}>{item.label}</span>
+          </a>
+        )
+      })}
+    </nav>
+    </>
   )
 }

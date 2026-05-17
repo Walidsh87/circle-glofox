@@ -42,7 +42,7 @@ export default async function LiftsPage() {
           </h1>
         </header>
 
-        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
+        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
           <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Log form */}
             <div style={{

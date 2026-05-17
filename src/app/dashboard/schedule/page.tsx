@@ -74,7 +74,7 @@ export default async function SchedulePage() {
           </h1>
         </header>
 
-        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
+        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
           {grouped.size === 0 && (
             <div style={{
               background: 'var(--c-surface)', border: '1px solid var(--c-border)',

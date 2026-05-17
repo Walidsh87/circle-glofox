@@ -99,7 +99,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
           </h1>
         </header>
 
-        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
+        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
           <div style={{ maxWidth: 640 }}>
             {/* Date navigation */}
             <div style={{

@@ -156,7 +156,8 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
 
       {/* Table */}
       {oneRmKg && (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 320 }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-surface-sunk)' }}>
               <Th style={{ width: 88 }}>Zone</Th>
@@ -219,6 +220,7 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

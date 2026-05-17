@@ -76,10 +76,7 @@ export default async function MembersPage() {
                 {members?.map((member) => (
                   <tr key={member.id} style={{ borderBottom: '1px solid var(--c-divider)' }}>
                     <td style={{ padding: '12px 16px', fontWeight: 600 }}>
-                      <Link href={`/dashboard/members/${member.id}`} style={{ color: 'var(--c-ink)', textDecoration: 'none' }}
-                        onMouseOver={(e) => (e.currentTarget.style.color = 'var(--circle-lime-ink)')}
-                        onMouseOut={(e) => (e.currentTarget.style.color = 'var(--c-ink)')}
-                      >
+                      <Link href={`/dashboard/members/${member.id}`} className="member-link" style={{ color: 'var(--c-ink)', textDecoration: 'none' }}>
                         {member.full_name}
                       </Link>
                     </td>

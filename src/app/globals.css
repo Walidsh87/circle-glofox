@@ -6,6 +6,9 @@
   .text-balance {
     text-wrap: balance;
   }
+  .member-link:hover {
+    color: var(--circle-lime-ink) !important;
+  }
 }
 
 @layer base {

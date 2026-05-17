@@ -30,7 +30,7 @@ export default async function PaymentsPage() {
   const [{ data: memberships }, { data: athletes }] = await Promise.all([
     supabase
       .from('memberships')
-      .select('id, plan_name, monthly_price_aed, start_date, payment_status, last_paid_date, profiles(full_name)')
+      .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, profiles(full_name)')
       .eq('box_id', profile.box_id)
       .order('payment_status')
       .order('start_date', { ascending: false }),
@@ -45,6 +45,11 @@ export default async function PaymentsPage() {
   const unpaidCount = memberships?.filter((m) => m.payment_status !== 'paid').length ?? 0
   const paidCount = memberships?.filter((m) => m.payment_status === 'paid').length ?? 0
   const overdueCount = memberships?.filter((m) => m.payment_status === 'overdue').length ?? 0
+
+  const active = memberships?.filter((m) => !m.end_date) ?? []
+  const mrr = active.reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
+  const collected = active.filter((m) => m.payment_status === 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
+  const outstanding = active.filter((m) => m.payment_status !== 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
@@ -72,7 +77,28 @@ export default async function PaymentsPage() {
         </header>
 
         <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          {/* KPI strip */}
+          {/* Revenue summary */}
+          <div style={{
+            background: 'var(--circle-ink)', borderRadius: 16, padding: '20px 24px',
+            marginBottom: 16, position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', right: -60, top: -60, width: 200, height: 200, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.15 }} />
+            <div className="mono" style={{ fontSize: 10.5, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
+              Revenue Summary
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, position: 'relative' }}>
+              <RevenueKpi label="MRR" value={mrr} />
+              <RevenueKpi label="Collected" value={collected} accent />
+              <RevenueKpi label="Outstanding" value={outstanding} warn />
+              <div>
+                <div className="mono" style={{ fontSize: 10.5, color: 'rgba(250,250,250,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Active</div>
+                <div className="mono" style={{ fontSize: 28, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em' }}>{active.length}</div>
+                <div style={{ fontSize: 11, color: 'rgba(250,250,250,0.4)', marginTop: 2 }}>members</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Status KPI strip */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20, maxWidth: 500 }}>
             <KpiCard label="Paid" value={paidCount} variant="ok" />
             <KpiCard label="Unpaid" value={unpaidCount} variant="warn" />
@@ -170,6 +196,19 @@ function KpiCard({ label, value, variant }: { label: string; value: number; vari
     <div style={{ padding: '14px 16px', borderRadius: 12, background: styles.bg }}>
       <div className="mono" style={{ fontSize: 10.5, color: styles.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
       <div className="mono" style={{ fontSize: 26, color: styles.color, marginTop: 4, letterSpacing: '-0.02em', fontWeight: 700 }}>{value}</div>
+    </div>
+  )
+}
+
+function RevenueKpi({ label, value, accent, warn }: { label: string; value: number; accent?: boolean; warn?: boolean }) {
+  const color = accent ? 'var(--circle-lime)' : warn ? 'var(--c-danger-soft)' : '#fafafa'
+  return (
+    <div>
+      <div className="mono" style={{ fontSize: 10.5, color: 'rgba(250,250,250,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
+      <div className="mono" style={{ fontSize: 28, fontWeight: 700, color, letterSpacing: '-0.02em' }}>
+        {Math.round(value).toLocaleString('en-US')}
+      </div>
+      <div style={{ fontSize: 11, color: 'rgba(250,250,250,0.4)', marginTop: 2 }}>AED / mo</div>
     </div>
   )
 }

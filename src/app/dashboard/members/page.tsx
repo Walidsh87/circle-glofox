@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { AddMemberForm } from './_components/add-member-form'
 import { RemoveMemberButton } from './_components/remove-member-button'
@@ -74,7 +75,14 @@ export default async function MembersPage() {
               <tbody>
                 {members?.map((member) => (
                   <tr key={member.id} style={{ borderBottom: '1px solid var(--c-divider)' }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--c-ink)' }}>{member.full_name}</td>
+                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>
+                      <Link href={`/dashboard/members/${member.id}`} style={{ color: 'var(--c-ink)', textDecoration: 'none' }}
+                        onMouseOver={(e) => (e.currentTarget.style.color = 'var(--circle-lime-ink)')}
+                        onMouseOut={(e) => (e.currentTarget.style.color = 'var(--c-ink)')}
+                      >
+                        {member.full_name}
+                      </Link>
+                    </td>
                     <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{member.email}</td>
                     <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{member.phone ?? '—'}</td>
                     <td style={{ padding: '12px 16px' }}>

@@ -28,13 +28,39 @@ export async function middleware(request: NextRequest) {
   // Refresh session — do not remove this
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect /dashboard and /onboarding — redirect to login if not authenticated
-  const protectedPaths = ['/dashboard', '/onboarding']
-  const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p))
+  const path = request.nextUrl.pathname
+  const isProtected = path.startsWith('/dashboard') || path.startsWith('/onboarding')
+
+  // Unauthenticated users cannot access protected routes
   if (!user && isProtected) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
+  }
+
+  // Authenticated users: check onboarding state
+  if (user && isProtected) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('box_id')
+      .eq('id', user.id)
+      .single()
+
+    const hasBox = !!profile?.box_id
+
+    // No profile yet → must onboard first
+    if (!hasBox && path.startsWith('/dashboard')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/onboarding'
+      return NextResponse.redirect(url)
+    }
+
+    // Already onboarded → skip onboarding page
+    if (hasBox && path.startsWith('/onboarding')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

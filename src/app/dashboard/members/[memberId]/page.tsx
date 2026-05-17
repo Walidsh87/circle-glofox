@@ -82,11 +82,13 @@ export default async function MemberProfilePage({ params }: { params: { memberId
       .from('athlete_lifts')
       .select('lift_name, one_rm_grams')
       .eq('athlete_id', params.memberId)
+      .eq('box_id', viewer.box_id)
       .order('lift_name'),
     supabase
       .from('workout_scores')
       .select('score_value, rx, logged_at, workouts(title, scoring_type)')
       .eq('athlete_id', params.memberId)
+      .eq('box_id', viewer.box_id)
       .order('logged_at', { ascending: false })
       .limit(8),
     supabase

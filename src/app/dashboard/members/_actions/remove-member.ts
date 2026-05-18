@@ -36,10 +36,12 @@ export async function removeMember(memberId: string): Promise<{ error: string | 
   }
 
   // Delete profile first (cascades memberships, bookings, scores, lifts)
-  await service.from('profiles').delete().eq('id', memberId)
+  const { error: profileDeleteError } = await service.from('profiles').delete().eq('id', memberId)
+  if (profileDeleteError) return { error: profileDeleteError.message }
 
-  // Delete auth user
-  await service.auth.admin.deleteUser(memberId)
+  // Delete auth user only after profile is confirmed deleted
+  const { error: authDeleteError } = await service.auth.admin.deleteUser(memberId)
+  if (authDeleteError) return { error: authDeleteError.message }
 
   revalidatePath('/dashboard/members')
   return { error: null }

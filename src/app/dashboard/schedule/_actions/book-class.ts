@@ -26,10 +26,12 @@ export async function bookClass(instanceId: string): Promise<{ error: string | n
 
   if (!profile) return { error: 'Profile not found.' }
 
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: 'Server configuration error.' }
+
   // Count all bookings for this class (requires service key to bypass athlete RLS)
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY
   )
 
   const { count } = await service

@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -28,12 +27,7 @@ export async function logScore(prevState: State, formData: FormData): Promise<St
 
   if (!profile) return { error: 'Profile not found.' }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { error } = await service.from('workout_scores').upsert(
+  const { error } = await supabase.from('workout_scores').upsert(
     {
       box_id: profile.box_id,
       workout_id: workoutId,

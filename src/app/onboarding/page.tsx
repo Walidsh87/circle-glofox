@@ -1,23 +1,32 @@
 'use client'
 
+import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { createGym } from './_actions/create-gym'
 import { CircleMark } from '@/components/circle-mark'
 
 const TIMEZONES = [
-  { value: 'Asia/Dubai', label: 'Dubai (GST +4)' },
-  { value: 'Asia/Riyadh', label: 'Riyadh (AST +3)' },
-  { value: 'Asia/Qatar', label: 'Qatar (AST +3)' },
-  { value: 'Asia/Kuwait', label: 'Kuwait (AST +3)' },
+  { value: 'Asia/Dubai',   label: 'Dubai (GST +4)' },
+  { value: 'Asia/Riyadh',  label: 'Riyadh (AST +3)' },
+  { value: 'Asia/Qatar',   label: 'Qatar (AST +3)' },
+  { value: 'Asia/Kuwait',  label: 'Kuwait (AST +3)' },
   { value: 'Asia/Bahrain', label: 'Bahrain (AST +3)' },
-  { value: 'Asia/Muscat', label: 'Muscat (GST +4)' },
+  { value: 'Asia/Muscat',  label: 'Muscat (GST +4)' },
 ]
+
+function toSlug(name: string) {
+  return name.toLowerCase().trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 40)
+}
 
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 42, padding: '0 14px',
   border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
   background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)',
-  fontFamily: 'inherit', outline: 'none',
+  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
 }
 
 function SubmitButton() {
@@ -56,6 +65,20 @@ function Field({ id, label, children }: { id: string; label: string; children: R
 
 export default function OnboardingPage() {
   const [state, formAction] = useFormState(createGym, { error: null })
+  const [gymName, setGymName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [slugEdited, setSlugEdited] = useState(false)
+
+  function handleGymNameChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const name = e.target.value
+    setGymName(name)
+    if (!slugEdited) setSlug(toSlug(name))
+  }
+
+  function handleSlugChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setSlugEdited(true)
+    setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 40))
+  }
 
   return (
     <main style={{
@@ -64,10 +87,9 @@ export default function OnboardingPage() {
     }}>
       <div style={{
         background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-        borderRadius: 18, padding: '40px 36px', width: '100%', maxWidth: 400,
+        borderRadius: 18, padding: '40px 36px', width: '100%', maxWidth: 420,
         boxShadow: 'var(--c-shadow-sm)',
       }}>
-        {/* Logo */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 9, marginBottom: 32,
           fontFamily: 'var(--font-space-grotesk)', fontWeight: 700,
@@ -113,8 +135,40 @@ export default function OnboardingPage() {
               type="text"
               required
               placeholder="Circle Fitness"
+              value={gymName}
+              onChange={handleGymNameChange}
               style={inputStyle}
             />
+          </Field>
+
+          <Field id="gymSlug" label="Your gym URL">
+            <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid var(--c-border-strong)', borderRadius: 10, overflow: 'hidden', background: 'var(--c-surface)', height: 42 }}>
+              <span className="mono" style={{
+                padding: '0 10px', fontSize: 12, color: 'var(--c-ink-muted)',
+                background: 'var(--c-surface-sunk)', borderRight: '1px solid var(--c-border)',
+                height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0, whiteSpace: 'nowrap',
+              }}>
+                circle.app/
+              </span>
+              <input
+                id="gymSlug"
+                name="gymSlug"
+                type="text"
+                required
+                placeholder="crossfit-dubai"
+                value={slug}
+                onChange={handleSlugChange}
+                style={{
+                  flex: 1, height: '100%', padding: '0 12px',
+                  border: 'none', outline: 'none',
+                  background: 'transparent', fontSize: 14,
+                  color: 'var(--c-ink)', fontFamily: 'var(--font-geist-mono)',
+                }}
+              />
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 3 }}>
+              Share this URL with your members to log in
+            </div>
           </Field>
 
           <Field id="timezone" label="Timezone">

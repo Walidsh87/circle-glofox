@@ -4,21 +4,25 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 
+const RESERVED_SLUGS = ['dashboard', 'onboarding', 'auth', 'api', 'login', 'signup', 'admin', 'settings']
+
 type State = { error: string | null }
 
 export async function createGym(prevState: State, formData: FormData): Promise<State> {
-  const gymName = (formData.get('gymName') as string)?.trim()
+  const gymName  = (formData.get('gymName')  as string)?.trim()
   const fullName = (formData.get('fullName') as string)?.trim()
   const timezone = formData.get('timezone') as string
+  const slug     = (formData.get('gymSlug') as string)?.trim().toLowerCase()
 
   if (!gymName || !fullName) return { error: 'All fields are required.' }
+  if (!slug) return { error: 'Gym URL is required.' }
+  if (!/^[a-z0-9-]{3,40}$/.test(slug)) return { error: 'URL must be 3–40 characters: lowercase letters, numbers, and dashes only.' }
+  if (RESERVED_SLUGS.includes(slug)) return { error: 'That URL is reserved. Please choose another.' }
 
-  // Verify the user is authenticated
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')
 
-  // Service client bypasses RLS — safe here because this is server-only code
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -26,11 +30,14 @@ export async function createGym(prevState: State, formData: FormData): Promise<S
 
   const { data: box, error: boxError } = await service
     .from('boxes')
-    .insert({ name: gymName, timezone })
+    .insert({ name: gymName, timezone, slug })
     .select('id')
     .single()
 
-  if (boxError) return { error: boxError.message }
+  if (boxError) {
+    if (boxError.code === '23505') return { error: 'That URL is already taken. Please choose another.' }
+    return { error: boxError.message }
+  }
 
   const { error: profileError } = await service
     .from('profiles')

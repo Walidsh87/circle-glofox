@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 export async function cancelBooking(instanceId: string): Promise<{ error: string | null }> {
@@ -9,12 +8,8 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { error } = await service
+  // athlete_book RLS policy covers delete for own bookings
+  const { error } = await supabase
     .from('bookings')
     .delete()
     .eq('class_instance_id', instanceId)

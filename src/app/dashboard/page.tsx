@@ -40,6 +40,7 @@ export default async function DashboardPage() {
     { data: memberships },
     { data: todayClasses },
     { data: wod },
+    { count: activeLeadCount },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -65,6 +66,13 @@ export default async function DashboardPage() {
       .eq('box_id', profile.box_id)
       .eq('date', today)
       .single(),
+    isOwner
+      ? supabase
+          .from('leads')
+          .select('id', { count: 'exact', head: true })
+          .eq('box_id', profile.box_id)
+          .in('status', ['new', 'contacted', 'scheduled'])
+      : { count: null },
   ])
 
   const unpaidCount = memberships?.filter((m) => m.payment_status !== 'paid').length ?? 0
@@ -121,10 +129,11 @@ export default async function DashboardPage() {
 
           {/* Stats row — owner only */}
           {isOwner && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 640 }}>
-              <StatCard label="Athletes" value={String(memberCount ?? 0)} />
-              <StatCard label="MRR · AED" value={mrrAed > 0 ? mrrAed.toLocaleString() : '—'} />
-              <StatCard label="Unpaid" value={String(unpaidCount)} variant={unpaidCount > 0 ? 'warn' : undefined} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 860 }}>
+              <StatCard label="Athletes" value={String(memberCount ?? 0)} href="/dashboard/members?tab=members" />
+              <StatCard label="MRR · AED" value={mrrAed > 0 ? mrrAed.toLocaleString() : '—'} href="/dashboard/payments" />
+              <StatCard label="Unpaid" value={String(unpaidCount)} variant={unpaidCount > 0 ? 'warn' : undefined} href="/dashboard/payments" />
+              <StatCard label="Active Leads" value={String(activeLeadCount ?? 0)} href="/dashboard/members?tab=leads" variant={activeLeadCount && activeLeadCount > 0 ? 'lime' : undefined} />
             </div>
           )}
 
@@ -239,20 +248,24 @@ export default async function DashboardPage() {
   )
 }
 
-function StatCard({ label, value, variant }: { label: string; value: string; variant?: 'warn' }) {
-  const bg = variant === 'warn' ? 'var(--c-warn-soft)' : 'var(--c-surface)'
-  const color = variant === 'warn' ? 'var(--c-warn-ink)' : 'var(--c-ink)'
-  const labelColor = variant === 'warn' ? 'var(--c-warn-ink)' : 'var(--c-ink-muted)'
-  return (
-    <div style={{
-      padding: '14px 16px', borderRadius: 12,
-      background: bg, border: `1px solid ${variant === 'warn' ? 'transparent' : 'var(--c-border)'}`,
-      boxShadow: 'var(--c-shadow-sm)',
-    }}>
+function StatCard({ label, value, variant, href }: { label: string; value: string; variant?: 'warn' | 'lime'; href?: string }) {
+  const bg = variant === 'warn' ? 'var(--c-warn-soft)' : variant === 'lime' ? 'var(--circle-lime-soft)' : 'var(--c-surface)'
+  const color = variant === 'warn' ? 'var(--c-warn-ink)' : variant === 'lime' ? 'var(--circle-lime-ink)' : 'var(--c-ink)'
+  const labelColor = variant === 'warn' ? 'var(--c-warn-ink)' : variant === 'lime' ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)'
+  const border = variant ? 'transparent' : 'var(--c-border)'
+  const inner = (
+    <>
       <div className="mono" style={{ fontSize: 10.5, color: labelColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
       <div className="mono" style={{ fontSize: 26, color, marginTop: 4, letterSpacing: '-0.02em', fontWeight: 700 }}>{value}</div>
-    </div>
+    </>
   )
+  const style: React.CSSProperties = {
+    padding: '14px 16px', borderRadius: 12,
+    background: bg, border: `1px solid ${border}`,
+    boxShadow: 'var(--c-shadow-sm)', display: 'block', textDecoration: 'none',
+  }
+  if (href) return <a href={href} style={style}>{inner}</a>
+  return <div style={style}>{inner}</div>
 }
 
 function NavCard({ href, label, description, accent }: {

@@ -23,5 +23,5 @@ export default async function GymLoginPage({ params }: { params: { gymSlug: stri
 
   if (!box) notFound()
 
-  return <GymLoginForm gymName={box.name} />
+  return <GymLoginForm gymName={box.name} gymSlug={params.gymSlug} />
 }

@@ -6,7 +6,7 @@ import { CircleMark } from '@/components/circle-mark'
 
 type Step = 'email' | 'code'
 
-export function GymLoginForm({ gymName }: { gymName: string }) {
+export function GymLoginForm({ gymName, gymSlug }: { gymName: string; gymSlug: string }) {
   const [step, setStep]       = useState<Step>('email')
   const [email, setEmail]     = useState('')
   const [code, setCode]       = useState('')
@@ -32,7 +32,7 @@ export function GymLoginForm({ gymName }: { gymName: string }) {
     const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'email' })
     setLoading(false)
     if (error) setError(error.message)
-    else window.location.href = '/dashboard'
+    else window.location.href = `/join/${gymSlug}`
   }
 
   return (
@@ -103,7 +103,7 @@ export function GymLoginForm({ gymName }: { gymName: string }) {
 
               <p style={{ marginTop: 22, fontSize: 12, color: 'var(--c-ink-muted)' }}>
                 New to {gymName}?{' '}
-                <span style={{ color: 'var(--c-ink)', fontWeight: 600 }}>Ask your coach for an invite</span>.
+                <span style={{ color: 'var(--c-ink)', fontWeight: 600 }}>Enter your email above to create a free account.</span>
               </p>
             </div>
           ) : (

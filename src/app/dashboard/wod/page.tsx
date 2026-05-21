@@ -45,6 +45,21 @@ function formatDate(date: string): string {
   }).format(new Date(date + 'T00:00:00Z'))
 }
 
+// Monday of the week containing `date`
+function weekStart(date: string): string {
+  const d = new Date(date + 'T00:00:00Z')
+  const dow = d.getUTCDay()
+  d.setUTCDate(d.getUTCDate() - (dow === 0 ? 6 : dow - 1))
+  return d.toISOString().slice(0, 10)
+}
+
+// Sunday of the week containing `date`
+function weekEnd(date: string): string {
+  const start = new Date(weekStart(date) + 'T00:00:00Z')
+  start.setUTCDate(start.getUTCDate() + 6)
+  return start.toISOString().slice(0, 10)
+}
+
 export default async function WodPage({ searchParams }: { searchParams: { date?: string } }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -64,9 +79,14 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
   const { data: box } = await supabase.from('boxes').select('timezone').eq('id', profile.box_id).single()
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const today = todayInTimezone(timezone)
-  const date = searchParams.date ?? today
-  const isToday = date === today
   const isStaff = ['owner', 'coach'].includes(profile.role)
+
+  // Athletes can only view the current week
+  const wStart = weekStart(today)
+  const wEnd = weekEnd(today)
+  const rawDate = searchParams.date ?? today
+  const date = !isStaff && (rawDate < wStart || rawDate > wEnd) ? today : rawDate
+  const isToday = date === today
 
   const { data: wod } = await supabase
     .from('workouts')
@@ -109,11 +129,11 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
               borderRadius: 12, padding: '12px 16px',
               boxShadow: 'var(--c-shadow-sm)',
             }}>
-              <Link href={`/dashboard/wod?date=${prevDay(date)}`} style={{
-                fontSize: 13, padding: '6px 12px', borderRadius: 8,
-                border: '1px solid var(--c-border)', color: 'var(--c-ink-2)',
-                textDecoration: 'none',
-              }}>← Prev</Link>
+              {(!isStaff && date <= wStart) ? (
+                <span style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-faint)', cursor: 'not-allowed' }}>← Prev</span>
+              ) : (
+                <Link href={`/dashboard/wod?date=${prevDay(date)}`} style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-2)', textDecoration: 'none' }}>← Prev</Link>
+              )}
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-ink)' }}>{formatDate(date)}</div>
                 {!isToday && (
@@ -122,11 +142,11 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
                   </Link>
                 )}
               </div>
-              <Link href={`/dashboard/wod?date=${nextDay(date)}`} style={{
-                fontSize: 13, padding: '6px 12px', borderRadius: 8,
-                border: '1px solid var(--c-border)', color: 'var(--c-ink-2)',
-                textDecoration: 'none',
-              }}>Next →</Link>
+              {(!isStaff && date >= wEnd) ? (
+                <span style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-faint)', cursor: 'not-allowed' }}>Next →</span>
+              ) : (
+                <Link href={`/dashboard/wod?date=${nextDay(date)}`} style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-2)', textDecoration: 'none' }}>Next →</Link>
+              )}
             </div>
 
             {/* Strength card */}

@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -28,12 +27,7 @@ export async function saveMembership(prevState: State, formData: FormData): Prom
 
   if (!profile || profile.role !== 'owner') return { error: 'Only owners can manage memberships.' }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { error } = await service.from('memberships').insert({
+  const { error } = await supabase.from('memberships').insert({
     box_id: profile.box_id,
     athlete_id: athleteId,
     plan_name: planName,

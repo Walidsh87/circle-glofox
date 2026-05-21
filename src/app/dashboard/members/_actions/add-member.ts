@@ -13,6 +13,7 @@ export async function addMember(prevState: State, formData: FormData): Promise<S
   const role = formData.get('role') as string
 
   if (!fullName || !email || !role) return { error: 'Name, email, and role are required.' }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Enter a valid email address.' }
   if (!['athlete', 'coach'].includes(role)) return { error: 'Invalid role.' }
 
   // Verify caller is an owner

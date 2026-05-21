@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -32,12 +31,7 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
     return { error: 'Only owners and coaches can post WODs.' }
   }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { error } = await service.from('workouts').upsert(
+  const { error } = await supabase.from('workouts').upsert(
     {
       box_id: profile.box_id,
       date,

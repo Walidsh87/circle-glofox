@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 export async function markPaid(membershipId: string): Promise<{ error: string | null }> {
@@ -17,12 +16,7 @@ export async function markPaid(membershipId: string): Promise<{ error: string | 
 
   if (!profile || profile.role !== 'owner') return { error: 'Only owners can update payments.' }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { error } = await service
+  const { error } = await supabase
     .from('memberships')
     .update({
       payment_status: 'paid',
@@ -50,12 +44,7 @@ export async function markUnpaid(membershipId: string): Promise<{ error: string 
 
   if (!profile || profile.role !== 'owner') return { error: 'Only owners can update payments.' }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { error } = await service
+  const { error } = await supabase
     .from('memberships')
     .update({ payment_status: 'unpaid' })
     .eq('id', membershipId)

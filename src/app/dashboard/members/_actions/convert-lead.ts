@@ -25,6 +25,7 @@ export async function convertLead(
 
   if (!lead) return { error: 'Lead not found.', memberId: null }
   if (!lead.email) return { error: 'Add an email to this lead before converting.', memberId: null }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email)) return { error: 'Lead email is not valid.', memberId: null }
 
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

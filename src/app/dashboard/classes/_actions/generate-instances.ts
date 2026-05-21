@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 // GCC timezones have no DST — fixed offsets are safe
@@ -47,19 +46,14 @@ export async function generateInstances(startDate: string): Promise<Result> {
     return { created: 0, skipped: 0, error: 'Only owners and coaches can generate instances.' }
   }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
   // Fetch active templates + box timezone in parallel
   const [{ data: templates }, { data: box }] = await Promise.all([
-    service
+    supabase
       .from('class_templates')
       .select('id, weekday, start_time, duration_minutes, capacity, coach_id')
       .eq('box_id', profile.box_id)
       .eq('active', true),
-    service
+    supabase
       .from('boxes')
       .select('timezone')
       .eq('id', profile.box_id)
@@ -78,7 +72,7 @@ export async function generateInstances(startDate: string): Promise<Result> {
   const windowStart = buildStartsAt(dates[0], '00:00:00', offsetHours)
   const windowEnd   = buildStartsAt(addDays(dates[6], 1), '00:00:00', offsetHours)
 
-  const { data: existing } = await service
+  const { data: existing } = await supabase
     .from('class_instances')
     .select('template_id, starts_at')
     .eq('box_id', profile.box_id)
@@ -111,7 +105,7 @@ export async function generateInstances(startDate: string): Promise<Result> {
 
   if (!toInsert.length) return { created: 0, skipped: (existing ?? []).length, error: null }
 
-  const { error } = await service.from('class_instances').insert(toInsert)
+  const { error } = await supabase.from('class_instances').insert(toInsert)
   if (error) return { created: 0, skipped: 0, error: error.message }
 
   revalidatePath('/dashboard/classes')

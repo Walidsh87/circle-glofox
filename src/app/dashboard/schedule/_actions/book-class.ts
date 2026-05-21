@@ -25,6 +25,7 @@ export async function bookClass(instanceId: string): Promise<{ error: string | n
     .single()
 
   if (!profile) return { error: 'Profile not found.' }
+  if (instance.box_id !== profile.box_id) return { error: 'Class not found.' }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: 'Server configuration error.' }
 

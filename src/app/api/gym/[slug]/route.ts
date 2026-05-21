@@ -11,11 +11,11 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
 
   const { data } = await service
     .from('boxes')
-    .select('id, name, logo_url')
+    .select('name, logo_url')
     .eq('slug', params.slug)
     .single()
 
   if (!data) return NextResponse.json({ error: 'Gym not found.' }, { status: 404 })
 
-  return NextResponse.json({ id: data.id, name: data.name, logoUrl: data.logo_url })
+  return NextResponse.json({ name: data.name, logoUrl: data.logo_url })
 }

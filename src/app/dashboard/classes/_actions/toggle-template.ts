@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 export async function toggleTemplate(templateId: string, active: boolean): Promise<{ error: string | null }> {
@@ -19,12 +18,7 @@ export async function toggleTemplate(templateId: string, active: boolean): Promi
     return { error: 'Only owners and coaches can manage class templates.' }
   }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { error } = await service
+  const { error } = await supabase
     .from('class_templates')
     .update({ active })
     .eq('id', templateId)

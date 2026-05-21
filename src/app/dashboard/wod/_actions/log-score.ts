@@ -27,6 +27,9 @@ export async function logScore(prevState: State, formData: FormData): Promise<St
 
   if (!profile) return { error: 'Profile not found.' }
 
+  const { data: workout } = await supabase.from('workouts').select('box_id').eq('id', workoutId).single()
+  if (!workout) return { error: 'Workout not found.' }
+
   const { error } = await supabase.from('workout_scores').upsert(
     {
       box_id: profile.box_id,

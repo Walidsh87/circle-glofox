@@ -54,7 +54,7 @@ export default async function MemberProfilePage({ params }: { params: { memberId
     .single()
 
   if (!viewer) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(viewer.role)) redirect('/dashboard')
+  if (!['owner', 'coach'].includes(viewer.role) && user.id !== params.memberId) redirect('/dashboard')
 
   const boxes = viewer.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''

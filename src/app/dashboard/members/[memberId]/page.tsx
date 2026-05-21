@@ -126,13 +126,15 @@ export default async function MemberProfilePage({ params }: { params: { memberId
           <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 18, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
             {member.full_name}
           </h1>
-          <EditMemberForm
-            memberId={member.id}
-            fullName={member.full_name}
-            phone={member.phone}
-            role={member.role}
-            viewerRole={viewer.role}
-          />
+          {['owner', 'coach'].includes(viewer.role) && (
+            <EditMemberForm
+              memberId={member.id}
+              fullName={member.full_name}
+              phone={member.phone}
+              role={member.role}
+              viewerRole={viewer.role}
+            />
+          )}
         </header>
 
         <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>

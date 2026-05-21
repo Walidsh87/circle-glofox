@@ -73,7 +73,7 @@ export function SettingsForm({ initialName, initialSlug, initialTimezone }: Prop
   const [slug, setSlug] = useState(initialSlug)
   const [slugEdited, setSlugEdited] = useState(!!initialSlug)
   const [timezone, setTimezone] = useState(initialTimezone)
-  const [state, formAction] = useFormState(updateSettings, { error: null })
+  const [state, formAction] = useFormState(updateSettings, { error: null, success: false })
 
   function handleGymNameChange(e: React.ChangeEvent<HTMLInputElement>) {
     const name = e.target.value

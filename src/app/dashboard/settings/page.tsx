@@ -20,6 +20,13 @@ export default async function SettingsPage() {
   const boxesRaw = profile.boxes
   const boxes = (Array.isArray(boxesRaw) ? boxesRaw[0] : boxesRaw) as { name: string; timezone: string; slug: string | null } | null
 
+  const { data: box } = await supabase
+    .from('boxes')
+    .select('stripe_secret_key')
+    .eq('id', profile.box_id)
+    .single()
+  const stripeConnected = !!(box?.stripe_secret_key)
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
       <Sidebar active="settings" userName={profile.full_name} userRole={profile.role} boxName={boxes?.name ?? ''} />
@@ -41,6 +48,7 @@ export default async function SettingsPage() {
               initialName={boxes?.name ?? ''}
               initialSlug={boxes?.slug ?? ''}
               initialTimezone={boxes?.timezone ?? 'Asia/Dubai'}
+              stripeConnected={stripeConnected}
             />
           </div>
         </div>

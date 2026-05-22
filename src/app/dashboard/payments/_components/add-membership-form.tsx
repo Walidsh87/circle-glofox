@@ -12,7 +12,7 @@ function SubmitButton() {
 
 type Athlete = { id: string; full_name: string }
 
-export function AddMembershipForm({ athletes }: { athletes: Athlete[] }) {
+export function AddMembershipForm({ athletes, stripeConnected }: { athletes: Athlete[]; stripeConnected: boolean }) {
   const [state, formAction] = useFormState(saveMembership, { error: null })
   const formRef = useRef<HTMLFormElement>(null)
   const today = new Date().toISOString().slice(0, 10)
@@ -34,6 +34,10 @@ export function AddMembershipForm({ athletes }: { athletes: Athlete[] }) {
         className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
       <input name="startDate" type="date" required defaultValue={today}
         className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+      {stripeConnected && (
+        <input name="stripePriceId" type="text" placeholder="Stripe Price ID (optional, e.g. price_...)"
+          className="col-span-2 sm:col-span-4 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono" />
+      )}
       <div className="col-span-2 sm:col-span-4 flex items-center gap-3">
         <SubmitButton />
         {state.error && <p className="text-sm text-destructive">{state.error}</p>}

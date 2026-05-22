@@ -66,9 +66,10 @@ type Props = {
   initialName: string
   initialSlug: string
   initialTimezone: string
+  stripeConnected: boolean
 }
 
-export function SettingsForm({ initialName, initialSlug, initialTimezone }: Props) {
+export function SettingsForm({ initialName, initialSlug, initialTimezone, stripeConnected }: Props) {
   const [gymName, setGymName] = useState(initialName)
   const [slug, setSlug] = useState(initialSlug)
   const [slugEdited, setSlugEdited] = useState(!!initialSlug)
@@ -127,6 +128,33 @@ export function SettingsForm({ initialName, initialSlug, initialTimezone }: Prop
             ))}
           </select>
         </Field>
+
+        <div style={{ borderTop: '1px solid var(--c-divider)', paddingTop: 18, marginTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)', margin: 0 }}>Stripe payments</p>
+            {stripeConnected && (
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)' }}>
+                Connected
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Field id="stripeSecretKey" label="Secret key" hint="Starts with sk_live_ or sk_test_. Leave blank to keep existing.">
+              <input
+                id="stripeSecretKey" name="stripeSecretKey" type="password"
+                placeholder={stripeConnected ? 'sk_••••••••••••••••' : 'sk_live_...'}
+                style={inputStyle}
+              />
+            </Field>
+            <Field id="stripeWebhookSecret" label="Webhook secret" hint="From Stripe dashboard → Webhooks. Starts with whsec_. Leave blank to keep existing.">
+              <input
+                id="stripeWebhookSecret" name="stripeWebhookSecret" type="password"
+                placeholder={stripeConnected ? 'whsec_••••••••••••••••' : 'whsec_...'}
+                style={inputStyle}
+              />
+            </Field>
+          </div>
+        </div>
 
         {state.error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{state.error}</p>}
         {state.success && <p style={{ fontSize: 13, color: 'var(--c-ok)', margin: 0 }}>Settings saved.</p>}

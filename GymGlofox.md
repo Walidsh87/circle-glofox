@@ -71,3 +71,38 @@ The percentage-based loading calculator. When the WOD says "5x3 @ 80% back squat
 
 ## Day 1 status
 The schema.sql file is ready (or already run). Next.js project may or may not be scaffolded yet — check the file system first.
+
+---
+
+## v2 Roadmap — Priority Order
+Derived from competitive analysis vs BTWB, Wodify, PushPress, Mindbody, Glofox, ZenPlanner, SugarWOD.
+
+### Tier 1 — Revenue blockers
+Must-have before serious gym adoption. Without these, Circle can't replace existing tools.
+1. **Stripe billing + subscriptions** — every competitor has it; unlocks real MRR
+2. **Digital waivers / e-signatures** — legal requirement in most GCC gyms; blocks enterprise sales
+3. **Automated billing reminders** — email/SMS when payment is due/overdue; reduces owner's manual chasing
+
+### Tier 2 — Engagement & retention
+Drives daily active use and reduces churn.
+4. **Native mobile app (Expo/React Native)** — athletes live on phones; web-only is a dealbreaker
+5. **Push notifications** — class reminders, WOD posted, PR achieved
+6. **1RM progress charts + WOD score history** — athletes want to see improvement over time
+7. **In-app workout timer (AMRAP / EMOM / countdown)** — keeps athletes in the app during class
+8. **Activity feed + reactions** — teammates see each other's scores; community lock-in
+
+### Tier 3 — Business tools
+Upsell to owners; helps them justify switching from incumbents.
+9. **Waitlist** — small build, high member satisfaction when classes fill up
+10. **Attendance analytics + retention reports** — busiest hours, commitment tracking, churn trends
+11. **Broadcast messaging (email/SMS to all members)** — owners need to communicate at scale
+12. **Multiple programming tracks (Rx / Scaled / Beginner)** — most CrossFit gyms run scaled versions
+
+### Tier 4 — Nice to have
+Defer until Tier 1–3 is shipped and LOIs justify the investment.
+- Embeddable schedule widget for gym's own website
+- Badges & achievements / streak tracking
+- Referral tracking
+- Zapier integration
+- Multi-location / branch management
+- Pre-built programming library (Mayhem, PRVN, etc.)

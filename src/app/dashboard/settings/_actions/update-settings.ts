@@ -35,9 +35,16 @@ export async function updateSettings(prevState: State, formData: FormData): Prom
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  const stripeSecretKey = (formData.get('stripeSecretKey') as string)?.trim() || undefined
+  const stripeWebhookSecret = (formData.get('stripeWebhookSecret') as string)?.trim() || undefined
+
+  const updates: Record<string, unknown> = { name: gymName, timezone, slug }
+  if (stripeSecretKey) updates.stripe_secret_key = stripeSecretKey
+  if (stripeWebhookSecret) updates.stripe_webhook_secret = stripeWebhookSecret
+
   const { error } = await service
     .from('boxes')
-    .update({ name: gymName, timezone, slug })
+    .update(updates)
     .eq('id', profile.box_id)
 
   if (error) {

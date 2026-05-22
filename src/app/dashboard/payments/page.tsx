@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { AddMembershipForm } from './_components/add-membership-form'
 import { PaymentActions } from './_components/payment-actions'
+import { CreateStripePlanForm } from './_components/create-stripe-plan-form'
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   paid:    { bg: 'var(--c-ok-soft)',    color: 'var(--c-ok-ink)' },
@@ -27,10 +28,10 @@ export default async function PaymentsPage() {
   const boxes = profile.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
-  const [{ data: memberships }, { data: athletes }] = await Promise.all([
+  const [{ data: memberships }, { data: athletes }, { data: box }] = await Promise.all([
     supabase
       .from('memberships')
-      .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, profiles(full_name)')
+      .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, stripe_price_id, profiles(full_name)')
       .eq('box_id', profile.box_id)
       .order('payment_status')
       .order('start_date', { ascending: false }),
@@ -40,7 +41,14 @@ export default async function PaymentsPage() {
       .eq('box_id', profile.box_id)
       .eq('role', 'athlete')
       .order('full_name'),
+    supabase
+      .from('boxes')
+      .select('stripe_secret_key')
+      .eq('id', profile.box_id)
+      .single(),
   ])
+
+  const stripeConnected = !!(box?.stripe_secret_key)
 
   const unpaidCount = memberships?.filter((m) => m.payment_status !== 'paid').length ?? 0
   const paidCount = memberships?.filter((m) => m.payment_status === 'paid').length ?? 0
@@ -105,6 +113,26 @@ export default async function PaymentsPage() {
             <KpiCard label="Overdue" value={overdueCount} variant="danger" />
           </div>
 
+          {/* Stripe plan creation */}
+          {stripeConnected && (
+            <div style={{
+              background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+              borderRadius: 14, padding: '18px 20px', marginBottom: 16,
+              boxShadow: 'var(--c-shadow-sm)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', margin: 0 }}>Create Stripe plan</p>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)' }}>
+                  Stripe connected
+                </span>
+              </div>
+              <p style={{ fontSize: 12.5, color: 'var(--c-ink-muted)', marginBottom: 12 }}>
+                Creates a recurring monthly plan in your Stripe account. Copy the Price ID and paste it when adding a membership.
+              </p>
+              <CreateStripePlanForm />
+            </div>
+          )}
+
           {/* Add membership */}
           <div style={{
             background: 'var(--c-surface)', border: '1px solid var(--c-border)',
@@ -112,7 +140,7 @@ export default async function PaymentsPage() {
             boxShadow: 'var(--c-shadow-sm)',
           }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Add membership</p>
-            <AddMembershipForm athletes={athletes ?? []} />
+            <AddMembershipForm athletes={athletes ?? []} stripeConnected={stripeConnected} />
           </div>
 
           {/* Memberships table */}
@@ -165,7 +193,12 @@ export default async function PaymentsPage() {
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <PaymentActions membershipId={m.id} currentStatus={m.payment_status} />
+                        <PaymentActions
+                          membershipId={m.id}
+                          currentStatus={m.payment_status}
+                          hasStripePlan={!!m.stripe_price_id}
+                          stripeConnected={stripeConnected}
+                        />
                       </td>
                     </tr>
                   )

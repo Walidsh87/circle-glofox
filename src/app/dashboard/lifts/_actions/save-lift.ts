@@ -12,6 +12,8 @@ export async function saveLift(prevState: State, formData: FormData): Promise<St
   const liftName = formData.get('liftName') as string
   const weightKg = parseFloat(formData.get('weightKg') as string)
 
+  throw new Error('sentry test — delete me')
+
   const validationError = validateLiftInput(liftName, weightKg)
   if (validationError) return { error: validationError }
 

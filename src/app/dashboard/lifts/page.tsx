@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { Fragment } from 'react'
 import { Sidebar } from '@/components/sidebar'
 import { LiftForm } from './_components/lift-form'
 import { LIFT_NAMES } from './_lib/lift-names'
@@ -86,8 +87,8 @@ export default async function LiftsPage() {
                   </thead>
                   <tbody>
                     {lifts.map((lift) => (
-                      <>
-                        <tr key={lift.lift_name} style={{ borderBottom: historyByLift[lift.lift_name]?.length >= 2 ? 'none' : '1px solid var(--c-divider)' }}>
+                      <Fragment key={lift.lift_name}>
+                        <tr style={{ borderBottom: historyByLift[lift.lift_name]?.length >= 2 ? 'none' : '1px solid var(--c-divider)' }}>
                           <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--c-ink)' }}>
                             {LIFT_NAMES.find((l) => l.value === lift.lift_name)?.label ?? lift.lift_name}
                           </td>
@@ -102,13 +103,13 @@ export default async function LiftsPage() {
                           </td>
                         </tr>
                         {historyByLift[lift.lift_name]?.length >= 2 && (
-                          <tr key={`${lift.lift_name}-chart`} style={{ borderBottom: '1px solid var(--c-divider)' }}>
+                          <tr style={{ borderBottom: '1px solid var(--c-divider)' }}>
                             <td colSpan={3} style={{ padding: 0 }}>
                               <LiftChart entries={historyByLift[lift.lift_name]} />
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>

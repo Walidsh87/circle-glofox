@@ -23,18 +23,17 @@ export default async function LiftsPage() {
   const boxes = profile.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
-  const [{ data: lifts }, { data: liftHistory }] = await Promise.all([
-    supabase
-      .from('athlete_lifts')
-      .select('lift_name, one_rm_grams, recorded_on')
-      .eq('athlete_id', user.id)
-      .order('lift_name'),
-    supabase
-      .from('athlete_lifts_history')
-      .select('lift_name, one_rm_grams, recorded_on')
-      .eq('athlete_id', user.id)
-      .order('recorded_on'),
-  ])
+  const { data: lifts } = await supabase
+    .from('athlete_lifts')
+    .select('lift_name, one_rm_grams, recorded_on')
+    .eq('athlete_id', user.id)
+    .order('lift_name')
+
+  const { data: liftHistory } = await supabase
+    .from('athlete_lifts_history')
+    .select('lift_name, one_rm_grams, recorded_on')
+    .eq('athlete_id', user.id)
+    .order('recorded_on')
 
   const historyByLift = (liftHistory ?? []).reduce<Record<string, { recorded_on: string; one_rm_grams: number }[]>>(
     (acc, row) => {

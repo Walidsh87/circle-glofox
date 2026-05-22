@@ -3,6 +3,9 @@
 import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { validateCheckoutGuards } from '../_lib/validation'
+
+export { validateCheckoutGuards }
 
 type State = { error: string | null; url: string | null }
 
@@ -31,26 +34,28 @@ export async function createCheckout(membershipId: string): Promise<State> {
     .eq('box_id', profile.box_id)
     .single()
 
-  if (!membership) return { error: 'Membership not found.', url: null }
-  if (!membership.stripe_price_id) return { error: 'No Stripe plan linked to this membership.', url: null }
-
   const { data: box } = await service
     .from('boxes')
     .select('stripe_secret_key')
     .eq('id', profile.box_id)
     .single()
 
-  if (!box?.stripe_secret_key) return { error: 'Stripe is not connected.', url: null }
+  const guardError = validateCheckoutGuards(membership, box?.stripe_secret_key ?? null)
+  if (guardError) return { error: guardError, url: null }
+
+  // membership and box.stripe_secret_key are guaranteed non-null by the guard above
+  const m = membership!
+  const stripeKey = box!.stripe_secret_key!
 
   const { data: athlete } = await service
     .from('profiles')
     .select('email, full_name')
-    .eq('id', membership.athlete_id)
+    .eq('id', m.athlete_id)
     .single()
 
-  const stripe = new Stripe(box.stripe_secret_key)
+  const stripe = new Stripe(stripeKey)
 
-  let customerId = membership.stripe_customer_id
+  let customerId = m.stripe_customer_id
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: athlete?.email ?? undefined,
@@ -68,7 +73,7 @@ export async function createCheckout(membershipId: string): Promise<State> {
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
-    line_items: [{ price: membership.stripe_price_id, quantity: 1 }],
+    line_items: [{ price: m.stripe_price_id!, quantity: 1 }],
     success_url: `${baseUrl}/dashboard/payments?stripe=success`,
     cancel_url: `${baseUrl}/dashboard/payments`,
     metadata: { membership_id: membershipId, box_id: profile.box_id },

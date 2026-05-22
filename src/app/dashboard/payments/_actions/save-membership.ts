@@ -2,6 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { validateMembershipInput } from '../_lib/validation'
+
+export { validateMembershipInput }
 
 type State = { error: string | null }
 
@@ -12,9 +15,8 @@ export async function saveMembership(prevState: State, formData: FormData): Prom
   const startDate = formData.get('startDate') as string
   const stripePriceId = (formData.get('stripePriceId') as string)?.trim() || null
 
-  if (!athleteId || !planName || !startDate) {
-    return { error: 'Athlete, plan name, and start date are required.' }
-  }
+  const validationError = validateMembershipInput(athleteId, planName, startDate)
+  if (validationError) return { error: validationError }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

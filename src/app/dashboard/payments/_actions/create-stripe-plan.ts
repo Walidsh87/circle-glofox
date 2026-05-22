@@ -3,6 +3,9 @@
 import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { validateStripePlanInput } from '../_lib/validation'
+
+export { validateStripePlanInput }
 
 type State = { error: string | null; priceId: string | null }
 
@@ -10,8 +13,8 @@ export async function createStripePlan(prevState: State, formData: FormData): Pr
   const planName = (formData.get('planName') as string)?.trim()
   const priceAed = parseFloat(formData.get('priceAed') as string)
 
-  if (!planName) return { error: 'Plan name is required.', priceId: null }
-  if (!priceAed || priceAed <= 0) return { error: 'Enter a valid price.', priceId: null }
+  const validationError = validateStripePlanInput(planName, priceAed)
+  if (validationError) return { error: validationError, priceId: null }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

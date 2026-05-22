@@ -2,6 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { validateLiftInput } from '../_lib/validation'
+
+export { validateLiftInput }
 
 type State = { error: string | null }
 
@@ -9,9 +12,8 @@ export async function saveLift(prevState: State, formData: FormData): Promise<St
   const liftName = formData.get('liftName') as string
   const weightKg = parseFloat(formData.get('weightKg') as string)
 
-  if (!liftName || isNaN(weightKg) || weightKg <= 0) {
-    return { error: 'Select a lift and enter a valid weight.' }
-  }
+  const validationError = validateLiftInput(liftName, weightKg)
+  if (validationError) return { error: validationError }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

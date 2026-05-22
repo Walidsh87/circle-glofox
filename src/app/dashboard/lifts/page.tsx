@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/sidebar'
 import { LiftForm } from './_components/lift-form'
 import { LIFT_NAMES } from './_lib/lift-names'
 import { Calculator } from './_components/calculator'
+import { LiftChart } from './_components/lift-chart'
 
 export default async function LiftsPage() {
   const supabase = await createClient()
@@ -21,11 +22,27 @@ export default async function LiftsPage() {
   const boxes = profile.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
-  const { data: lifts } = await supabase
-    .from('athlete_lifts')
-    .select('lift_name, one_rm_grams, recorded_on')
-    .eq('athlete_id', user.id)
-    .order('lift_name')
+  const [{ data: lifts }, { data: liftHistory }] = await Promise.all([
+    supabase
+      .from('athlete_lifts')
+      .select('lift_name, one_rm_grams, recorded_on')
+      .eq('athlete_id', user.id)
+      .order('lift_name'),
+    supabase
+      .from('athlete_lifts_history')
+      .select('lift_name, one_rm_grams, recorded_on')
+      .eq('athlete_id', user.id)
+      .order('recorded_on'),
+  ])
+
+  const historyByLift = (liftHistory ?? []).reduce<Record<string, { recorded_on: string; one_rm_grams: number }[]>>(
+    (acc, row) => {
+      if (!acc[row.lift_name]) acc[row.lift_name] = []
+      acc[row.lift_name].push({ recorded_on: row.recorded_on, one_rm_grams: row.one_rm_grams })
+      return acc
+    },
+    {}
+  )
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
@@ -69,20 +86,29 @@ export default async function LiftsPage() {
                   </thead>
                   <tbody>
                     {lifts.map((lift) => (
-                      <tr key={lift.lift_name} style={{ borderBottom: '1px solid var(--c-divider)' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--c-ink)' }}>
-                          {LIFT_NAMES.find((l) => l.value === lift.lift_name)?.label ?? lift.lift_name}
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          <span className="mono" style={{ fontSize: 16, fontWeight: 600, color: 'var(--circle-lime-ink)' }}>
-                            {lift.one_rm_grams / 1000}
-                          </span>
-                          <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginLeft: 4 }}>kg</span>
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{lift.recorded_on}</span>
-                        </td>
-                      </tr>
+                      <>
+                        <tr key={lift.lift_name} style={{ borderBottom: historyByLift[lift.lift_name]?.length >= 2 ? 'none' : '1px solid var(--c-divider)' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--c-ink)' }}>
+                            {LIFT_NAMES.find((l) => l.value === lift.lift_name)?.label ?? lift.lift_name}
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                            <span className="mono" style={{ fontSize: 16, fontWeight: 600, color: 'var(--circle-lime-ink)' }}>
+                              {lift.one_rm_grams / 1000}
+                            </span>
+                            <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginLeft: 4 }}>kg</span>
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                            <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{lift.recorded_on}</span>
+                          </td>
+                        </tr>
+                        {historyByLift[lift.lift_name]?.length >= 2 && (
+                          <tr key={`${lift.lift_name}-chart`} style={{ borderBottom: '1px solid var(--c-divider)' }}>
+                            <td colSpan={3} style={{ padding: 0 }}>
+                              <LiftChart entries={historyByLift[lift.lift_name]} />
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     ))}
                   </tbody>
                 </table>

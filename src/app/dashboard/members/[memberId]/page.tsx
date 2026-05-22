@@ -89,8 +89,7 @@ export default async function MemberProfilePage({ params }: { params: { memberId
       .select('score_value, rx, logged_at, workouts(title, scoring_type)')
       .eq('athlete_id', params.memberId)
       .eq('box_id', viewer.box_id)
-      .order('logged_at', { ascending: false })
-      .limit(8),
+      .order('logged_at', { ascending: false }),
     supabase
       .from('bookings')
       .select('id, checked_in, booked_at, class_instances(starts_at, class_templates(name))')
@@ -247,7 +246,7 @@ export default async function MemberProfilePage({ params }: { params: { memberId
                   padding: '12px 16px', borderBottom: '1px solid var(--c-divider)',
                   background: 'var(--c-surface-sunk)',
                 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>Recent WOD Scores</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>WOD Score History</span>
                 </div>
                 {scores && scores.length > 0 ? (
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>

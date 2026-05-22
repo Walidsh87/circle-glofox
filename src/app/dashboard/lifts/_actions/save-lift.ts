@@ -38,6 +38,14 @@ export async function saveLift(prevState: State, formData: FormData): Promise<St
 
   if (error) return { error: error.message }
 
+  await supabase.from('athlete_lifts_history').insert({
+    box_id: profile.box_id,
+    athlete_id: user.id,
+    lift_name: liftName,
+    one_rm_grams: Math.round(weightKg * 1000),
+    recorded_on: new Date().toISOString().slice(0, 10),
+  })
+
   revalidatePath('/dashboard/lifts')
   return { error: null }
 }

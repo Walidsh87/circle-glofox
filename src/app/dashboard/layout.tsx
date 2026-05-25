@@ -22,7 +22,7 @@ export default async function DashboardLayout({
     .from('profiles')
     .select('role, box_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   // Owners and coaches are exempt from the waiver gate
   if (!profile || profile.role !== 'athlete') {

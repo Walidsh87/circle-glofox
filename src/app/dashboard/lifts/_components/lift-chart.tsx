@@ -52,9 +52,8 @@ export function LiftChart({ entries }: { entries: Entry[] }) {
         {points.map((p, i) => (
           <circle key={i} cx={p.x} cy={p.y} r={3}
             fill={improved ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)'}
-          >
-            <title>{p.date} — {p.kg.toFixed(1)} kg</title>
-          </circle>
+            aria-label={`${p.date} — ${p.kg.toFixed(1)} kg`}
+          />
         ))}
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>

@@ -39,14 +39,14 @@ CREATE POLICY waiver_signatures_owner_read ON waiver_signatures
 
 -- Auto-create waiver when a gym is created
 CREATE OR REPLACE FUNCTION create_default_waiver()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $func$
 BEGIN
   INSERT INTO gym_waivers (box_id, content)
   VALUES (
     NEW.id,
-    'LIABILITY WAIVER & RELEASE OF CLAIMS
+    $waiver$LIABILITY WAIVER AND RELEASE OF CLAIMS
 
-This Liability Waiver and Release of Claims ("Waiver") is entered into by the undersigned participant ("Participant") and ' || NEW.name || ' ("Gym"), a fitness facility operating in the United Arab Emirates.
+This Liability Waiver and Release of Claims (the "Waiver") is executed between the undersigned participant (the "Participant") and $waiver$ || NEW.name || $waiver$ (the "Gym"), a fitness facility operating in the United Arab Emirates.
 
 1. ACKNOWLEDGEMENT OF RISK
 
@@ -62,18 +62,19 @@ The Participant confirms they are in adequate physical health to participate in 
 
 4. GOVERNING LAW
 
-This Waiver shall be governed by the laws of the United Arab Emirates. Disputes shall be subject to the exclusive jurisdiction of the UAE courts.
+This Waiver shall be governed under the laws of the United Arab Emirates. Disputes shall be subject to the exclusive jurisdiction of the UAE courts.
 
 5. DATA CONSENT
 
 The Participant consents to the collection and storage of personal data (name, email, fitness records, electronic signature) as required to deliver gym services, in accordance with UAE Federal Decree-Law No. 45 of 2021 on Personal Data Protection.
 
-This Waiver is executed electronically and constitutes a legally binding agreement under UAE Federal Law No. 1 of 2006 on Electronic Commerce and Transactions.'
+This Waiver is executed electronically and constitutes a legally binding agreement under UAE Federal Law No. 1 of 2006 on Electronic Commerce and Transactions.$waiver$
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS boxes_create_waiver ON boxes;
 CREATE TRIGGER boxes_create_waiver
   AFTER INSERT ON boxes
   FOR EACH ROW
@@ -82,9 +83,9 @@ CREATE TRIGGER boxes_create_waiver
 -- Backfill waivers for any gyms created before this migration
 INSERT INTO gym_waivers (box_id, content)
 SELECT b.id,
-  'LIABILITY WAIVER & RELEASE OF CLAIMS
+  $waiver$LIABILITY WAIVER AND RELEASE OF CLAIMS
 
-This Liability Waiver and Release of Claims ("Waiver") is entered into by the undersigned participant ("Participant") and ' || b.name || ' ("Gym"), a fitness facility operating in the United Arab Emirates.
+This Liability Waiver and Release of Claims (the "Waiver") is executed between the undersigned participant (the "Participant") and $waiver$ || b.name || $waiver$ (the "Gym"), a fitness facility operating in the United Arab Emirates.
 
 1. ACKNOWLEDGEMENT OF RISK
 
@@ -100,12 +101,12 @@ The Participant confirms they are in adequate physical health to participate in 
 
 4. GOVERNING LAW
 
-This Waiver shall be governed by the laws of the United Arab Emirates. Disputes shall be subject to the exclusive jurisdiction of the UAE courts.
+This Waiver shall be governed under the laws of the United Arab Emirates. Disputes shall be subject to the exclusive jurisdiction of the UAE courts.
 
 5. DATA CONSENT
 
 The Participant consents to the collection and storage of personal data (name, email, fitness records, electronic signature) as required to deliver gym services, in accordance with UAE Federal Decree-Law No. 45 of 2021 on Personal Data Protection.
 
-This Waiver is executed electronically and constitutes a legally binding agreement under UAE Federal Law No. 1 of 2006 on Electronic Commerce and Transactions.'
+This Waiver is executed electronically and constitutes a legally binding agreement under UAE Federal Law No. 1 of 2006 on Electronic Commerce and Transactions.$waiver$
 FROM boxes b
 WHERE NOT EXISTS (SELECT 1 FROM gym_waivers w WHERE w.box_id = b.id);

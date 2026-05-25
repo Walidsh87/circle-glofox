@@ -3,11 +3,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { getMembershipStatus, type MembershipStatus } from '@/lib/membership-status'
+
+type CheckInResult = {
+  error: string | null
+  blocked?: {
+    reason: Exclude<MembershipStatus, 'paid'>
+    lastPaidDate: string | null
+  }
+}
 
 export async function checkIn(
   instanceId: string,
   athleteId: string
-): Promise<{ error: string | null }> {
+): Promise<CheckInResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
@@ -20,6 +29,24 @@ export async function checkIn(
 
   if (!profile || !['owner', 'coach'].includes(profile.role)) {
     return { error: 'Only staff can check in athletes.' }
+  }
+
+  const { data: memberships } = await supabase
+    .from('memberships')
+    .select('payment_status, end_date, last_paid_date')
+    .eq('athlete_id', athleteId)
+    .eq('box_id', profile.box_id)
+
+  const today = new Date().toISOString().slice(0, 10)
+  const status = getMembershipStatus(memberships ?? [], today)
+
+  if (status !== 'paid') {
+    const lastPaidDate = (memberships ?? [])
+      .map((m) => m.last_paid_date)
+      .filter((d): d is string => !!d)
+      .sort()
+      .pop() ?? null
+    return { error: 'BLOCKED', blocked: { reason: status, lastPaidDate } }
   }
 
   const service = createServiceClient(

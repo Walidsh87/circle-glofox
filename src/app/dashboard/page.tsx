@@ -202,7 +202,8 @@ export default async function DashboardPage() {
               {/* WOD hero */}
               {wod && (
                 <div style={{
-                  background: 'var(--circle-ink)', borderRadius: 14, padding: '22px 24px',
+                  background: 'var(--c-surface-alt)', borderRadius: 14, padding: '22px 24px',
+                  border: '1px solid rgba(200, 241, 53, 0.18)',
                   position: 'relative', overflow: 'hidden', boxShadow: 'var(--c-shadow-md)',
                 }}>
                   <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.4 }} />
@@ -275,8 +276,8 @@ function NavCard({ href, label, description, accent }: {
     <a href={href} style={{
       display: 'flex', flexDirection: 'column', gap: 6,
       padding: '18px 16px',
-      background: accent ? 'var(--circle-ink)' : 'var(--c-surface)',
-      border: `1px solid ${accent ? '#222' : 'var(--c-border)'}`,
+      background: accent ? 'var(--c-surface-alt)' : 'var(--c-surface)',
+      border: `1px solid ${accent ? 'rgba(200, 241, 53, 0.25)' : 'var(--c-border)'}`,
       borderRadius: 12, textDecoration: 'none',
       boxShadow: 'var(--c-shadow-sm)',
     }}>

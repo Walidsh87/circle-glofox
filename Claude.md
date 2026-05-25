@@ -130,3 +130,126 @@ coverage: {
 - [ ] `npm run test:coverage` thresholds pass
 - [ ] Introduce a lint error → commit blocked by Husky
 - [ ] Push to GitHub → Actions tab shows green CI run
+
+---
+
+6. Security & Production Hardening
+
+Every project should have these layers before real users touch it:
+
+## a) Security headers (next.config.mjs)
+Add via `headers()` — prevents clickjacking, MIME sniffing, and info leakage:
+```js
+async headers() {
+  return [{
+    source: '/(.*)',
+    headers: [
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+    ],
+  }]
+},
+```
+
+## b) Environment variable validation (src/env.ts)
+Install: `npm install zod`
+
+Create `src/env.ts` — validates all required env vars at startup, fails loud if any are missing:
+```ts
+import { z } from 'zod'
+
+const schema = z.object({
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  // add all required vars here
+})
+
+export const env = schema.parse({
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+})
+```
+
+Also create `.env.example` with all keys listed (no values) — required for any new deployment or dev setup.
+
+## c) Zod validation for server actions
+Use Zod schemas in `_lib/validation.ts` files. Keep `string | null` return type so existing tests stay green:
+```ts
+import { z } from 'zod'
+
+const schema = z.object({
+  fieldA: z.string().min(1),
+  fieldB: z.number().positive(),
+})
+
+export function validateInput(fieldA: string, fieldB: number): string | null {
+  const result = schema.safeParse({ fieldA, fieldB })
+  if (!result.success) return 'Human-readable error message.'
+  return null
+}
+```
+Coverage note: scope `include` in vitest.config.ts to `src/**/_lib/*.ts` — these are the pure logic files with unit tests.
+
+## d) Rate limiting on auth routes
+For production (serverless-safe): `@upstash/ratelimit` + Upstash Redis.
+For simple/dev: in-memory counter in middleware.ts (resets per cold start — not suitable for production).
+Apply in `middleware.ts` before the Supabase auth check.
+
+## e) Route-level error boundaries
+Add `error.tsx` per major App Router segment so one crash doesn't blank the whole app:
+```tsx
+// src/app/dashboard/error.tsx
+'use client'
+export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div>
+      <p>{error.message}</p>
+      <button onClick={reset}>Try again</button>
+    </div>
+  )
+}
+```
+Add for: `/dashboard`, `/[gymSlug]`, `/onboarding`.
+
+## f) Database migration strategy
+Keep SQL files in `/migrations/` with sequential naming — never scatter raw SQL in root:
+```
+migrations/
+  001_schema.sql
+  002_seed-demo.sql
+  003_add-leads-rls.sql
+  ...
+```
+Add `migrations/README.md` explaining how to run them (e.g. Supabase SQL Editor steps).
+
+## g) GitHub automation
+`.github/dependabot.yml` — weekly dependency update PRs:
+```yaml
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+```
+
+`.github/pull_request_template.md` — standard checklist on every PR.
+
+Branch protection rules (GitHub UI, not a file): require CI to pass before merge to main.
+
+## h) Staging environment
+Before onboarding real gyms:
+- Create a second Supabase project for staging (free tier)
+- Add staging env vars to Vercel preview deployments
+- Create `.env.staging.example` listing which vars differ from production
+
+## Verification checklist for production readiness
+- [ ] `curl -I https://your-domain.com` shows X-Frame-Options, X-Content-Type-Options headers
+- [ ] Remove a required env var → startup throws with clear Zod error
+- [ ] Pass invalid input to a server action → returns typed error (not 500)
+- [ ] Throw in a dashboard component → route error.tsx shown, not blank screen
+- [ ] `ls migrations/` shows numbered files with README

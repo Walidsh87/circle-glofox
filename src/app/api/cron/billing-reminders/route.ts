@@ -28,7 +28,12 @@ export async function GET(request: NextRequest) {
 
   const today = new Date().toISOString().slice(0, 10)
 
-  const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: 'no-store' }),
+    },
+  })
 
   const { data, error } = await supabase.rpc('cron_eligible_memberships', { p_today: today })
 

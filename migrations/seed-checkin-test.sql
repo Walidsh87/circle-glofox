@@ -18,10 +18,13 @@ DECLARE
   v_expired_id    UUID;
   v_starts_at     TIMESTAMPTZ := date_trunc('minute', now()) + interval '30 minutes';
 BEGIN
-  -- Use the first box and any coach on it
-  SELECT id INTO v_box_id FROM boxes ORDER BY created_at LIMIT 1;
+  -- Target the box belonging to the most recently created owner profile
+  -- (the gym you're currently logged in as, in most dev setups)
+  SELECT box_id INTO v_box_id
+    FROM profiles WHERE role = 'owner'
+    ORDER BY created_at DESC LIMIT 1;
   IF v_box_id IS NULL THEN
-    RAISE EXCEPTION 'No box found. Run the main seed first.';
+    RAISE EXCEPTION 'No owner profile found. Complete onboarding first at /onboarding.';
   END IF;
 
   SELECT id INTO v_coach_id

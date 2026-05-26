@@ -65,6 +65,7 @@ export default async function MemberProfilePage({ params }: { params: { memberId
     { data: lifts },
     { data: scores },
     { data: bookings },
+    { data: pdplExports },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -96,6 +97,17 @@ export default async function MemberProfilePage({ params }: { params: { memberId
       .eq('athlete_id', params.memberId)
       .eq('box_id', viewer.box_id)
       .order('booked_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('pdpl_exports')
+      .select(`
+        exported_at,
+        ip_address,
+        exporter:profiles!pdpl_exports_exported_by_fkey(full_name)
+      `)
+      .eq('athlete_id', params.memberId)
+      .eq('box_id', viewer.box_id)
+      .order('exported_at', { ascending: false })
       .limit(10),
   ])
 
@@ -328,6 +340,70 @@ export default async function MemberProfilePage({ params }: { params: { memberId
                 </div>
               )}
             </div>
+
+            {/* PDPL Data Export — owner only */}
+            {viewer.role === 'owner' && (
+              <div style={{
+                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                borderRadius: 14, padding: '18px 20px', marginTop: 20,
+                boxShadow: 'var(--c-shadow-sm)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 3 }}>
+                      PDPL Data Export
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>
+                      UAE Federal Decree-Law No. 45 of 2021 — data subject access request
+                    </div>
+                  </div>
+                  <a
+                    href={`/api/pdpl/export/${params.memberId}`}
+                    download
+                    style={{
+                      padding: '8px 14px', borderRadius: 8,
+                      background: 'var(--circle-lime)', color: 'var(--circle-ink)',
+                      fontSize: 12.5, fontWeight: 700, textDecoration: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Export JSON ↓
+                  </a>
+                </div>
+
+                <div style={{ borderTop: '1px solid var(--c-divider)', paddingTop: 12, marginTop: 6 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                    Export history
+                  </div>
+                  {(pdplExports ?? []).length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'var(--c-ink-faint)' }}>No exports yet.</div>
+                  ) : (
+                    (pdplExports ?? []).map((e, i) => {
+                      const exporter = (Array.isArray(e.exporter) ? e.exporter[0] : e.exporter) as { full_name?: string } | null
+                      return (
+                        <div key={i} style={{
+                          display: 'grid', gridTemplateColumns: '1fr auto', gap: 10,
+                          padding: '6px 0', fontSize: 12, color: 'var(--c-ink-2)',
+                          borderBottom: i < (pdplExports ?? []).length - 1 ? '1px solid var(--c-divider)' : 'none',
+                        }}>
+                          <div>
+                            <span style={{ color: 'var(--c-ink)' }}>{exporter?.full_name ?? 'Owner'}</span>
+                            {e.ip_address && (
+                              <span className="mono" style={{ color: 'var(--c-ink-faint)', marginLeft: 8, fontSize: 11 }}>
+                                {e.ip_address}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mono" style={{ color: 'var(--c-ink-faint)', fontSize: 11 }}>
+                            {new Date(e.exported_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
 
           </div>
         </div>

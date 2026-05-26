@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS billing_reminders (
 
 ALTER TABLE billing_reminders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS billing_reminders_owner_read ON billing_reminders;
 CREATE POLICY billing_reminders_owner_read ON billing_reminders
   FOR SELECT USING (auth_role() = 'owner' AND auth_box_id() = box_id);
 

@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
 const overrideSchema = z.object({
-  instanceId: z.string().uuid(),
-  athleteId:  z.string().uuid(),
+  instanceId: z.string().min(1),
+  athleteId:  z.string().min(1),
   reason:     z.string().min(1).max(200),
 })
 

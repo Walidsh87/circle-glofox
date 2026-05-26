@@ -28,7 +28,9 @@ export default async function PaymentsPage() {
   const boxes = profile.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
-  const [{ data: memberships }, { data: athletes }, { data: box }] = await Promise.all([
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }] = await Promise.all([
     supabase
       .from('memberships')
       .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, stripe_price_id, profiles(full_name)')
@@ -46,6 +48,19 @@ export default async function PaymentsPage() {
       .select('stripe_secret_key')
       .eq('id', profile.box_id)
       .single(),
+    supabase
+      .from('bookings')
+      .select(`
+        overridden_at,
+        overridden_reason,
+        athlete:profiles!bookings_athlete_id_fkey(full_name),
+        coach:profiles!bookings_overridden_by_fkey(full_name)
+      `)
+      .eq('box_id', profile.box_id)
+      .not('overridden_at', 'is', null)
+      .gte('overridden_at', thirtyDaysAgo)
+      .order('overridden_at', { ascending: false })
+      .limit(10),
   ])
 
   const stripeConnected = !!(box?.stripe_secret_key)
@@ -141,6 +156,54 @@ export default async function PaymentsPage() {
           }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Add membership</p>
             <AddMembershipForm athletes={athletes ?? []} stripeConnected={stripeConnected} />
+          </div>
+
+          {/* Recent overrides (30 days) */}
+          <div style={{
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: 14, overflow: 'hidden', marginBottom: 20,
+            boxShadow: 'var(--c-shadow-sm)',
+          }}>
+            <div style={{
+              padding: '14px 20px', borderBottom: '1px solid var(--c-border)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>
+                Recent overrides (30 days)
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--c-ink-muted)' }}>
+                {(overrides ?? []).length} {(overrides ?? []).length === 1 ? 'override' : 'overrides'}
+              </span>
+            </div>
+            {(overrides ?? []).length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
+                No overrides in the last 30 days.
+              </div>
+            ) : (
+              (overrides ?? []).map((o, i) => {
+                const athlete = (Array.isArray(o.athlete) ? o.athlete[0] : o.athlete) as { full_name?: string } | null
+                const coach   = (Array.isArray(o.coach)   ? o.coach[0]   : o.coach)   as { full_name?: string } | null
+                return (
+                  <div key={i} style={{
+                    padding: '12px 20px',
+                    borderBottom: i < (overrides ?? []).length - 1 ? '1px solid var(--c-divider)' : 'none',
+                    display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13.5, color: 'var(--c-ink)', fontWeight: 500 }}>
+                        {athlete?.full_name ?? 'Athlete'}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 2 }}>
+                        {o.overridden_reason} · by {coach?.full_name ?? 'Coach'}
+                      </div>
+                    </div>
+                    <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>
+                      {o.overridden_at ? new Date(o.overridden_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
 
           {/* Memberships table */}

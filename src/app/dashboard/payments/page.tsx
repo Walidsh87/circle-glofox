@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/sidebar'
 import { AddMembershipForm } from './_components/add-membership-form'
 import { PaymentActions } from './_components/payment-actions'
 import { CreateStripePlanForm } from './_components/create-stripe-plan-form'
+import { RemindersToggle } from './_components/reminders-toggle'
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   paid:    { bg: 'var(--c-ok-soft)',    color: 'var(--c-ok-ink)' },
@@ -30,7 +31,7 @@ export default async function PaymentsPage() {
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }] = await Promise.all([
+  const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }, { data: reminders }] = await Promise.all([
     supabase
       .from('memberships')
       .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, stripe_price_id, profiles(full_name)')
@@ -45,7 +46,7 @@ export default async function PaymentsPage() {
       .order('full_name'),
     supabase
       .from('boxes')
-      .select('stripe_secret_key')
+      .select('stripe_secret_key, reminders_enabled')
       .eq('id', profile.box_id)
       .single(),
     supabase
@@ -61,9 +62,19 @@ export default async function PaymentsPage() {
       .gte('overridden_at', thirtyDaysAgo)
       .order('overridden_at', { ascending: false })
       .limit(10),
+    supabase
+      .from('billing_reminders')
+      .select(`
+        sent_at, stage, due_date,
+        membership:memberships(profiles(full_name))
+      `)
+      .eq('box_id', profile.box_id)
+      .order('sent_at', { ascending: false })
+      .limit(10),
   ])
 
   const stripeConnected = !!(box?.stripe_secret_key)
+  const remindersEnabled = box?.reminders_enabled ?? true
 
   const unpaidCount = memberships?.filter((m) => m.payment_status !== 'paid').length ?? 0
   const paidCount = memberships?.filter((m) => m.payment_status === 'paid').length ?? 0
@@ -199,6 +210,77 @@ export default async function PaymentsPage() {
                     </div>
                     <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>
                       {o.overridden_at ? new Date(o.overridden_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* Automated reminders toggle */}
+          <div style={{
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: 14, padding: '14px 20px', marginBottom: 20,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            boxShadow: 'var(--c-shadow-sm)',
+          }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>
+                Automated billing reminders
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 2 }}>
+                Sends 3 days before, on due, and 3 days overdue
+              </div>
+            </div>
+            <RemindersToggle initialEnabled={remindersEnabled} />
+          </div>
+
+          {/* Recent reminders sent */}
+          <div style={{
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: 14, overflow: 'hidden', marginBottom: 20,
+            boxShadow: 'var(--c-shadow-sm)',
+          }}>
+            <div style={{
+              padding: '14px 20px', borderBottom: '1px solid var(--c-border)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>
+                Reminders sent
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--c-ink-muted)' }}>
+                last 10
+              </span>
+            </div>
+            {(reminders ?? []).length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
+                No reminders sent yet.
+              </div>
+            ) : (
+              (reminders ?? []).map((r, i) => {
+                const membership = (Array.isArray(r.membership) ? r.membership[0] : r.membership) as { profiles?: { full_name?: string } | { full_name?: string }[] } | null
+                const athleteProfile = membership ? (Array.isArray(membership.profiles) ? membership.profiles[0] : membership.profiles) : null
+                const stageColor =
+                  r.stage === 'pre'      ? { bg: 'var(--c-ok-soft)',     fg: 'var(--c-ok-ink)' } :
+                  r.stage === 'due'      ? { bg: 'var(--c-warn-soft)',   fg: 'var(--c-warn-ink)' } :
+                                            { bg: 'var(--c-danger-soft)', fg: 'var(--c-danger-ink)' }
+                return (
+                  <div key={i} style={{
+                    padding: '12px 20px',
+                    borderBottom: i < (reminders ?? []).length - 1 ? '1px solid var(--c-divider)' : 'none',
+                    display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12, alignItems: 'center',
+                  }}>
+                    <div style={{ fontSize: 13.5, color: 'var(--c-ink)' }}>
+                      {athleteProfile?.full_name ?? 'Member'}
+                    </div>
+                    <span style={{
+                      fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 4,
+                      background: stageColor.bg, color: stageColor.fg, textTransform: 'uppercase',
+                    }}>
+                      {r.stage}
+                    </span>
+                    <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>
+                      {new Date(r.sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </div>
                   </div>
                 )

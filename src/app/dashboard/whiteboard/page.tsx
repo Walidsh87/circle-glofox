@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CheckInButton } from './_components/checkin-button'
 import { CircleMark } from '@/components/circle-mark'
+import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 
 const TIMEZONE_OFFSETS: Record<string, number> = {
   'Asia/Dubai':   4,
@@ -28,6 +29,12 @@ function formatTime(startsAt: string, timezone: string) {
   return new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(new Date(startsAt))
+}
+
+function todayLocalDate(timezone: string): string {
+  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
+  const localMs = Date.now() + offsetHours * 60 * 60 * 1000
+  return new Date(localMs).toISOString().slice(0, 10)
 }
 
 export default async function WhiteboardPage() {
@@ -59,7 +66,14 @@ export default async function WhiteboardPage() {
       id, starts_at, capacity, status,
       class_templates(name),
       profiles(full_name),
-      bookings(athlete_id, checked_in, profiles(full_name))
+      bookings(
+        athlete_id,
+        checked_in,
+        profiles(
+          full_name,
+          memberships(payment_status, end_date, last_paid_date)
+        )
+      )
     `)
     .eq('box_id', profile.box_id)
     .eq('status', 'scheduled')
@@ -70,6 +84,8 @@ export default async function WhiteboardPage() {
   const today = new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone, weekday: 'long', day: 'numeric', month: 'long',
   }).format(new Date())
+
+  const todayIso = todayLocalDate(timezone)
 
   return (
     <div className="circle-dark" style={{
@@ -134,10 +150,14 @@ export default async function WhiteboardPage() {
             const className = Array.isArray(template) ? template[0]?.name : template?.name
             const coach = instance.profiles as { full_name: string } | { full_name: string }[] | null
             const coachName = Array.isArray(coach) ? coach[0]?.full_name : coach?.full_name
+            type AthleteProfile = {
+              full_name: string
+              memberships: Array<MembershipRow & { last_paid_date: string | null }>
+            }
             const bookings = instance.bookings as {
               athlete_id: string
               checked_in: boolean
-              profiles: { full_name: string } | { full_name: string }[]
+              profiles: AthleteProfile | AthleteProfile[]
             }[] | null
             const time = formatTime(instance.starts_at, timezone)
             const checkedInCount = bookings?.filter((b) => b.checked_in).length ?? 0
@@ -178,6 +198,13 @@ export default async function WhiteboardPage() {
                   )}
                   {bookings?.map((booking) => {
                     const athleteProfile = Array.isArray(booking.profiles) ? booking.profiles[0] : booking.profiles
+                    const memberships = athleteProfile?.memberships ?? []
+                    const status = getMembershipStatus(memberships, todayIso)
+                    const lastPaid = memberships
+                      .map((m) => m.last_paid_date)
+                      .filter((d): d is string => !!d)
+                      .sort()
+                      .pop() ?? null
                     return (
                       <CheckInButton
                         key={booking.athlete_id}
@@ -185,6 +212,8 @@ export default async function WhiteboardPage() {
                         athleteId={booking.athlete_id}
                         athleteName={athleteProfile?.full_name ?? 'Unknown'}
                         checkedIn={booking.checked_in}
+                        membershipStatus={status}
+                        lastPaidDate={lastPaid}
                       />
                     )
                   })}

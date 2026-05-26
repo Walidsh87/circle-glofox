@@ -60,26 +60,44 @@ export default async function WhiteboardPage() {
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const { start, end } = todayWindow(timezone)
 
-  const { data: instances } = await supabase
+  const { data: instances, error: instancesError } = await supabase
     .from('class_instances')
     .select(`
       id, starts_at, capacity, status,
       class_templates(name),
       profiles(full_name),
-      bookings(
-        athlete_id,
-        checked_in,
-        profiles(
-          full_name,
-          memberships(payment_status, end_date, last_paid_date)
-        )
-      )
+      bookings(athlete_id, checked_in, profiles!bookings_athlete_id_fkey(full_name))
     `)
     .eq('box_id', profile.box_id)
     .eq('status', 'scheduled')
     .gte('starts_at', start)
     .lte('starts_at', end)
     .order('starts_at')
+
+  if (instancesError) console.error('[whiteboard] instances query error:', instancesError)
+
+  // Fetch memberships for all athletes booked into today's classes (separate query — avoids nested-join ambiguity)
+  const athleteIds = Array.from(new Set(
+    (instances ?? []).flatMap((inst) => {
+      const bks = inst.bookings as { athlete_id: string }[] | null
+      return (bks ?? []).map((b) => b.athlete_id)
+    })
+  ))
+
+  const { data: membershipRows } = athleteIds.length > 0
+    ? await supabase
+        .from('memberships')
+        .select('athlete_id, payment_status, end_date, last_paid_date')
+        .in('athlete_id', athleteIds)
+        .eq('box_id', profile.box_id)
+    : { data: [] as Array<{ athlete_id: string; payment_status: 'paid' | 'unpaid' | 'overdue'; end_date: string | null; last_paid_date: string | null }> }
+
+  const membershipsByAthlete = new Map<string, Array<MembershipRow & { last_paid_date: string | null }>>()
+  for (const m of membershipRows ?? []) {
+    const arr = membershipsByAthlete.get(m.athlete_id) ?? []
+    arr.push({ payment_status: m.payment_status as 'paid' | 'unpaid', end_date: m.end_date, last_paid_date: m.last_paid_date })
+    membershipsByAthlete.set(m.athlete_id, arr)
+  }
 
   const today = new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone, weekday: 'long', day: 'numeric', month: 'long',
@@ -150,14 +168,10 @@ export default async function WhiteboardPage() {
             const className = Array.isArray(template) ? template[0]?.name : template?.name
             const coach = instance.profiles as { full_name: string } | { full_name: string }[] | null
             const coachName = Array.isArray(coach) ? coach[0]?.full_name : coach?.full_name
-            type AthleteProfile = {
-              full_name: string
-              memberships: Array<MembershipRow & { last_paid_date: string | null }>
-            }
             const bookings = instance.bookings as {
               athlete_id: string
               checked_in: boolean
-              profiles: AthleteProfile | AthleteProfile[]
+              profiles: { full_name: string } | { full_name: string }[]
             }[] | null
             const time = formatTime(instance.starts_at, timezone)
             const checkedInCount = bookings?.filter((b) => b.checked_in).length ?? 0
@@ -198,7 +212,7 @@ export default async function WhiteboardPage() {
                   )}
                   {bookings?.map((booking) => {
                     const athleteProfile = Array.isArray(booking.profiles) ? booking.profiles[0] : booking.profiles
-                    const memberships = athleteProfile?.memberships ?? []
+                    const memberships = membershipsByAthlete.get(booking.athlete_id) ?? []
                     const status = getMembershipStatus(memberships, todayIso)
                     const lastPaid = memberships
                       .map((m) => m.last_paid_date)

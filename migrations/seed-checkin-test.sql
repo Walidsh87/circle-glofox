@@ -36,6 +36,20 @@ BEGIN
   v_nomembership_id := '11111111-aaaa-aaaa-aaaa-000000000004';
   v_expired_id      := '11111111-aaaa-aaaa-aaaa-000000000005';
 
+  -- profiles.id is a FK to auth.users.id — create the auth rows first
+  INSERT INTO auth.users (
+    instance_id, id, aud, role, email,
+    encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data,
+    created_at, updated_at
+  ) VALUES
+    ('00000000-0000-0000-0000-000000000000', v_paid_id,         'authenticated', 'authenticated', 'test.paid@circle.test',         '', now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', v_unpaid_id,       'authenticated', 'authenticated', 'test.unpaid@circle.test',       '', now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', v_overdue_id,      'authenticated', 'authenticated', 'test.overdue@circle.test',      '', now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', v_nomembership_id, 'authenticated', 'authenticated', 'test.nomembership@circle.test', '', now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
+    ('00000000-0000-0000-0000-000000000000', v_expired_id,      'authenticated', 'authenticated', 'test.expired@circle.test',      '', now(), '{"provider":"email","providers":["email"]}', '{}', now(), now())
+  ON CONFLICT (id) DO NOTHING;
+
   INSERT INTO profiles (id, box_id, role, full_name, email, phone) VALUES
     (v_paid_id,         v_box_id, 'athlete', 'Test Paid',          'test.paid@circle.test',          '+971500000001'),
     (v_unpaid_id,       v_box_id, 'athlete', 'Test Unpaid',        'test.unpaid@circle.test',        '+971500000002'),
@@ -129,6 +143,13 @@ END $$;
 -- );
 -- DELETE FROM class_templates WHERE name = 'Check-in Test Class';
 -- DELETE FROM profiles WHERE id IN (
+--   '11111111-aaaa-aaaa-aaaa-000000000001',
+--   '11111111-aaaa-aaaa-aaaa-000000000002',
+--   '11111111-aaaa-aaaa-aaaa-000000000003',
+--   '11111111-aaaa-aaaa-aaaa-000000000004',
+--   '11111111-aaaa-aaaa-aaaa-000000000005'
+-- );
+-- DELETE FROM auth.users WHERE id IN (
 --   '11111111-aaaa-aaaa-aaaa-000000000001',
 --   '11111111-aaaa-aaaa-aaaa-000000000002',
 --   '11111111-aaaa-aaaa-aaaa-000000000003',

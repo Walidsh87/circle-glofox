@@ -32,6 +32,7 @@ export async function createStripePlan(prevState: State, formData: FormData): Pr
     const { planRef } = await provider.createPlan({ planName, monthlyPriceAed: priceAed })
     return { error: null, priceId: planRef }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Could not create plan.', priceId: null }
+    console.error('createPlan failed:', e)
+    return { error: 'Could not create the plan. Please check your provider settings.', priceId: null }
   }
 }

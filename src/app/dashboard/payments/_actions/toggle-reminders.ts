@@ -21,7 +21,10 @@ export async function toggleReminders(enabled: boolean): Promise<{ error: string
     .update({ reminders_enabled: enabled })
     .eq('id', profile.box_id)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('toggleReminders update failed:', error)
+    return { error: 'Could not update the reminders setting.' }
+  }
 
   revalidatePath('/dashboard/payments')
   return { error: null }

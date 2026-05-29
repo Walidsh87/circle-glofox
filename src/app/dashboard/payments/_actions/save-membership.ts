@@ -40,7 +40,10 @@ export async function saveMembership(prevState: State, formData: FormData): Prom
     ...(stripePriceId ? { provider_plan_ref: stripePriceId } : {}),
   })
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('saveMembership insert failed:', error)
+    return { error: 'Could not save the membership.' }
+  }
 
   revalidatePath('/dashboard/payments')
   return { error: null }

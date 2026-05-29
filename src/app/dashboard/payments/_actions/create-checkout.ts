@@ -81,6 +81,7 @@ export async function createCheckout(membershipId: string): Promise<State> {
 
     return { error: null, url: session.url }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Could not create checkout link.', url: null }
+    console.error('createCheckout failed:', e)
+    return { error: 'Could not create the checkout link. Please check your provider settings.', url: null }
   }
 }

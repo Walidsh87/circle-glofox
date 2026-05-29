@@ -25,7 +25,10 @@ export async function markPaid(membershipId: string): Promise<{ error: string | 
     .eq('id', membershipId)
     .eq('box_id', profile.box_id)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('markPaid update failed:', error)
+    return { error: 'Could not mark this membership paid.' }
+  }
 
   revalidatePath('/dashboard/payments')
   return { error: null }
@@ -50,7 +53,10 @@ export async function markUnpaid(membershipId: string): Promise<{ error: string 
     .eq('id', membershipId)
     .eq('box_id', profile.box_id)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('markUnpaid update failed:', error)
+    return { error: 'Could not mark this membership unpaid.' }
+  }
 
   revalidatePath('/dashboard/payments')
   return { error: null }

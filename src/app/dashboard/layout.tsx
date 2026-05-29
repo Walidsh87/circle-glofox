@@ -29,14 +29,30 @@ export default async function DashboardLayout({
     return <>{children}</>
   }
 
-  const { data: signature } = await supabase
-    .from('waiver_signatures')
+  const [{ data: waiverSig }, { data: terms }] = await Promise.all([
+    supabase
+      .from('waiver_signatures')
+      .select('id')
+      .eq('box_id', profile.box_id)
+      .eq('athlete_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('gym_terms')
+      .select('version')
+      .eq('box_id', profile.box_id)
+      .maybeSingle(),
+  ])
+
+  const currentTermsVersion = terms?.version ?? 1
+  const { data: termsSig } = await supabase
+    .from('terms_signatures')
     .select('id')
     .eq('box_id', profile.box_id)
     .eq('athlete_id', user.id)
+    .eq('terms_version', currentTermsVersion)
     .maybeSingle()
 
-  if (!signature) {
+  if (!waiverSig || !termsSig) {
     redirect('/dashboard/sign-waiver')
   }
 

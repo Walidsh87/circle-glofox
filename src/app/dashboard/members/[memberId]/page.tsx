@@ -66,6 +66,7 @@ export default async function MemberProfilePage({ params }: { params: { memberId
     { data: scores },
     { data: bookings },
     { data: pdplExports },
+    { data: invoices },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -109,6 +110,13 @@ export default async function MemberProfilePage({ params }: { params: { memberId
       .eq('box_id', viewer.box_id)
       .order('exported_at', { ascending: false })
       .limit(10),
+    supabase
+      .from('invoices')
+      .select('id, invoice_number, issued_at, total_aed, credit_notes(total_aed)')
+      .eq('athlete_id', params.memberId)
+      .eq('box_id', viewer.box_id)
+      .order('issued_at', { ascending: false })
+      .limit(20),
   ])
 
   if (!member) notFound()
@@ -340,6 +348,59 @@ export default async function MemberProfilePage({ params }: { params: { memberId
                 </div>
               )}
             </div>
+
+            {/* Invoices */}
+            {(invoices ?? []).length > 0 && (
+              <div style={{
+                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+                borderRadius: 14, overflow: 'hidden', marginTop: 20,
+                boxShadow: 'var(--c-shadow-sm)',
+              }}>
+                <div style={{
+                  padding: '12px 16px', borderBottom: '1px solid var(--c-divider)',
+                  background: 'var(--c-surface-sunk)',
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>VAT Invoices</span>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    {(invoices ?? []).map((inv) => {
+                      const cns = (inv as { credit_notes?: { total_aed: number }[] }).credit_notes ?? []
+                      const refunded = cns.reduce((s, c) => s + Number(c.total_aed), 0)
+                      return (
+                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--c-divider)' }}>
+                          <td style={{ padding: '10px 16px' }}>
+                            <Link href={`/dashboard/invoices/${inv.id}`} className="mono" style={{ fontSize: 12.5, color: 'var(--c-ink)', textDecoration: 'none' }}>
+                              {inv.invoice_number}
+                            </Link>
+                            {refunded > 0 && (
+                              <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'var(--c-warn-soft)', color: 'var(--c-warn-ink)' }}>
+                                {refunded >= Number(inv.total_aed) - 0.001 ? 'Refunded' : 'Partial refund'}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '10px 16px', textAlign: 'right' }}>
+                            <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>
+                              {formatDate(inv.issued_at)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                            <span style={{ fontSize: 13, color: 'var(--c-ink)', fontWeight: 600 }}>
+                              AED {Number(inv.total_aed).toFixed(2)}
+                            </span>
+                            {refunded > 0 && (
+                              <div style={{ fontSize: 11, color: 'var(--c-warn-ink)' }}>
+                                −AED {refunded.toFixed(2)}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             {/* PDPL Data Export — owner only */}
             {viewer.role === 'owner' && (

@@ -51,6 +51,52 @@ function buildBody(input: ReminderEmailInput): string {
 <p>— ${gymName}</p>`
 }
 
+export type CardFailedEmailInput = {
+  to: string
+  gymName: string
+  athleteName: string
+  amountAed: number
+  attemptCount: number
+  maxRetries: number
+  updatePaymentUrl: string
+}
+
+export async function sendCardFailedEmail(
+  input: CardFailedEmailInput
+): Promise<{ id: string | null; error: string | null }> {
+  const { athleteName, gymName, amountAed, attemptCount, maxRetries, updatePaymentUrl, to } = input
+  const amount = `${amountAed.toLocaleString()} AED`
+  const isFinal = attemptCount >= maxRetries
+
+  const subject = isFinal
+    ? `Action required — ${gymName} payment failed`
+    : `Heads up — ${gymName} payment couldn't be processed`
+
+  const body = isFinal
+    ? `<p>Hi ${athleteName},</p>
+<p>We tried ${attemptCount} times to charge ${amount} for your <strong>${gymName}</strong> membership and your card was declined each time. Your account is now <strong>past due</strong>, which means your check-ins may be blocked.</p>
+<p><a href="${updatePaymentUrl}" style="display:inline-block;padding:12px 20px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Update your card</a></p>
+<p>Once you update your card, we'll automatically retry the charge.</p>
+<p>— ${gymName}</p>`
+    : `<p>Hi ${athleteName},</p>
+<p>We tried to charge ${amount} for your <strong>${gymName}</strong> membership but your card was declined (attempt ${attemptCount} of ${maxRetries}). We'll retry automatically, but updating your card now will speed things up.</p>
+<p><a href="${updatePaymentUrl}" style="display:inline-block;padding:12px 20px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Update payment method</a></p>
+<p>— ${gymName}</p>`
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: env.RESEND_FROM_EMAIL,
+      to,
+      subject,
+      html: body,
+    })
+    if (error) return { id: null, error: error.message }
+    return { id: data?.id ?? null, error: null }
+  } catch (e) {
+    return { id: null, error: e instanceof Error ? e.message : 'Unknown error' }
+  }
+}
+
 export async function sendBillingReminderEmail(
   input: ReminderEmailInput
 ): Promise<{ id: string | null; error: string | null }> {

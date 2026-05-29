@@ -26,7 +26,7 @@ describe('buildPdplExport', () => {
   test('preserves all rows when sections are populated', () => {
     const out = buildPdplExport({
       profile: baseProfile,
-      memberships: [{ id: 'm1', plan_name: 'Unlimited', monthly_price_aed: 750, start_date: '2026-01-01', end_date: null, payment_status: 'paid', last_paid_date: '2026-05-01', stripe_price_id: null }],
+      memberships: [{ id: 'm1', plan_name: 'Unlimited', monthly_price_aed: 750, start_date: '2026-01-01', end_date: null, payment_status: 'paid', last_paid_date: '2026-05-01', provider_plan_ref: null }],
       bookings: [{ class_instance_id: 'c1', checked_in: true, checked_in_at: '2026-05-10T07:00:00Z', overridden_at: null, overridden_reason: null }],
       lifts: [{ lift_name: 'back_squat', one_rm_grams: 140000, recorded_at: '2026-05-12T08:00:00Z' }],
       scores: [{ workout_id: 'w1', score: 200, scoring_type: 'reps', recorded_at: '2026-05-15T07:30:00Z' }],

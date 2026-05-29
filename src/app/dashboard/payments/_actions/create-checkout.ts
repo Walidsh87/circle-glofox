@@ -1,9 +1,9 @@
 'use server'
 
-import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { validateCheckoutGuards } from '../_lib/validation'
+import { getProviderForBox } from '@/lib/psp'
 
 export { validateCheckoutGuards }
 
@@ -24,28 +24,27 @@ export async function createCheckout(membershipId: string): Promise<State> {
 
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
   const { data: membership } = await service
     .from('memberships')
-    .select('id, stripe_price_id, stripe_customer_id, athlete_id, box_id')
+    .select('id, provider_plan_ref, provider_customer_ref, athlete_id, box_id')
     .eq('id', membershipId)
     .eq('box_id', profile.box_id)
     .single()
 
   const { data: box } = await service
     .from('boxes')
-    .select('stripe_secret_key')
+    .select('psp_provider, psp_credentials, stripe_secret_key')
     .eq('id', profile.box_id)
     .single()
 
-  const guardError = validateCheckoutGuards(membership, box?.stripe_secret_key ?? null)
+  const providerConfigured = !!(box?.psp_credentials || box?.stripe_secret_key)
+  const guardError = validateCheckoutGuards(membership, providerConfigured)
   if (guardError) return { error: guardError, url: null }
 
-  // membership and box.stripe_secret_key are guaranteed non-null by the guard above
   const m = membership!
-  const stripeKey = box!.stripe_secret_key!
 
   const { data: athlete } = await service
     .from('profiles')
@@ -53,31 +52,35 @@ export async function createCheckout(membershipId: string): Promise<State> {
     .eq('id', m.athlete_id)
     .single()
 
-  const stripe = new Stripe(stripeKey)
+  try {
+    const provider = await getProviderForBox(profile.box_id)
 
-  let customerId = m.stripe_customer_id
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: athlete?.email ?? undefined,
-      name: athlete?.full_name ?? undefined,
-      metadata: { membership_id: membershipId, box_id: profile.box_id },
+    let customerRef = m.provider_customer_ref
+    if (!customerRef) {
+      const created = await provider.createCustomer({
+        email: athlete?.email ?? null,
+        name: athlete?.full_name ?? null,
+        metadata: { membership_id: membershipId, box_id: profile.box_id },
+      })
+      customerRef = created.customerRef
+      await service
+        .from('memberships')
+        .update({ provider_customer_ref: customerRef })
+        .eq('id', membershipId)
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://circle-glofox.vercel.app'
+    const session = await provider.createCheckoutSession({
+      planRef: m.provider_plan_ref!,
+      customerRef,
+      customerEmail: athlete?.email ?? null,
+      successUrl: `${baseUrl}/dashboard/payments?stripe=success`,
+      cancelUrl: `${baseUrl}/dashboard/payments`,
+      membershipId,
     })
-    customerId = customer.id
-    await service
-      .from('memberships')
-      .update({ stripe_customer_id: customerId })
-      .eq('id', membershipId)
+
+    return { error: null, url: session.url }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Could not create checkout link.', url: null }
   }
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://circle-glofox.vercel.app'
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: 'subscription',
-    line_items: [{ price: m.stripe_price_id!, quantity: 1 }],
-    success_url: `${baseUrl}/dashboard/payments?stripe=success`,
-    cancel_url: `${baseUrl}/dashboard/payments`,
-    metadata: { membership_id: membershipId, box_id: profile.box_id },
-  })
-
-  return { error: null, url: session.url }
 }

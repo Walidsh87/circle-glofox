@@ -34,7 +34,7 @@ export default async function PaymentsPage() {
   const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }, { data: reminders }] = await Promise.all([
     supabase
       .from('memberships')
-      .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, stripe_price_id, profiles(full_name)')
+      .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, provider_plan_ref, failed_charge_attempts, last_failed_at, profiles(full_name)')
       .eq('box_id', profile.box_id)
       .order('payment_status')
       .order('start_date', { ascending: false }),
@@ -336,12 +336,21 @@ export default async function PaymentsPage() {
                           <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
                           {m.payment_status}
                         </span>
+                        {(m.failed_charge_attempts ?? 0) > 0 && (
+                          <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--c-warn-ink)' }}>
+                            {m.failed_charge_attempts} card {m.failed_charge_attempts === 1 ? 'failure' : 'failures'}
+                            {' · '}
+                            <a href={`/portal/${m.id}`} target="_blank" rel="noreferrer" style={{ color: 'var(--c-ink)', textDecoration: 'underline' }}>
+                              copy update link
+                            </a>
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <PaymentActions
                           membershipId={m.id}
                           currentStatus={m.payment_status}
-                          hasStripePlan={!!m.stripe_price_id}
+                          hasStripePlan={!!m.provider_plan_ref}
                           stripeConnected={stripeConnected}
                         />
                       </td>

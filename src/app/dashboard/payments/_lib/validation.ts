@@ -12,7 +12,7 @@ const stripePlanSchema = z.object({
 })
 
 const checkoutGuardsSchema = z.object({
-  stripe_price_id: z.string().min(1),
+  provider_plan_ref: z.string().min(1),
 })
 
 export function validateMembershipInput(athleteId: string, planName: string, startDate: string): string | null {
@@ -29,12 +29,12 @@ export function validateStripePlanInput(planName: string, priceAed: number): str
 }
 
 export function validateCheckoutGuards(
-  membership: { stripe_price_id: string | null } | null,
-  stripeSecretKey: string | null
+  membership: { provider_plan_ref: string | null } | null,
+  providerConfigured: boolean
 ): string | null {
   if (!membership) return 'Membership not found.'
   const result = checkoutGuardsSchema.safeParse(membership)
-  if (!result.success) return 'No Stripe plan linked to this membership.'
-  if (!stripeSecretKey) return 'Stripe is not connected.'
+  if (!result.success) return 'No payment plan linked to this membership.'
+  if (!providerConfigured) return 'Payment provider is not connected.'
   return null
 }

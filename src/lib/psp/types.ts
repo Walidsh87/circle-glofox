@@ -1,0 +1,99 @@
+// Provider-agnostic types for the PaymentProvider port.
+// Every PSP adapter (Stripe, Telr, …) translates its native API into these shapes.
+
+export type ProviderKey = 'stripe' | 'telr' | 'tap' | 'checkout' | 'ni' | 'paytabs'
+
+export type CreatePlanInput = {
+  planName: string
+  monthlyPriceAed: number
+}
+
+export type CreateCheckoutInput = {
+  planRef: string
+  customerRef: string | null
+  customerEmail: string | null
+  successUrl: string
+  cancelUrl: string
+  membershipId: string
+}
+
+export type CreateCustomerInput = {
+  email: string | null
+  name: string | null
+  metadata?: Record<string, string>
+}
+
+export type RefundInput = {
+  paymentRef: string
+  amountAed: number
+  metadata?: Record<string, string>
+}
+
+// Normalised webhook event. Every adapter produces one of these from its native event;
+// the consuming webhook route knows nothing about Stripe/Telr/etc.
+export type NormalisedEvent =
+  | {
+      kind: 'payment_succeeded'
+      rawId: string
+      subscriptionRef: string | null
+      customerRef: string | null
+      chargeRef: string | null
+      paymentRef: string | null
+      amountAed: number
+    }
+  | {
+      kind: 'payment_failed'
+      rawId: string
+      subscriptionRef: string | null
+      amountAed: number
+    }
+  | {
+      kind: 'charge_succeeded'
+      rawId: string
+      paymentRef: string
+      chargeRef: string
+      invoiceChargeRef: string | null
+    }
+  | {
+      kind: 'refunded'
+      rawId: string
+      paymentRef: string
+      refundRef: string
+      amountAed: number
+      fullyRefunded: boolean
+      reason: string | null
+    }
+  | {
+      kind: 'subscription_cancelled'
+      rawId: string
+      subscriptionRef: string
+    }
+  | {
+      kind: 'checkout_completed'
+      rawId: string
+      sessionId: string
+      subscriptionRef: string | null
+      customerRef: string | null
+      membershipId: string | null
+    }
+  | { kind: 'unknown'; rawId: string }
+
+export interface PaymentProvider {
+  readonly key: ProviderKey
+
+  createPlan(input: CreatePlanInput): Promise<{ planRef: string }>
+  createCustomer(input: CreateCustomerInput): Promise<{ customerRef: string }>
+  createCheckoutSession(input: CreateCheckoutInput): Promise<{ url: string; sessionId: string }>
+  createPortalSession(customerRef: string, returnUrl: string): Promise<{ url: string }>
+  refund(input: RefundInput): Promise<{ refundRef: string }>
+
+  /** Verify signature and translate native payload into a NormalisedEvent (or null if invalid). */
+  verifyAndParseWebhook(rawBody: string, headers: Headers): Promise<NormalisedEvent | null>
+}
+
+export class PspConfigError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'PspConfigError'
+  }
+}

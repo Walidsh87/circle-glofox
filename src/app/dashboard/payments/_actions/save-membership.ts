@@ -37,7 +37,7 @@ export async function saveMembership(prevState: State, formData: FormData): Prom
     monthly_price_aed: monthlyPrice,
     start_date: startDate,
     payment_status: 'unpaid',
-    ...(stripePriceId ? { stripe_price_id: stripePriceId } : {}),
+    ...(stripePriceId ? { provider_plan_ref: stripePriceId } : {}),
   })
 
   if (error) return { error: error.message }

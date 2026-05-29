@@ -22,7 +22,7 @@ export default async function SettingsPage() {
 
   const { data: box } = await supabase
     .from('boxes')
-    .select('stripe_secret_key')
+    .select('stripe_secret_key, trn, legal_name, billing_address')
     .eq('id', profile.box_id)
     .single()
   const stripeConnected = !!(box?.stripe_secret_key)
@@ -48,6 +48,9 @@ export default async function SettingsPage() {
               initialName={boxes?.name ?? ''}
               initialSlug={boxes?.slug ?? ''}
               initialTimezone={boxes?.timezone ?? 'Asia/Dubai'}
+              initialTrn={box?.trn ?? ''}
+              initialLegalName={box?.legal_name ?? ''}
+              initialBillingAddress={box?.billing_address ?? ''}
               stripeConnected={stripeConnected}
             />
           </div>

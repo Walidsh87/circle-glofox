@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { validateTrn } from '@/lib/invoices'
 
 const RESERVED_SLUGS = ['dashboard', 'onboarding', 'auth', 'api', 'login', 'signup', 'admin', 'settings']
 
@@ -37,10 +38,41 @@ export async function updateSettings(prevState: State, formData: FormData): Prom
 
   const stripeSecretKey = (formData.get('stripeSecretKey') as string)?.trim() || undefined
   const stripeWebhookSecret = (formData.get('stripeWebhookSecret') as string)?.trim() || undefined
+  const trn = (formData.get('trn') as string)?.trim() ?? ''
+  const legalName = (formData.get('legalName') as string)?.trim() ?? ''
+  const billingAddress = (formData.get('billingAddress') as string)?.trim() ?? ''
 
-  const updates: Record<string, unknown> = { name: gymName, timezone, slug }
+  if (trn) {
+    const trnError = validateTrn(trn)
+    if (trnError) return { error: trnError }
+  }
+
+  const updates: Record<string, unknown> = {
+    name: gymName,
+    timezone,
+    slug,
+    trn: trn || null,
+    legal_name: legalName || null,
+    billing_address: billingAddress || null,
+  }
   if (stripeSecretKey) updates.stripe_secret_key = stripeSecretKey
   if (stripeWebhookSecret) updates.stripe_webhook_secret = stripeWebhookSecret
+
+  // Keep psp_credentials JSONB in sync — the provider lookup reads from it first.
+  if (stripeSecretKey || stripeWebhookSecret) {
+    const { data: current } = await service
+      .from('boxes')
+      .select('psp_credentials, stripe_secret_key, stripe_webhook_secret')
+      .eq('id', profile.box_id)
+      .single()
+    const existing = (current?.psp_credentials ?? {}) as Record<string, unknown>
+    updates.psp_provider = 'stripe'
+    updates.psp_credentials = {
+      ...existing,
+      secret_key:     stripeSecretKey     ?? existing.secret_key     ?? current?.stripe_secret_key     ?? null,
+      webhook_secret: stripeWebhookSecret ?? existing.webhook_secret ?? current?.stripe_webhook_secret ?? null,
+    }
+  }
 
   const { error } = await service
     .from('boxes')

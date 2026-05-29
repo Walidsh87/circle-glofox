@@ -2,22 +2,22 @@ import { validateCheckoutGuards } from '@/app/dashboard/payments/_actions/create
 
 describe('validateCheckoutGuards', () => {
   test('returns error when membership is null', () => {
-    const result = validateCheckoutGuards(null, 'sk_test_123')
+    const result = validateCheckoutGuards(null, true)
     expect(result).toBe('Membership not found.')
   })
 
-  test('returns error when membership has no stripe_price_id', () => {
-    const result = validateCheckoutGuards({ stripe_price_id: null }, 'sk_test_123')
-    expect(result).toBe('No Stripe plan linked to this membership.')
+  test('returns error when membership has no provider_plan_ref', () => {
+    const result = validateCheckoutGuards({ provider_plan_ref: null }, true)
+    expect(result).toBe('No payment plan linked to this membership.')
   })
 
-  test('returns error when stripe secret key is missing', () => {
-    const result = validateCheckoutGuards({ stripe_price_id: 'price_123' }, null)
-    expect(result).toBe('Stripe is not connected.')
+  test('returns error when payment provider is not configured', () => {
+    const result = validateCheckoutGuards({ provider_plan_ref: 'price_123' }, false)
+    expect(result).toBe('Payment provider is not connected.')
   })
 
-  test('returns null when membership and stripe key are present', () => {
-    const result = validateCheckoutGuards({ stripe_price_id: 'price_123' }, 'sk_test_123')
+  test('returns null when membership and provider are configured', () => {
+    const result = validateCheckoutGuards({ provider_plan_ref: 'price_123' }, true)
     expect(result).toBeNull()
   })
 })

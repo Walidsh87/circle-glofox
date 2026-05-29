@@ -43,7 +43,7 @@ export async function GET(
 
   const { data: memberships } = await service
     .from('memberships')
-    .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, stripe_price_id')
+    .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, provider_plan_ref')
     .eq('athlete_id', params.athleteId)
 
   const membershipIds = (memberships ?? []).map((m) => m.id)

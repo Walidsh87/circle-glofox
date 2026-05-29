@@ -1,9 +1,8 @@
 'use server'
 
-import Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { validateStripePlanInput } from '../_lib/validation'
+import { getProviderForBox } from '@/lib/psp'
 
 export { validateStripePlanInput }
 
@@ -28,27 +27,11 @@ export async function createStripePlan(prevState: State, formData: FormData): Pr
 
   if (!profile || profile.role !== 'owner') return { error: 'Only owners can create plans.', priceId: null }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-  const { data: box } = await service
-    .from('boxes')
-    .select('stripe_secret_key')
-    .eq('id', profile.box_id)
-    .single()
-
-  if (!box?.stripe_secret_key) return { error: 'Stripe is not connected. Add your secret key in Settings.', priceId: null }
-
-  const stripe = new Stripe(box.stripe_secret_key)
-
-  const product = await stripe.products.create({ name: planName })
-  const price = await stripe.prices.create({
-    product: product.id,
-    unit_amount: Math.round(priceAed * 100),
-    currency: 'aed',
-    recurring: { interval: 'month' },
-  })
-
-  return { error: null, priceId: price.id }
+  try {
+    const provider = await getProviderForBox(profile.box_id)
+    const { planRef } = await provider.createPlan({ planName, monthlyPriceAed: priceAed })
+    return { error: null, priceId: planRef }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Could not create plan.', priceId: null }
+  }
 }

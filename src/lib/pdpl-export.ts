@@ -16,7 +16,7 @@ export type MembershipRow = {
   end_date: string | null
   payment_status: 'paid' | 'unpaid' | 'overdue'
   last_paid_date: string | null
-  stripe_price_id: string | null
+  provider_plan_ref: string | null
 }
 
 export type BookingRow = {

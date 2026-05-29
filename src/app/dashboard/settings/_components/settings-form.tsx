@@ -66,14 +66,20 @@ type Props = {
   initialName: string
   initialSlug: string
   initialTimezone: string
+  initialTrn: string
+  initialLegalName: string
+  initialBillingAddress: string
   stripeConnected: boolean
 }
 
-export function SettingsForm({ initialName, initialSlug, initialTimezone, stripeConnected }: Props) {
+export function SettingsForm({ initialName, initialSlug, initialTimezone, initialTrn, initialLegalName, initialBillingAddress, stripeConnected }: Props) {
   const [gymName, setGymName] = useState(initialName)
   const [slug, setSlug] = useState(initialSlug)
   const [slugEdited, setSlugEdited] = useState(!!initialSlug)
   const [timezone, setTimezone] = useState(initialTimezone)
+  const [trn, setTrn] = useState(initialTrn)
+  const [legalName, setLegalName] = useState(initialLegalName)
+  const [billingAddress, setBillingAddress] = useState(initialBillingAddress)
   const [state, formAction] = useFormState(updateSettings, { error: null, success: false })
 
   function handleGymNameChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -128,6 +134,31 @@ export function SettingsForm({ initialName, initialSlug, initialTimezone, stripe
             ))}
           </select>
         </Field>
+
+        <div style={{ borderTop: '1px solid var(--c-divider)', paddingTop: 18, marginTop: 4 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 16 }}>VAT invoicing (UAE)</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
+            <Field id="legalName" label="Legal entity name" hint="Appears on the invoice. Defaults to gym name if blank.">
+              <input id="legalName" name="legalName" type="text" value={legalName} onChange={(e) => setLegalName(e.target.value)} style={inputStyle} />
+            </Field>
+            <Field id="trn" label="TRN" hint="15-digit UAE Tax Registration Number. Required for VAT-compliant invoices.">
+              <input
+                id="trn" name="trn" type="text" inputMode="numeric"
+                value={trn}
+                onChange={(e) => setTrn(e.target.value.replace(/\D/g, '').slice(0, 15))}
+                placeholder="100123456700003"
+                style={inputStyle}
+              />
+            </Field>
+            <Field id="billingAddress" label="Billing address" hint="Shown on invoice header.">
+              <textarea
+                id="billingAddress" name="billingAddress" rows={3}
+                value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)}
+                style={{ ...inputStyle, height: 'auto', padding: 12, fontFamily: 'inherit', resize: 'vertical' }}
+              />
+            </Field>
+          </div>
+        </div>
 
         <div style={{ borderTop: '1px solid var(--c-divider)', paddingTop: 18, marginTop: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>

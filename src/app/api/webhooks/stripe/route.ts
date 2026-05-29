@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { deriveVatFromInclusive, formatCreditNoteNumber, formatInvoiceNumber } from '@/lib/invoices'
 import { decideAfterFailedCharge, resetAfterSuccess } from '@/lib/dunning'
 import { sendCardFailedEmail } from '@/lib/email'
+import { signPortalToken } from '@/lib/portal-token'
 import { findProviderForIncomingWebhook, type NormalisedEvent } from '@/lib/psp'
 
 export const dynamic = 'force-dynamic'
@@ -31,10 +32,37 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Idempotency gate: write a marker row keyed on stripe_event_id (unique).
+ * Returns true if we should proceed, false if this event was already handled
+ * (caller should return 200 without doing more work).
+ *
+ * Stripe retries delivery aggressively. Without this gate, counters like
+ * failed_charge_attempts can increment multiple times for a single real failure.
+ */
+async function claimEvent(boxId: string, eventId: string, eventType: string): Promise<boolean> {
+  const { error } = await service.from('payment_events').insert({
+    box_id: boxId,
+    stripe_event_id: eventId,
+    event_type: eventType,
+    amount_aed: 0,
+  })
+  // 23505 = unique_violation → already processed
+  if (error && error.code !== '23505') {
+    // log but don't block — better to risk a duplicate than miss the event
+    console.error('claimEvent insert failed:', error)
+    return true
+  }
+  return !error
+}
+
 async function handlePaymentSucceeded(
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'payment_succeeded' }>,
 ): Promise<NextResponse> {
+  if (!(await claimEvent(boxId, event.rawId, 'payment_succeeded'))) {
+    return NextResponse.json({ received: true, duplicate: true })
+  }
   // Prefer subscription ref (set by checkout.session.completed). Race condition:
   // invoice.payment_succeeded sometimes arrives before checkout.session.completed,
   // so fall back to customer ref (set when we create the Stripe customer in
@@ -82,13 +110,11 @@ async function handlePaymentSucceeded(
     .update({ payment_status: 'paid', last_paid_date: today, ...resetAfterSuccess() })
     .eq('id', membership.id)
 
-  await service.from('payment_events').insert({
-    box_id: boxId,
-    membership_id: membership.id,
-    stripe_event_id: event.rawId,
-    event_type: 'payment_succeeded',
-    amount_aed: event.amountAed,
-  })
+  // Backfill membership_id + amount onto the dedup row we created above
+  await service
+    .from('payment_events')
+    .update({ membership_id: membership.id, amount_aed: event.amountAed })
+    .eq('stripe_event_id', event.rawId)
 
   await issueInvoice({
     boxId,
@@ -109,6 +135,9 @@ async function handlePaymentFailed(
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'payment_failed' }>,
 ): Promise<NextResponse> {
+  if (!(await claimEvent(boxId, event.rawId, 'payment_failed'))) {
+    return NextResponse.json({ received: true, duplicate: true })
+  }
   if (!event.subscriptionRef) return NextResponse.json({ received: true })
 
   const { data: membership } = await service
@@ -138,18 +167,16 @@ async function handlePaymentFailed(
   if (decision.markOverdue) update.payment_status = 'overdue'
   await service.from('memberships').update(update).eq('id', membership.id)
 
-  await service.from('payment_events').insert({
-    box_id: boxId,
-    membership_id: membership.id,
-    stripe_event_id: event.rawId,
-    event_type: 'payment_failed',
-    amount_aed: 0,
-  })
+  await service
+    .from('payment_events')
+    .update({ membership_id: membership.id })
+    .eq('stripe_event_id', event.rawId)
 
   if (decision.sendEmail) {
     const profile = (membership as { profiles?: { full_name?: string; email?: string } | null }).profiles
     if (profile?.email) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+      const portalToken = signPortalToken(membership.id, process.env.PORTAL_SIGN_SECRET ?? '')
       await sendCardFailedEmail({
         to: profile.email,
         gymName: boxRow?.name ?? 'your gym',
@@ -157,7 +184,7 @@ async function handlePaymentFailed(
         amountAed: event.amountAed,
         attemptCount: decision.newAttemptCount,
         maxRetries,
-        updatePaymentUrl: `${baseUrl}/portal/${membership.id}`,
+        updatePaymentUrl: `${baseUrl}/portal/${portalToken}`,
       })
       await service
         .from('memberships')

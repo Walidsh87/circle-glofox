@@ -27,6 +27,13 @@ export type RefundInput = {
   paymentRef: string
   amountAed: number
   metadata?: Record<string, string>
+  /**
+   * Deterministic idempotency key. When two refund requests arrive concurrently
+   * with the same key, the PSP returns the same refund object rather than
+   * creating duplicates. Required by the refund action to prevent double-refunds
+   * from double-clicks or browser retries.
+   */
+  idempotencyKey?: string
 }
 
 // Normalised webhook event. Every adapter produces one of these from its native event;

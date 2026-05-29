@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { signPortalToken } from '@/lib/portal-token'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { AddMembershipForm } from './_components/add-membership-form'
@@ -340,7 +341,7 @@ export default async function PaymentsPage() {
                           <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--c-warn-ink)' }}>
                             {m.failed_charge_attempts} card {m.failed_charge_attempts === 1 ? 'failure' : 'failures'}
                             {' · '}
-                            <a href={`/portal/${m.id}`} target="_blank" rel="noreferrer" style={{ color: 'var(--c-ink)', textDecoration: 'underline' }}>
+                            <a href={`/portal/${signPortalToken(m.id, process.env.PORTAL_SIGN_SECRET ?? '')}`} target="_blank" rel="noreferrer" style={{ color: 'var(--c-ink)', textDecoration: 'underline' }}>
                               copy update link
                             </a>
                           </div>

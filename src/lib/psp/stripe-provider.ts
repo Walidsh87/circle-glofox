@@ -68,12 +68,15 @@ export class StripeProvider implements PaymentProvider {
   }
 
   async refund(input: RefundInput): Promise<{ refundRef: string }> {
-    const refund = await this.stripe.refunds.create({
-      payment_intent: input.paymentRef,
-      amount: Math.round(input.amountAed * 100),
-      reason: 'requested_by_customer',
-      metadata: input.metadata ?? {},
-    })
+    const refund = await this.stripe.refunds.create(
+      {
+        payment_intent: input.paymentRef,
+        amount: Math.round(input.amountAed * 100),
+        reason: 'requested_by_customer',
+        metadata: input.metadata ?? {},
+      },
+      input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined,
+    )
     return { refundRef: refund.id }
   }
 

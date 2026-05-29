@@ -8,6 +8,7 @@ const schema = z.object({
   RESEND_API_KEY: z.string().min(1),
   CRON_SECRET: z.string().min(16),
   RESEND_FROM_EMAIL: z.string().email().default('onboarding@resend.dev'),
+  PORTAL_SIGN_SECRET: z.string().min(32),
 })
 
 export const env = schema.parse({
@@ -18,4 +19,5 @@ export const env = schema.parse({
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   CRON_SECRET: process.env.CRON_SECRET,
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
+  PORTAL_SIGN_SECRET: process.env.PORTAL_SIGN_SECRET,
 })

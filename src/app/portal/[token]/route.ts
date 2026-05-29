@@ -1,18 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getProviderForBox } from '@/lib/psp'
+import { verifyPortalToken } from '@/lib/portal-token'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * Magic-link-style self-serve route for the member to update their card.
- * Hits `/portal/[membershipId]`, we look up the provider customer, create a
- * provider-hosted portal session, and 302 to it.
+ * Self-serve route for the member to update their card.
  *
- * `membershipId` is treated as a bearer token — UUID with no public listing,
- * delivered only over email/WhatsApp to the member who owns it.
+ * Path: `/portal/[token]` where token is a signed, time-bounded credential
+ * minted by the webhook when sending the dunning email. Replaces the previous
+ * bare-UUID model so leaked links expire and tampering is detectable.
  */
-export async function GET(req: NextRequest, { params }: { params: { membershipId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
+  const secret = process.env.PORTAL_SIGN_SECRET ?? ''
+  const verification = verifyPortalToken(params.token, secret)
+
+  if (!verification.ok) {
+    const status = verification.reason === 'expired' ? 410 : 401
+    const message =
+      verification.reason === 'expired'
+        ? 'This payment update link has expired. Please contact your gym for a new one.'
+        : 'This link is invalid. Please contact your gym for a new one.'
+    return NextResponse.json({ error: message }, { status })
+  }
+
   const service = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -21,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: { membershipId
   const { data: membership } = await service
     .from('memberships')
     .select('provider_customer_ref, box_id')
-    .eq('id', params.membershipId)
+    .eq('id', verification.membershipId)
     .maybeSingle()
 
   if (!membership?.provider_customer_ref) {
@@ -45,8 +57,9 @@ export async function GET(req: NextRequest, { params }: { params: { membershipId
     const session = await provider.createPortalSession(membership.provider_customer_ref, returnUrl)
     return NextResponse.redirect(session.url, { status: 302 })
   } catch (e) {
+    console.error('portal session creation failed:', e)
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Could not start portal session.' },
+      { error: 'Could not start portal session. Please contact your gym.' },
       { status: 500 },
     )
   }

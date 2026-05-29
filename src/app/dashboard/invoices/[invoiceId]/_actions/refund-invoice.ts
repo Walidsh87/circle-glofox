@@ -49,6 +49,11 @@ export async function refundInvoice(
 
   if (!invoice.provider_payment_ref) return { error: 'No payment reference on this invoice.' }
 
+  // Deterministic key: identical concurrent requests collapse to one refund.
+  // 30-second bucket protects against double-clicks while letting genuinely new
+  // refunds (e.g. partial refunds issued later) proceed normally.
+  const idempotencyKey = `refund-${invoiceId}-${Math.round(amountAed * 100)}-${Math.floor(Date.now() / 30000)}`
+
   let refundRef: string
   try {
     const provider = await getProviderForBox(profile.box_id)
@@ -56,10 +61,12 @@ export async function refundInvoice(
       paymentRef: invoice.provider_payment_ref,
       amountAed,
       metadata: { invoice_id: invoiceId, reason: reason.slice(0, 500) || '' },
+      idempotencyKey,
     })
     refundRef = result.refundRef
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Refund failed.' }
+    console.error('refund call failed:', e)
+    return { error: 'The payment provider could not process this refund.' }
   }
 
   // Idempotency safety net: if webhook beat us, exit clean.
@@ -113,7 +120,24 @@ export async function refundInvoice(
     .select('id')
     .single()
 
-  if (insertErr) return { error: insertErr.message }
+  if (insertErr) {
+    // 23505 = unique violation on provider_refund_ref → concurrent request beat
+    // us to it. Look up the credit note it created and return success pointing
+    // to that, since the actual refund only happened once at the provider.
+    if (insertErr.code === '23505') {
+      const { data: existing } = await service
+        .from('credit_notes')
+        .select('id')
+        .eq('provider_refund_ref', refundRef)
+        .maybeSingle()
+      if (existing) {
+        revalidatePath(`/dashboard/invoices/${invoiceId}`)
+        return { error: null, creditNoteId: existing.id }
+      }
+    }
+    console.error('credit_note insert failed:', insertErr)
+    return { error: 'Could not record the refund. Please refresh and check status.' }
+  }
 
   const fullyRefunded = alreadyRefunded + amountAed >= totalAed - 0.001
   if (fullyRefunded && invoice.membership_id) {

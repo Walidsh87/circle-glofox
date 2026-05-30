@@ -2,25 +2,9 @@
 
 import { useState } from 'react'
 import { LIFT_NAMES } from '../_lib/lift-names'
+import { roundToBar, kgToLb, getZone } from '@/lib/percentage'
 
 const PERCENTAGES = [50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105]
-
-function roundTo2_5(kg: number): number {
-  return Math.round(kg / 2.5) * 2.5
-}
-
-function kgToLb(kg: number): number {
-  return Math.round(kg * 2.2046 * 10) / 10
-}
-
-type Zone = { label: string; bg: string; ink: string }
-
-function getZone(pct: number): Zone {
-  if (pct <= 65) return { label: 'Warm-up', bg: 'var(--c-ok-soft)',      ink: 'var(--c-ok-ink)' }
-  if (pct <= 79) return { label: 'Work',    bg: 'var(--c-warn-soft)',    ink: 'var(--c-warn-ink)' }
-  if (pct <= 94) return { label: 'Heavy',   bg: 'var(--c-danger-soft)',  ink: 'var(--c-danger-ink)' }
-  return              { label: 'Max',     bg: 'var(--circle-lime-soft)', ink: 'var(--circle-lime-ink)' }
-}
 
 type Lift = { lift_name: string; one_rm_grams: number }
 
@@ -39,7 +23,7 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
     const isZoneStart = z.label !== lastZoneLabel
     lastZoneLabel = z.label
     const exactKg = oneRmKg ? (oneRmKg * pct) / 100 : 0
-    const roundedKg = roundTo2_5(exactKg)
+    const roundedKg = roundToBar(exactKg)
     return { pct, z, isZoneStart, exactKg, roundedKg }
   })
 

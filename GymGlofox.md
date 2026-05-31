@@ -21,15 +21,15 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 
 ## Current status overview (scoreboard)
 
-**As of 2026-05-29.** Read this section first; everything below is detail.
+**As of 2026-05-31.** Read this section first; everything below is detail.
 
 | Bucket | Status |
 |---|---|
-| **v1 (11 features)** | 9 ✅ shipped clean · 2 🚧 partial (#4 class template edit form missing, #9 the Wedge calculator not wired into WOD/whiteboard) |
+| **v1 (11 features)** | 10 ✅ shipped clean · 1 🚧 partial (#4 class template edit form missing) |
 | **v2 Tier 1 (revenue blockers)** | 9 ✅ · 1 🚧 (#10 Multi-PSP — port done, Packages + Tabby planned) |
 | **v2 Tier 2–13 (~95 items)** | 2 ✅ (#23 1RM charts, #25 activity feed) · 1 🚧 (#21 mobile API in flight with Packages) · rest ⬜ |
-| **Migrations** | 008–017 ✅ applied · 018 (packages) 📋 in plan |
-| **Next session priority** | 🚧 v1 backfill: the Wedge integration (the strategic differentiator) + class template edit form. Then resume Packages PR. |
+| **Migrations** | 008–018 ✅ applied · 019 (packages) 📋 in plan |
+| **Next session priority** | 🚧 v1 backfill: class template edit form (#4, ~30 min). Then resume Packages PR. |
 
 ---
 
@@ -47,20 +47,16 @@ A fresh codebase audit on 2026-05-29 found 9 of 11 features shipped cleanly and 
 | 6 | Class booking flow | ✅ | `/dashboard/schedule` athlete page + `book-class.ts` |
 | 7 | Whiteboard tablet view | ✅ | `/dashboard/whiteboard` with check-in, override modal, payment status badges |
 | 8 | Daily WOD form (one per box per day) | ✅ | `UNIQUE (box_id, date)` enforced; coach types title + description + scoring type |
-| 9 | Athlete 1RM tracking + percentage calculator (**THE WEDGE**) | 🚧 | Calculator at `/dashboard/lifts` is polished but **decoupled** from WOD/whiteboard. Coaches type "5x3 @ 80%" as free text; no parser, no per-athlete personalised load. **The pitch is the wedge, and the wedge is half-built.** |
+| 9 | Athlete 1RM tracking + percentage calculator (**THE WEDGE**) | ✅ | Structured % prescription on WOD form (lift dropdown + sets×reps@%). Whiteboard renders per-athlete kg next to each name. Athlete WOD page shows "Your loads" card. Fallback prompt when no 1RM logged. Lift catalog expanded to 29 movements. Migration 018 applied. |
 | 10 | Score logging + today's leaderboard | ✅ | `workout_scores` table + activity feed view |
 | 11 | Owner dashboard + manual payment tracking | ✅ | `/dashboard` overview + `/dashboard/payments` with `mark-paid` action |
 
 ### v1 backfill plan (next session)
 
-**🚧 #4 — Class template edit form** (small)
-Mirror `create-template.ts` action and form. Allow editing name, day, time, capacity. Done in ~30 min.
+**🚧 #4 — Class template edit form** (small, ~30 min)
+Mirror `create-template.ts` action and form. Allow editing name, day, time, capacity.
 
-**🚧 #9 — The Wedge integration** (moderate, needs brainstorm first)
-- How does the coach signal "this is a percentage WOD" — structured input or free-text parser?
-- Where do personalised loads render — whiteboard tiles, WOD detail page, coach prep view, all three?
-- Fallback when an athlete has no recorded 1RM for the named lift
-- This is THE differentiator from Glofox/Wodify/SugarWOD. Demoing without it shows nothing they can't already do.
+**✅ #9 — The Wedge integration** — shipped 2026-05-31. See build log.
 
 ---
 
@@ -293,6 +289,7 @@ Dated session ledger. Extend with each major shipped change.
 
 | Date | Scope | Commit |
 |---|---|---|
+| 2026-05-31 | **The Wedge integration** — structured % prescription on WOD form, per-athlete loads on whiteboard + WOD page, fallback prompt, lift catalog 9→29, migration 018, shared `percentage.ts` lib, 105 tests | `3c2ddf2` |
 | 2026-05-29 | Security & correctness audit pass 2: CSP + HSTS headers, error message sanitisation, settings query tightening, portal access audit log (migration 017) | `2f915b9` |
 | 2026-05-29 | Audit pass 1: webhook idempotency gate, refund race condition fix (Stripe idempotency key + 23505 catch), portal hardening (signed HMAC token replacing bare UUID), public info-leak closed | `f8f62c6` |
 | 2026-05-29 | **v1 AUDIT** against the 11-feature scope: 9 ✅ clean + 2 🚧 partial (#4 class template edit, #9 the Wedge integration) | — |

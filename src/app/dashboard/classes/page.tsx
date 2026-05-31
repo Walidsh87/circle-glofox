@@ -113,7 +113,16 @@ export default async function ClassesPage() {
                       </td>
                       {isStaff && (
                         <td style={{ padding: '12px 16px' }}>
-                          <TemplateActions templateId={t.id} active={t.active} name={t.name} />
+                          <TemplateActions
+                            templateId={t.id}
+                            active={t.active}
+                            name={t.name}
+                            weekday={t.weekday}
+                            startTime={t.start_time}
+                            capacity={t.capacity}
+                            coachId={t.coach_id}
+                            coaches={coaches ?? []}
+                          />
                         </td>
                       )}
                     </tr>

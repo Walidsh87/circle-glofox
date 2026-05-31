@@ -35,11 +35,13 @@ GRANT SELECT (
 --    refund action), which bypasses RLS, so no client write policy is needed.
 -- ============================================================
 DROP POLICY IF EXISTS box_isolation ON public.invoices;
+DROP POLICY IF EXISTS staff_read_invoices ON public.invoices;
 CREATE POLICY staff_read_invoices ON public.invoices
   FOR SELECT USING (box_id = auth_box_id() AND auth_role() IN ('owner','coach'));
 -- keep existing: athlete_own_invoices (FOR SELECT USING athlete_id = auth.uid())
 
 DROP POLICY IF EXISTS box_isolation ON public.credit_notes;
+DROP POLICY IF EXISTS staff_read_credit_notes ON public.credit_notes;
 CREATE POLICY staff_read_credit_notes ON public.credit_notes
   FOR SELECT USING (box_id = auth_box_id() AND auth_role() IN ('owner','coach'));
 -- keep existing: athlete_own_credit_notes
@@ -59,6 +61,7 @@ DROP POLICY IF EXISTS portal_access_log_box_isolation ON public.portal_access_lo
 -- ============================================================
 DROP POLICY IF EXISTS "box staff can view leads" ON public.leads;
 DROP POLICY IF EXISTS box_isolation_select ON public.leads;
+DROP POLICY IF EXISTS staff_read_leads ON public.leads;
 CREATE POLICY staff_read_leads ON public.leads
   FOR SELECT USING (box_id = auth_box_id() AND auth_role() IN ('owner','coach'));
 

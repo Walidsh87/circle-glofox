@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function AuthCallbackPage() {
@@ -99,10 +100,10 @@ export default function AuthCallbackPage() {
               fontSize: 11, color: 'var(--c-ink-2)', overflow: 'auto', whiteSpace: 'pre-wrap',
               wordBreak: 'break-all',
             }}>{debugInfo}</pre>
-            <a href="/" style={{
+            <Link href="/" style={{
               display: 'block', marginTop: 16, textAlign: 'center',
               color: 'var(--circle-lime-ink)', fontSize: 13, textDecoration: 'none',
-            }}>← Back to login</a>
+            }}>← Back to login</Link>
           </div>
         )}
 

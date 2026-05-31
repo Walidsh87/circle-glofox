@@ -4,8 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { validateStripePlanInput } from '../_lib/validation'
 import { getProviderForBox } from '@/lib/psp'
 
-export { validateStripePlanInput }
-
 type State = { error: string | null; priceId: string | null }
 
 export async function createStripePlan(prevState: State, formData: FormData): Promise<State> {

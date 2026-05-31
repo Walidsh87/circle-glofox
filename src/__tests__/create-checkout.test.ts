@@ -1,4 +1,4 @@
-import { validateCheckoutGuards } from '@/app/dashboard/payments/_actions/create-checkout'
+import { validateCheckoutGuards } from '@/app/dashboard/payments/_lib/validation'
 
 describe('validateCheckoutGuards', () => {
   test('returns error when membership is null', () => {

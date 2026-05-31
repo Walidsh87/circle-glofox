@@ -1,5 +1,4 @@
-import { validateWaiverSignature } from '@/app/dashboard/sign-waiver/_actions/sign-waiver'
-import { validateAgreements } from '@/app/dashboard/sign-waiver/_lib/validation'
+import { validateAgreements, validateWaiverSignature } from '@/app/dashboard/sign-waiver/_lib/validation'
 
 describe('validateWaiverSignature', () => {
   test('returns error when checkbox is unchecked', () => {

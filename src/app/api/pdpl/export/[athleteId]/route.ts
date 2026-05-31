@@ -8,8 +8,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { athleteId: string } }
+  ctx: { params: Promise<{ athleteId: string }> }
 ) {
+  const params = await ctx.params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

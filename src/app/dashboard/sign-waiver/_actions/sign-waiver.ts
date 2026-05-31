@@ -3,9 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { validateAgreements, validateWaiverSignature } from '../_lib/validation'
-
-export { validateWaiverSignature }
+import { validateAgreements } from '../_lib/validation'
 
 type State = { error: string | null }
 
@@ -53,7 +51,7 @@ export async function signAgreements(prevState: State, formData: FormData): Prom
   )
   if (validationError) return { error: validationError }
 
-  const headersList = headers()
+  const headersList = await headers()
   const ipAddress = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null
   const userAgent = headersList.get('user-agent') ?? null
 

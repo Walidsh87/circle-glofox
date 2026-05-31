@@ -4,8 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { validateMembershipInput } from '../_lib/validation'
 
-export { validateMembershipInput }
-
 type State = { error: string | null }
 
 export async function saveMembership(prevState: State, formData: FormData): Promise<State> {

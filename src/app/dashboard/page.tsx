@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 
 const TIMEZONE_OFFSETS: Record<string, number> = {
@@ -98,13 +99,13 @@ export default async function DashboardPage() {
             }}>Dashboard</h1>
           </div>
           {isStaff && (
-            <a href="/dashboard/whiteboard" style={{
+            <Link href="/dashboard/whiteboard" style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               height: 34, padding: '0 14px', borderRadius: 8,
               border: '1px solid var(--c-border)', background: 'var(--c-surface)',
               fontSize: 13, fontWeight: 500, color: 'var(--c-ink-2)',
               textDecoration: 'none',
-            }}>Open Whiteboard</a>
+            }}>Open Whiteboard</Link>
           )}
         </header>
 
@@ -156,7 +157,7 @@ export default async function DashboardPage() {
                         {todayClasses.length} session{todayClasses.length !== 1 ? 's' : ''} scheduled
                       </div>
                     </div>
-                    <a href="/dashboard/classes" style={{ fontSize: 12, color: 'var(--c-ink-muted)', textDecoration: 'none' }}>View all →</a>
+                    <Link href="/dashboard/classes" style={{ fontSize: 12, color: 'var(--c-ink-muted)', textDecoration: 'none' }}>View all →</Link>
                   </div>
                   {todayClasses.map((cls, i) => {
                     const bookingCount = Array.isArray(cls.bookings) ? cls.bookings.length : 0
@@ -221,12 +222,12 @@ export default async function DashboardPage() {
                       color: 'rgba(250,250,250,0.75)', lineHeight: 1.65,
                       whiteSpace: 'pre-wrap', margin: 0,
                     }}>{wod.description}</pre>
-                    <a href="/dashboard/wod" style={{
+                    <Link href="/dashboard/wod" style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       marginTop: 16, height: 34, padding: '0 14px', borderRadius: 8,
                       background: 'var(--circle-lime)', color: 'var(--circle-ink)',
                       fontSize: 13, fontWeight: 700, textDecoration: 'none',
-                    }}>Open leaderboard →</a>
+                    }}>Open leaderboard →</Link>
                   </div>
                 </div>
               )}

@@ -8,7 +8,7 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   // Skip gate on the signing page itself to prevent redirect loop
-  const pathname = headers().get('x-pathname') ?? ''
+  const pathname = (await headers()).get('x-pathname') ?? ''
   if (pathname === '/dashboard/sign-waiver') {
     return <>{children}</>
   }

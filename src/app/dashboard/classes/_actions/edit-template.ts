@@ -2,13 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { validateEditTemplateInput } from '../_lib/validation'
 
 type State = { error: string | null; saved?: boolean }
-
-export function validateEditTemplateInput(name: string, startTime: string, weekday: number): string | null {
-  if (!name?.trim() || !startTime || isNaN(weekday)) return 'Name, weekday, and start time are required.'
-  return null
-}
 
 export async function editTemplate(
   templateId: string,

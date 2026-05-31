@@ -1,4 +1,4 @@
-import { validateLiftInput } from '@/app/dashboard/lifts/_actions/save-lift'
+import { validateLiftInput } from '@/app/dashboard/lifts/_lib/validation'
 
 describe('validateLiftInput', () => {
   test('returns error when liftName is empty', () => {

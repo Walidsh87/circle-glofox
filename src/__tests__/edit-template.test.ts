@@ -1,4 +1,4 @@
-import { validateEditTemplateInput } from '@/app/dashboard/classes/_actions/edit-template'
+import { validateEditTemplateInput } from '@/app/dashboard/classes/_lib/validation'
 
 describe('validateEditTemplateInput', () => {
   test('returns error when name is empty', () => {

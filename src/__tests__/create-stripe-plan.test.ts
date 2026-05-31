@@ -1,4 +1,4 @@
-import { validateStripePlanInput } from '@/app/dashboard/payments/_actions/create-stripe-plan'
+import { validateStripePlanInput } from '@/app/dashboard/payments/_lib/validation'
 
 describe('validateStripePlanInput', () => {
   test('returns error when planName is empty', () => {

@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation'
 import { createAthlete } from './_actions/create-athlete'
 import { JoinForm } from './_components/join-form'
 
-export default async function JoinPage({ params }: { params: { gymSlug: string } }) {
+export default async function JoinPage(ctx: { params: Promise<{ gymSlug: string }> }) {
+  const params = await ctx.params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 

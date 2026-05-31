@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { CheckInButton } from './_components/checkin-button'
 import { CircleMark } from '@/components/circle-mark'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
@@ -172,10 +173,10 @@ export default async function WhiteboardPage() {
 
         <div className="mono" style={{ fontSize: 15, color: 'var(--c-ink-muted)' }}>{today}</div>
 
-        <a href="/dashboard" style={{
+        <Link href="/dashboard" style={{
           fontSize: 12, color: 'var(--c-ink-muted)', textDecoration: 'none',
           padding: '6px 12px', border: '1px solid var(--c-border)', borderRadius: 8,
-        }}>← Dashboard</a>
+        }}>← Dashboard</Link>
       </header>
 
       {/* Body */}

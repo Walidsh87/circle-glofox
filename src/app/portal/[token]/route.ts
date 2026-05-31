@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic'
  * minted by the webhook when sending the dunning email. Every access (success
  * or failure) is recorded in portal_access_log for audit + forensics.
  */
-export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ token: string }> }) {
+  const params = await ctx.params
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null
   const userAgent = req.headers.get('user-agent') ?? null
 

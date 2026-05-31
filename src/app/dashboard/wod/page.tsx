@@ -77,9 +77,9 @@ function YourLoads({ liftValue, sets, oneRmGrams }: { liftValue: string; sets: S
         <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>
           {sets.map((s) => `${s.sets}×${s.reps} @ ${s.percentage}%`).join('  ·  ')}
           {' — '}
-          <a href="/dashboard/lifts" style={{ color: 'var(--circle-lime-ink)', textDecoration: 'underline' }}>
+          <Link href="/dashboard/lifts" style={{ color: 'var(--circle-lime-ink)', textDecoration: 'underline' }}>
             Log your {liftLabel} 1RM
-          </a> to see kg.
+          </Link> to see kg.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

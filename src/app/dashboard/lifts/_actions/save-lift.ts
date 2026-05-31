@@ -4,8 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { validateLiftInput } from '../_lib/validation'
 
-export { validateLiftInput }
-
 type State = { error: string | null }
 
 export async function saveLift(prevState: State, formData: FormData): Promise<State> {

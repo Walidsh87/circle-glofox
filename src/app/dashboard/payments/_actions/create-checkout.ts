@@ -5,8 +5,6 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { validateCheckoutGuards } from '../_lib/validation'
 import { getProviderForBox } from '@/lib/psp'
 
-export { validateCheckoutGuards }
-
 type State = { error: string | null; url: string | null }
 
 export async function createCheckout(membershipId: string): Promise<State> {

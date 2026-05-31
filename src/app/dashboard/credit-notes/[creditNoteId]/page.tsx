@@ -11,7 +11,8 @@ function fmtAed(n: number): string {
   return new Intl.NumberFormat('en-AE', { style: 'currency', currency: 'AED', minimumFractionDigits: 2 }).format(n)
 }
 
-export default async function CreditNotePage({ params }: { params: { creditNoteId: string } }) {
+export default async function CreditNotePage(ctx: { params: Promise<{ creditNoteId: string }> }) {
+  const params = await ctx.params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')

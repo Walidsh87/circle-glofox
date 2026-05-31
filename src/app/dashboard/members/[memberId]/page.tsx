@@ -42,7 +42,8 @@ function formatDate(iso: string): string {
     .format(new Date(iso))
 }
 
-export default async function MemberProfilePage({ params }: { params: { memberId: string } }) {
+export default async function MemberProfilePage(ctx: { params: Promise<{ memberId: string }> }) {
+  const params = await ctx.params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')

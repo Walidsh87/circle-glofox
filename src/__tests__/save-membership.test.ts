@@ -1,4 +1,4 @@
-import { validateMembershipInput } from '@/app/dashboard/payments/_actions/save-membership'
+import { validateMembershipInput } from '@/app/dashboard/payments/_lib/validation'
 
 describe('validateMembershipInput', () => {
   test('returns error when athleteId is missing', () => {

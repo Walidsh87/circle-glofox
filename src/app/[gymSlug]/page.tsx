@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { GymLoginForm } from './_components/gym-login-form'
 
-export default async function GymLoginPage({ params }: { params: { gymSlug: string } }) {
+export default async function GymLoginPage(ctx: { params: Promise<{ gymSlug: string }> }) {
+  const params = await ctx.params
   // Redirect to dashboard if already authenticated
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { WodForm } from './_components/wod-form'
 import { ScoreSection } from './_components/score-section'
+import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
+import { loadForPercent } from '@/lib/percentage'
+import type { StrengthSet } from './_lib/validation'
 
 const TIMEZONE_OFFSETS: Record<string, number> = {
   'Asia/Dubai':   4,
@@ -60,6 +63,43 @@ function weekEnd(date: string): string {
   return start.toISOString().slice(0, 10)
 }
 
+function YourLoads({ liftValue, sets, oneRmGrams }: { liftValue: string; sets: StrengthSet[]; oneRmGrams: number | null }) {
+  const liftLabel = LIFT_NAMES.find((l) => l.value === liftValue)?.label ?? liftValue
+  return (
+    <div style={{
+      background: 'var(--c-surface)', border: '1px solid var(--circle-lime)',
+      borderRadius: 14, padding: '18px 22px', marginBottom: 12, boxShadow: 'var(--c-shadow-sm)',
+    }}>
+      <div className="mono" style={{ fontSize: 10.5, color: 'var(--circle-lime-ink)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+        Your loads · {liftLabel}
+      </div>
+      {oneRmGrams === null ? (
+        <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>
+          {sets.map((s) => `${s.sets}×${s.reps} @ ${s.percentage}%`).join('  ·  ')}
+          {' — '}
+          <a href="/dashboard/lifts" style={{ color: 'var(--circle-lime-ink)', textDecoration: 'underline' }}>
+            Log your {liftLabel} 1RM
+          </a> to see kg.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {sets.map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+              <span className="mono" style={{ fontSize: 13, color: 'var(--c-ink-2)', minWidth: 96 }}>
+                {s.sets}×{s.reps} @ {s.percentage}%
+              </span>
+              <span className="mono" style={{ fontSize: 20, fontWeight: 700, color: 'var(--c-ink)' }}>
+                {loadForPercent(oneRmGrams, s.percentage).barKg}
+              </span>
+              <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>kg</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default async function WodPage({ searchParams }: { searchParams: { date?: string } }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -90,7 +130,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
 
   const { data: wod } = await supabase
     .from('workouts')
-    .select('id, title, description, scoring_type, strength_title, strength_description')
+    .select('id, title, description, scoring_type, strength_title, strength_description, strength_lift, strength_sets')
     .eq('box_id', profile.box_id)
     .eq('date', date)
     .single()
@@ -103,6 +143,15 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
     : { data: null }
 
   const myScore = scores?.find((s) => s.athlete_id === user.id) ?? null
+
+  const { data: myLift } = wod?.strength_lift
+    ? await supabase
+        .from('athlete_lifts')
+        .select('one_rm_grams')
+        .eq('athlete_id', user.id)
+        .eq('lift_name', wod.strength_lift)
+        .maybeSingle()
+    : { data: null }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
@@ -170,6 +219,15 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
               </div>
             )}
 
+            {/* Your personal loads (the Wedge) */}
+            {wod?.strength_lift && (
+              <YourLoads
+                liftValue={wod.strength_lift}
+                sets={(wod.strength_sets ?? []) as StrengthSet[]}
+                oneRmGrams={myLift?.one_rm_grams ?? null}
+              />
+            )}
+
             {/* WOD card */}
             {wod && (
               <div style={{
@@ -218,6 +276,8 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
                   scoring_type: wod.scoring_type,
                   strength_title: wod.strength_title,
                   strength_description: wod.strength_description,
+                  strength_lift: wod.strength_lift,
+                  strength_sets: wod.strength_sets,
                 } : null} />
               </div>
             )}

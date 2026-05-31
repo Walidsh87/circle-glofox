@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation'
 import { CheckInButton } from './_components/checkin-button'
 import { CircleMark } from '@/components/circle-mark'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
+import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
+import { loadForPercent } from '@/lib/percentage'
+import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 
 const TIMEZONE_OFFSETS: Record<string, number> = {
   'Asia/Dubai':   4,
@@ -105,6 +108,31 @@ export default async function WhiteboardPage() {
 
   const todayIso = todayLocalDate(timezone)
 
+  // The Wedge — today's strength prescription + each booked athlete's 1RM for that lift
+  const { data: wod } = await supabase
+    .from('workouts')
+    .select('strength_lift, strength_sets')
+    .eq('box_id', profile.box_id)
+    .eq('date', todayIso)
+    .maybeSingle()
+
+  const strengthSets = (wod?.strength_sets ?? []) as StrengthSet[]
+  const topPct = strengthSets.length ? Math.max(...strengthSets.map((s) => s.percentage)) : null
+  const liftLabel = wod?.strength_lift
+    ? (LIFT_NAMES.find((l) => l.value === wod.strength_lift)?.label ?? wod.strength_lift)
+    : null
+
+  const { data: liftRows } = wod?.strength_lift && athleteIds.length > 0
+    ? await supabase
+        .from('athlete_lifts')
+        .select('athlete_id, one_rm_grams')
+        .eq('box_id', profile.box_id)
+        .eq('lift_name', wod.strength_lift)
+        .in('athlete_id', athleteIds)
+    : { data: [] as Array<{ athlete_id: string; one_rm_grams: number }> }
+
+  const oneRmByAthlete = new Map((liftRows ?? []).map((r) => [r.athlete_id, r.one_rm_grams]))
+
   return (
     <div className="circle-dark" style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
@@ -152,6 +180,24 @@ export default async function WhiteboardPage() {
 
       {/* Body */}
       <div style={{ flex: 1, padding: '32px 36px' }}>
+        {liftLabel && topPct !== null && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20,
+            padding: '14px 20px', borderRadius: 12,
+            background: 'var(--c-surface)', border: '1px solid var(--circle-lime)',
+          }}>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Strength
+            </span>
+            <span style={{ fontFamily: 'var(--font-space-grotesk)', fontWeight: 700, fontSize: 18, color: 'var(--c-ink)' }}>
+              {liftLabel}
+            </span>
+            <span className="mono" style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>
+              {strengthSets.map((s) => `${s.sets}×${s.reps} @ ${s.percentage}%`).join('  ·  ')}
+            </span>
+          </div>
+        )}
+
         {(!instances || instances.length === 0) && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -219,16 +265,29 @@ export default async function WhiteboardPage() {
                       .filter((d): d is string => !!d)
                       .sort()
                       .pop() ?? null
+                    const oneRm = oneRmByAthlete.get(booking.athlete_id) ?? null
+                    const load = wod?.strength_lift && topPct !== null
+                      ? (oneRm !== null ? `${loadForPercent(oneRm, topPct).barKg} kg` : '— log 1RM')
+                      : null
                     return (
-                      <CheckInButton
-                        key={booking.athlete_id}
-                        instanceId={instance.id}
-                        athleteId={booking.athlete_id}
-                        athleteName={athleteProfile?.full_name ?? 'Unknown'}
-                        checkedIn={booking.checked_in}
-                        membershipStatus={status}
-                        lastPaidDate={lastPaid}
-                      />
+                      <div key={booking.athlete_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <CheckInButton
+                            instanceId={instance.id}
+                            athleteId={booking.athlete_id}
+                            athleteName={athleteProfile?.full_name ?? 'Unknown'}
+                            checkedIn={booking.checked_in}
+                            membershipStatus={status}
+                            lastPaidDate={lastPaid}
+                          />
+                        </div>
+                        {load && (
+                          <span className="mono" style={{
+                            fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap',
+                            color: oneRm !== null ? 'var(--circle-lime-ink)' : 'var(--c-ink-faint)',
+                          }}>{load}</span>
+                        )}
+                      </div>
                     )
                   })}
                 </div>

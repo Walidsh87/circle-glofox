@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { validateStrengthPrescription, type StrengthSet } from '../_lib/validation'
 
 type State = { error: string | null }
 
@@ -16,6 +17,14 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
   if (!date || !title || !description || !scoringType) {
     return { error: 'All fields are required.' }
   }
+
+  const strengthLift = (formData.get('strengthLift') as string)?.trim() || ''
+  const strengthSetsRaw = (formData.get('strengthSets') as string) || '[]'
+  let strengthSets: unknown
+  try { strengthSets = JSON.parse(strengthSetsRaw) } catch { strengthSets = null }
+
+  const prescriptionError = validateStrengthPrescription(strengthLift, strengthSets)
+  if (prescriptionError) return { error: prescriptionError }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -40,6 +49,8 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
       scoring_type: scoringType,
       strength_title: strengthTitle,
       strength_description: strengthDescription,
+      strength_lift: strengthLift || null,
+      strength_sets: strengthLift ? (strengthSets as StrengthSet[]) : null,
       created_by: user.id,
     },
     { onConflict: 'box_id,date' }

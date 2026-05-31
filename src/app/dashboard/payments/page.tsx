@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { signPortalToken } from '@/lib/portal-token'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
@@ -30,6 +31,14 @@ export default async function PaymentsPage() {
   const boxes = profile.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
+  // Service client for the one read that touches a secret column (stripe_secret_key).
+  // RLS-client SELECT on that column is revoked from members by migration 019; only
+  // the derived `stripeConnected` boolean is ever exposed to the page.
+  const service = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
   const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }, { data: reminders }] = await Promise.all([
@@ -45,7 +54,7 @@ export default async function PaymentsPage() {
       .eq('box_id', profile.box_id)
       .eq('role', 'athlete')
       .order('full_name'),
-    supabase
+    service
       .from('boxes')
       .select('stripe_secret_key, reminders_enabled')
       .eq('id', profile.box_id)

@@ -9,6 +9,9 @@ const schema = z.object({
   CRON_SECRET: z.string().min(16),
   RESEND_FROM_EMAIL: z.string().email().default('onboarding@resend.dev'),
   PORTAL_SIGN_SECRET: z.string().min(32),
+  // Optional: when both are set, per-IP rate limiting activates (src/lib/rate-limit.ts).
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 })
 
 export const env = schema.parse({
@@ -20,4 +23,6 @@ export const env = schema.parse({
   CRON_SECRET: process.env.CRON_SECRET,
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
   PORTAL_SIGN_SECRET: process.env.PORTAL_SIGN_SECRET,
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 })

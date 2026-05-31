@@ -1,7 +1,30 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { ratelimit, shouldRateLimit } from '@/lib/rate-limit'
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // Per-IP rate limit on public, abuse-prone routes. No-op unless Upstash is
+  // configured. Fail-open: a limiter/Redis outage must never take the site down.
+  if (ratelimit && shouldRateLimit(pathname)) {
+    try {
+      const ip =
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        request.headers.get('x-real-ip') ||
+        '127.0.0.1'
+      const { success } = await ratelimit.limit(ip)
+      if (!success) {
+        return new NextResponse('Too many requests. Please slow down and try again shortly.', {
+          status: 429,
+          headers: { 'Retry-After': '10' },
+        })
+      }
+    } catch (e) {
+      console.error('rate limit check failed (failing open):', e)
+    }
+  }
+
   // Forward the pathname as a header so server component layouts can read it
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-pathname', request.nextUrl.pathname)
@@ -36,8 +59,7 @@ export async function middleware(request: NextRequest) {
   // Refresh session — do not remove this
   const { data: { user } } = await supabase.auth.getUser()
 
-  const path = request.nextUrl.pathname
-  const isProtected = path.startsWith('/dashboard') || path.startsWith('/onboarding')
+  const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')
 
   // Unauthenticated users cannot access protected routes
   if (!user && isProtected) {

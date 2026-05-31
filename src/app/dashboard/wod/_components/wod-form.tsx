@@ -1,7 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { saveWod } from '../_actions/save-wod'
+import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
+import type { StrengthSet } from '../_lib/validation'
 
 const SCORING_TYPES = [
   { value: 'time',        label: 'For Time' },
@@ -48,10 +51,24 @@ type Wod = {
   scoring_type: string
   strength_title?: string | null
   strength_description?: string | null
+  strength_lift?: string | null
+  strength_sets?: StrengthSet[] | null
 } | null
 
 export function WodForm({ date, existing }: { date: string; existing: Wod }) {
   const [state, formAction] = useFormState(saveWod, { error: null })
+  const [lift, setLift] = useState(existing?.strength_lift ?? '')
+  const [sets, setSets] = useState<StrengthSet[]>(existing?.strength_sets ?? [])
+
+  function updateSet(i: number, key: keyof StrengthSet, value: number) {
+    setSets((prev) => prev.map((s, idx) => (idx === i ? { ...s, [key]: value } : s)))
+  }
+  function addSet() {
+    setSets((prev) => [...prev, { sets: 5, reps: 3, percentage: 80 }])
+  }
+  function removeSet(i: number) {
+    setSets((prev) => prev.filter((_, idx) => idx !== i))
+  }
 
   return (
     <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -87,6 +104,51 @@ export function WodForm({ date, existing }: { date: string; existing: Wod }) {
             placeholder={'5x5 @ 75%\nRest 2 min between sets'}
             style={{ ...inputStyle, height: 'auto', padding: '8px 12px', resize: 'vertical', lineHeight: 1.6, fontFamily: 'var(--font-geist-mono)', fontSize: 13 }}
           />
+        </div>
+
+        {/* The Wedge — structured % prescription */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--c-border)', paddingTop: 12 }}>
+          <label className="mono" style={labelStyle}>% Loading (optional · powers per-athlete loads)</label>
+          <select
+            name="strengthLift"
+            value={lift}
+            onChange={(e) => setLift(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">No % prescription</option>
+            {LIFT_NAMES.map((l) => (
+              <option key={l.value} value={l.value}>{l.label}</option>
+            ))}
+          </select>
+
+          {lift && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {sets.map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input type="number" min={1} value={s.sets}
+                    onChange={(e) => updateSet(i, 'sets', Number(e.target.value))}
+                    style={{ ...inputStyle, width: 64 }} aria-label="sets" />
+                  <span className="mono" style={{ color: 'var(--c-ink-muted)', fontSize: 13 }}>×</span>
+                  <input type="number" min={1} value={s.reps}
+                    onChange={(e) => updateSet(i, 'reps', Number(e.target.value))}
+                    style={{ ...inputStyle, width: 64 }} aria-label="reps" />
+                  <span className="mono" style={{ color: 'var(--c-ink-muted)', fontSize: 13 }}>@</span>
+                  <input type="number" min={1} max={200} value={s.percentage}
+                    onChange={(e) => updateSet(i, 'percentage', Number(e.target.value))}
+                    style={{ ...inputStyle, width: 72 }} aria-label="percentage" />
+                  <span className="mono" style={{ color: 'var(--c-ink-muted)', fontSize: 13 }}>%</span>
+                  <button type="button" onClick={() => removeSet(i)}
+                    style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--c-danger)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}
+                    aria-label="remove set">×</button>
+                </div>
+              ))}
+              <button type="button" onClick={addSet}
+                style={{ alignSelf: 'flex-start', background: 'var(--c-surface)', border: '1px solid var(--c-border-strong)', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, cursor: 'pointer', color: 'var(--c-ink-2)' }}>
+                + Add set
+              </button>
+            </div>
+          )}
+          <input type="hidden" name="strengthSets" value={JSON.stringify(sets)} />
         </div>
       </div>
 

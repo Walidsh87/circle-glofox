@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { validateCheckoutGuards } from '../_lib/validation'
 import { getProviderForBox } from '@/lib/psp'
+import { env } from '@/env'
 
 type State = { error: string | null; url: string | null }
 
@@ -67,7 +68,7 @@ export async function createCheckout(membershipId: string): Promise<State> {
         .eq('id', membershipId)
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://circle-glofox.vercel.app'
+    const baseUrl = env.NEXT_PUBLIC_APP_URL
     const session = await provider.createCheckoutSession({
       planRef: m.provider_plan_ref!,
       customerRef,

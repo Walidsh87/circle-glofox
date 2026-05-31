@@ -5,6 +5,7 @@ import { decideAfterFailedCharge, resetAfterSuccess } from '@/lib/dunning'
 import { sendCardFailedEmail } from '@/lib/email'
 import { signPortalToken } from '@/lib/portal-token'
 import { findProviderForIncomingWebhook, type NormalisedEvent } from '@/lib/psp'
+import { env } from '@/env'
 
 export const dynamic = 'force-dynamic'
 
@@ -175,7 +176,7 @@ async function handlePaymentFailed(
   if (decision.sendEmail) {
     const profile = (membership as { profiles?: { full_name?: string; email?: string } | null }).profiles
     if (profile?.email) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+      const baseUrl = env.NEXT_PUBLIC_APP_URL
       const portalToken = signPortalToken(membership.id, process.env.PORTAL_SIGN_SECRET ?? '')
       await sendCardFailedEmail({
         to: profile.email,

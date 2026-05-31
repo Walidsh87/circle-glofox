@@ -25,11 +25,11 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 
 | Bucket | Status |
 |---|---|
-| **v1 (11 features)** | 10 ✅ shipped clean · 1 🚧 partial (#4 class template edit form missing) |
+| **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
 | **v2 Tier 1 (revenue blockers)** | 9 ✅ · 1 🚧 (#10 Multi-PSP — port done, Packages + Tabby planned) |
 | **v2 Tier 2–13 (~95 items)** | 2 ✅ (#23 1RM charts, #25 activity feed) · 1 🚧 (#21 mobile API in flight with Packages) · rest ⬜ |
 | **Migrations** | 008–018 ✅ applied · 019 (packages) 📋 in plan |
-| **Next session priority** | 🚧 v1 backfill: class template edit form (#4, ~30 min). Then resume Packages PR. |
+| **Next session priority** | v1 complete ✅ — resume Packages PR (Multi-PSP #10 PR-2) |
 
 ---
 
@@ -42,7 +42,7 @@ A fresh codebase audit on 2026-05-29 found 9 of 11 features shipped cleanly and 
 | 1 | Multi-tenant schema with RLS | ✅ | `schema.sql`, `auth_box_id()` enforced on all box-scoped tables |
 | 2 | Auth + roles owner/coach/athlete (magic link, no passwords) | ✅ | Supabase OTP email flow, no password field |
 | 3 | Member directory (CRUD) | ✅ | Full CRUD + lead pipeline in `/dashboard/members` |
-| 4 | Class template CRUD (recurring weekly) | 🚧 | Create, delete, toggle-active present. **No edit form** for name/day/time/capacity |
+| 4 | Class template CRUD (recurring weekly) | ✅ | Full CRUD — create, edit (modal), delete, toggle-active |
 | 5 | Class instance generator | ✅ | `generate-instances.ts` action with date range |
 | 6 | Class booking flow | ✅ | `/dashboard/schedule` athlete page + `book-class.ts` |
 | 7 | Whiteboard tablet view | ✅ | `/dashboard/whiteboard` with check-in, override modal, payment status badges |
@@ -53,8 +53,7 @@ A fresh codebase audit on 2026-05-29 found 9 of 11 features shipped cleanly and 
 
 ### v1 backfill plan (next session)
 
-**🚧 #4 — Class template edit form** (small, ~30 min)
-Mirror `create-template.ts` action and form. Allow editing name, day, time, capacity.
+**✅ #4 — Class template edit form** — shipped 2026-05-31. Edit button + modal on each template row. Edits name, day, time, capacity, coach.
 
 **✅ #9 — The Wedge integration** — shipped 2026-05-31. See build log.
 

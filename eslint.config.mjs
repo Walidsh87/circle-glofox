@@ -14,6 +14,11 @@ const eslintConfig = [
       'react-hooks/purity': 'off',
       'react-hooks/immutability': 'off',
       'react-hooks/set-state-in-effect': 'off',
+      // Security guard: the prod CSP keeps `script-src 'unsafe-inline'` (Next's
+      // App Router hydration scripts need it). That weakening is only exploitable
+      // if an XSS sink is introduced — block the React one at the gate so the gap
+      // stays sink-less until a nonce-based CSP is done against staging.
+      'react/no-danger': 'error',
     },
   },
 ]

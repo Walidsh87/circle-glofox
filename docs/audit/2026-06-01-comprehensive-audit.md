@@ -108,8 +108,9 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 - **S6** Sentry PII — verified clean (`sendDefaultPii` off)
 - **P2** coverage thresholds enforced in CI · **P8** Node pinned to 22 (.nvmrc + engines) · **P9** actions `v4→v5` (`37b3912`, CI green)
 - **P3** `migrations/README` (run order + canonical-dump runbook) · **P5** `.env.example` completed (`8efa62d`)
+- **R4** disaster-recovery + incident runbook (`docs/runbooks/`) · **P4** real README · **S5** gitleaks secret-scanning in CI (`6216ca4`, CI green; history clean across 133 commits)
 - **R1** scaffold + runbook in place (core `pg_dump` pending user)
 
 **⏳ Pending — needs you (highest value):** R1 run `pg_dump` · R2 confirm backups/PITR plan · S4 confirm Stripe keys rotated · P1 branch protection (decision) · R3 staging env.
 
-**⏳ Pending — in-my-control (larger):** R4 DR/incident runbook · R5 down-migrations · P7 integration tests · P4 real README · S5 secret-scanning in CI · S1 nonce CSP (after staging).
+**⏳ Pending — in-my-control (larger effort, needs go-ahead):** P7 integration tests (authz/RLS/webhook) · R5 retrofit `-- ROLLBACK:` blocks on migrations 008–018 · S1 nonce CSP (after staging).

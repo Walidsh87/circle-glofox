@@ -73,7 +73,7 @@ Practical runbook for "something is on fire." Keep it current; **drill the resto
 
 ## 4. Rollback
 - **App:** Vercel → promote previous deployment (seconds).
-- **DB migration:** apply the migration's `-- ROLLBACK:` block manually in the SQL editor. *(Retrofit of rollback blocks for older migrations is pending — audit R5.)*
+- **DB migration:** reverse procedures for every migration (008–019) are in [`migrations/ROLLBACKS.md`](../../migrations/ROLLBACKS.md) — **roll back in reverse order, back up first**, and note 019 (security) is explicitly do-not-revert and 016 (column rename) is one-way.
 
 ## 5. Where to look (forensics)
 Sentry (errors/alerts) · Supabase logs · Stripe webhook logs · `portal_access_log`, `pdpl_exports`, `payment_events` (audit tables).

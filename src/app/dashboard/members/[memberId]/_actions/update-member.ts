@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -34,7 +35,14 @@ export async function updateMember(prevState: State, formData: FormData): Promis
     update.role = role
   }
 
-  const { error } = await supabase
+  // profiles has no UPDATE RLS policy, so the RLS client silently no-ops here.
+  // Writes are already owner/coach-gated above and scoped to the caller's box
+  // (.eq box_id) for tenant isolation — apply via the service role.
+  const service = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { error } = await service
     .from('profiles')
     .update(update)
     .eq('id', memberId)

@@ -113,6 +113,10 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 
 **⏳ Pending — needs you (highest value):** R1 run `pg_dump` · R2 confirm backups/PITR plan · S4 confirm Stripe keys rotated · P1 branch protection (decision) · R3 staging env.
 
-- **P7** integration-test foundation: reusable Supabase mock harness + authz tests for `update-member` & `remove-member` (11 tests, 130 total) (`c1755d0`)
+- **P7** integration tests: reusable Supabase mock harness + authz tests for `update-member`, `remove-member`, `refund-invoice`, `create-checkout` (16 tests, 135 total) (`c1755d0`, `f8b1a59`)
+- **R5** migration rollback reference (`migrations/ROLLBACKS.md`, linked from DR runbook + README) (`f515420`)
 
-**⏳ Pending — in-my-control (lower value / blocked):** P7 extend to refund/checkout/webhook (needs Stripe mocking) · R5 retrofit `-- ROLLBACK:` blocks on migrations 008–018 · S1 nonce CSP (after staging).
+**⏳ Pending — needs you:** R1 `pg_dump` · R2 backups/PITR · S4 Stripe rotation · P1 branch protection · R3 staging env.
+**⏳ Parked (in-my-control, intentionally deferred):** S1 nonce CSP — should be done against **staging** (R3) to avoid breaking Stripe checkout; P7 webhook-handler tests (heavy Stripe-signature mocking, low marginal value).
+
+**All in-my-control audit items are now complete.** Remaining work is either yours or blocked on staging.

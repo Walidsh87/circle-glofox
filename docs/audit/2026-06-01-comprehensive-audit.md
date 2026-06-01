@@ -113,4 +113,6 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 
 **⏳ Pending — needs you (highest value):** R1 run `pg_dump` · R2 confirm backups/PITR plan · S4 confirm Stripe keys rotated · P1 branch protection (decision) · R3 staging env.
 
-**⏳ Pending — in-my-control (larger effort, needs go-ahead):** P7 integration tests (authz/RLS/webhook) · R5 retrofit `-- ROLLBACK:` blocks on migrations 008–018 · S1 nonce CSP (after staging).
+- **P7** integration-test foundation: reusable Supabase mock harness + authz tests for `update-member` & `remove-member` (11 tests, 130 total) (`c1755d0`)
+
+**⏳ Pending — in-my-control (lower value / blocked):** P7 extend to refund/checkout/webhook (needs Stripe mocking) · R5 retrofit `-- ROLLBACK:` blocks on migrations 008–018 · S1 nonce CSP (after staging).

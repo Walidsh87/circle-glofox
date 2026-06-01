@@ -57,7 +57,7 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 | P2 | 🟠 Med | **CI doesn't run `build` or coverage** | `ci.yml` runs lint/type-check/test only | Add `npm run build` + `npm run test:coverage` to CI (build only fails at Vercel today) |
 | P3 | 🟠 Med | **Migration sprawl + no runbook** | 7 un-numbered root `.sql` (add-leads-rls, add-slug, feed-progress, stripe-billing, reseed, seed-demo) alongside `migrations/008–019`; no `migrations/README` | Consolidate into ordered `migrations/`, add README with run order, stop scattering root SQL |
 | P4 | 🟠 Med | **README is the default create-next-app stub** | `README.md` head | Document setup, env vars, deploy, architecture, runbooks |
-| P5 | 🟡 Low | **No `.env.example`** | absent | Add with all keys (no values) — onboarding/deploy contract |
+| P5 | 🟡 Low | **`.env.example` incomplete** (existed; was missing `PORTAL_SIGN_SECRET` + Upstash vars — now added) | working-tree instability hid it initially | ✅ Fixed — all keys now listed |
 | P6 | 🟡 Low | **No dependency automation / PR template** | no `dependabot.yml`, no PR template | Add weekly Dependabot + PR checklist |
 | P7 | 🟡 Low | **Tests are unit-only on pure logic** | 16 files, all `_lib`/providers; no integration/e2e | Add integration tests for authz/RLS/webhook happy+sad paths |
 | P8 | 🟡 Low | **Node version unpinned / drift** | local 22, CI 20, no `.nvmrc`/`engines` | Pin Node (`.nvmrc` + `engines`) to match Vercel |

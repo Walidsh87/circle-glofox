@@ -96,4 +96,20 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 
 ---
 
-*Already-completed this engagement: Next 14→16 + eslint 9 (cleared 4 high CVEs), RLS hardening (migration 019), `react/no-danger` guard, `NEXT_PUBLIC_APP_URL` fail-loud, per-IP rate limiting (code). See `memory/v1-security-followups.md`.*
+*Already-completed before this audit: Next 14→16 + eslint 9 (cleared 4 high CVEs), RLS hardening (migration 019), `react/no-danger` guard, `NEXT_PUBLIC_APP_URL` fail-loud, per-IP rate limiting (code). See `memory/v1-security-followups.md`.*
+
+---
+
+## Remediation progress (2026-06-01)
+
+**✅ Fixed this session:**
+- **R6** per-segment error boundaries (`/dashboard`, `/[gymSlug]`, `/onboarding`) + `global-error` stack-trace leak removed (`885d28d`)
+- **S2** `update-member` silent RLS no-op fixed — edits now apply (`67b990b`)
+- **S6** Sentry PII — verified clean (`sendDefaultPii` off)
+- **P2** coverage thresholds enforced in CI · **P8** Node pinned to 22 (.nvmrc + engines) · **P9** actions `v4→v5` (`37b3912`, CI green)
+- **P3** `migrations/README` (run order + canonical-dump runbook) · **P5** `.env.example` completed (`8efa62d`)
+- **R1** scaffold + runbook in place (core `pg_dump` pending user)
+
+**⏳ Pending — needs you (highest value):** R1 run `pg_dump` · R2 confirm backups/PITR plan · S4 confirm Stripe keys rotated · P1 branch protection (decision) · R3 staging env.
+
+**⏳ Pending — in-my-control (larger):** R4 DR/incident runbook · R5 down-migrations · P7 integration tests · P4 real README · S5 secret-scanning in CI · S1 nonce CSP (after staging).

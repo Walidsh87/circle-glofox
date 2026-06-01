@@ -53,7 +53,7 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 
 | # | Sev | Finding | Evidence | Recommendation |
 |---|---|---|---|---|
-| P1 | 🟠 High | **No branch protection on `main`** | `gh api …/branches/main/protection` → 404 "not protected" | Require PR + passing CI before merge; protect `main` |
+| P1 | ✅ Fixed | **Branch protection on `main`** — requires `ci`+`secret-scan`, blocks force-push/deletion (admin-bypass on, no PR requirement → direct-push preserved) | was 404 "not protected" | Done |
 | P2 | 🟠 Med | **CI doesn't run `build` or coverage** | `ci.yml` runs lint/type-check/test only | Add `npm run build` + `npm run test:coverage` to CI (build only fails at Vercel today) |
 | P3 | 🟠 Med | **Migration sprawl + no runbook** | 7 un-numbered root `.sql` (add-leads-rls, add-slug, feed-progress, stripe-billing, reseed, seed-demo) alongside `migrations/008–019`; no `migrations/README` | Consolidate into ordered `migrations/`, add README with run order, stop scattering root SQL |
 | P4 | 🟠 Med | **README is the default create-next-app stub** | `README.md` head | Document setup, env vars, deploy, architecture, runbooks |
@@ -116,7 +116,8 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 - **P7** integration tests: reusable Supabase mock harness + authz tests for `update-member`, `remove-member`, `refund-invoice`, `create-checkout` (16 tests, 135 total) (`c1755d0`, `f8b1a59`)
 - **R5** migration rollback reference (`migrations/ROLLBACKS.md`, linked from DR runbook + README) (`f515420`)
 
-**⏳ Pending — needs you:** R1 `pg_dump` · R2 backups/PITR · S4 Stripe rotation · P1 branch protection · R3 staging env.
+**✅ P1 branch protection** set on `main` (required checks + no force-push; admin-bypass keeps direct-push).
+**⏳ Pending — needs you:** R1 `pg_dump` · R2 backups/PITR · S4 Stripe rotation · R3 staging env.
 **⏳ Parked (in-my-control, intentionally deferred):** S1 nonce CSP — should be done against **staging** (R3) to avoid breaking Stripe checkout; P7 webhook-handler tests (heavy Stripe-signature mocking, low marginal value).
 
 **All in-my-control audit items are now complete.** Remaining work is either yours or blocked on staging.

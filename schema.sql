@@ -134,13 +134,16 @@ create index idx_scores_athlete on workout_scores(athlete_id);
 -- ROW-LEVEL SECURITY (this is the actual multi-tenancy)
 -- ============================================================
 
--- Helper: get caller's box_id
-create or replace function auth_box_id() returns uuid language sql stable as $$
+-- Helper: get caller's box_id.
+-- SECURITY DEFINER is REQUIRED: these helpers are called from the profiles RLS
+-- policy, so without DEFINER the inner read of `profiles` re-triggers that same
+-- policy → "infinite recursion detected in policy for relation profiles".
+create or replace function auth_box_id() returns uuid language sql stable security definer as $$
   select box_id from profiles where id = auth.uid()
 $$;
 
--- Helper: caller's role
-create or replace function auth_role() returns user_role language sql stable as $$
+-- Helper: caller's role (SECURITY DEFINER — same recursion reason as auth_box_id)
+create or replace function auth_role() returns user_role language sql stable security definer as $$
   select role from profiles where id = auth.uid()
 $$;
 

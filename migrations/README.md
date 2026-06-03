@@ -2,20 +2,19 @@
 
 Supabase Postgres. Migrations are applied **manually in the Supabase SQL Editor** (no automated runner). RLS is the multi-tenancy backstop — review policies on every schema change.
 
-## ⚠️ Canonical schema (read this first)
+## Canonical schema
 
-The committed SQL files **do not fully reproduce production**. `schema.sql` declares the helper functions `auth_box_id()` / `auth_role()` as `SECURITY INVOKER`, but in production they must be `SECURITY DEFINER` (otherwise every query to `profiles` infinite-recurses). The files have also drifted from later ad-hoc changes.
+✅ **Reconciled 2026-06-03.** The one known divergence is fixed: `auth_box_id()` / `auth_role()` were committed as `SECURITY INVOKER` but run as `SECURITY DEFINER` in prod (without DEFINER, every `profiles` query infinite-recurses). `schema.sql` now carries the correct definitions. Verified against the live `pg_proc` function definitions and `pg_policies` — every other function/policy already matched.
 
-**The source of truth for the schema is the live database, not these files.** To make the repo reproducible, regenerate a canonical schema dump and commit it:
+**`schema.sql` + the ordered migrations below now reproduce production.** A disaster-recovery rebuild runs `schema.sql`, then the migrations in order.
+
+Optional belt-and-suspenders (catches any unknown ad-hoc change): once you have `pg_dump` available, snapshot the live schema and commit it as `000_canonical_schema.sql`:
 
 ```bash
-# Connection string: Supabase Dashboard → Project Settings → Database → Connection string (URI)
-pg_dump --schema-only --no-owner --no-privileges \
-  "postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres" \
+pg_dump --schema-only --no-owner --no-privileges --schema=public \
+  "<Supabase → Settings → Database → Connection string (Session pooler), real password>" \
   > migrations/000_canonical_schema.sql
 ```
-
-Re-run this after every applied migration so `000_canonical_schema.sql` always reflects prod. A disaster-recovery rebuild should run **`000_canonical_schema.sql` only** — the historical files below are kept for audit, not for replay.
 
 ## Run order (historical — for reference)
 

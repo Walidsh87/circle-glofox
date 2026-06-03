@@ -69,7 +69,7 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 
 | # | Sev | Finding | Why it matters | Recommendation |
 |---|---|---|---|---|
-| R1 | 🔴 Crit | **DB not reproducible from repo** — `schema.sql` provably diverges from prod (`auth_box_id`/`auth_role` are SECURITY INVOKER in the file but must be DEFINER in prod, else every query recurses) | If Supabase DB is lost/corrupted, the committed SQL **cannot** faithfully rebuild it | Dump the live schema (`pg_dump --schema-only`) into the repo as the canonical source; reconcile policies/functions |
+| R1 | ✅ Fixed | **DB now reproducible from repo** — reconciled `schema.sql` (`auth_box_id`/`auth_role` → `SECURITY DEFINER`) against live `pg_proc` + `pg_policies`; only divergence, now closed (`49644b8`) | was: committed SQL couldn't rebuild prod | Done — schema.sql + ordered migrations reproduce prod |
 | R2 | 🟠 High | **Backups/PITR undocumented** | Supabase free tier = limited daily backups, **no PITR**; Pro = PITR. Unknown which, and no restore drill | Confirm plan; if storing payments/PII, ensure PITR (Pro); document + test a restore |
 | R3 | 🟠 High | **No staging environment** | RLS/CSP/migration changes go straight to prod (already bit us with the migration dry-run) | Stand up a staging Supabase + Vercel preview env (CLAUDE.md §6h) |
 | R4 | 🟠 Med | **No DR / incident-response runbook** | No documented steps for breach, data loss, key compromise, outage | Write a short runbook (rotate keys, restore DB, revoke sessions, Sentry triage) |
@@ -116,8 +116,8 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 - **P7** integration tests: reusable Supabase mock harness + authz tests for `update-member`, `remove-member`, `refund-invoice`, `create-checkout` (16 tests, 135 total) (`c1755d0`, `f8b1a59`)
 - **R5** migration rollback reference (`migrations/ROLLBACKS.md`, linked from DR runbook + README) (`f515420`)
 
-**✅ P1 branch protection** set on `main` (required checks + no force-push; admin-bypass keeps direct-push).
-**⏳ Pending — needs you:** R1 `pg_dump` · R2 backups/PITR · S4 Stripe rotation · R3 staging env.
+**✅ P1 branch protection** set on `main`. **✅ R1 DB reproducible** — `schema.sql` reconciled to prod (`49644b8`); Recovery now **B**.
+**⏳ Pending — needs you:** R2 backups/PITR · S4 Stripe rotation · R3 staging env.
 **⏳ Parked (in-my-control, intentionally deferred):** S1 nonce CSP — should be done against **staging** (R3) to avoid breaking Stripe checkout; P7 webhook-handler tests (heavy Stripe-signature mocking, low marginal value).
 
 **All in-my-control audit items are now complete.** Remaining work is either yours or blocked on staging.

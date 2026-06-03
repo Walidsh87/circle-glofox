@@ -42,7 +42,7 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 | S1 | Med | CSP keeps `script-src 'unsafe-inline'` (no nonce yet) | Guarded by `react/no-danger`; do nonce CSP once staging exists |
 | S2 | Med | `update-member` likely a silent no-op (profiles has no UPDATE policy; uses RLS client) | Fix: service-role update or add staff UPDATE policy |
 | S3 | Low | `npm audit`: 4 moderate (postcss build-time, qs DoS) — non-exploitable | Monitor; clears on next Next bump |
-| S4 | Med | Stripe keys were member-readable pre-fix | **Confirm keys rotated** |
+| S4 | ✅ Done | Stripe keys were member-readable pre-fix | **Keys rotated** (confirmed 2026-06-03) |
 | S5 | Low | No secret-scanning (gitleaks/trufflehog) in CI | Add a scan step |
 | S6 | Low | Verify Sentry `sendDefaultPii` is off (don't ship member PII to Sentry) | Check `instrumentation*.ts` / dashboard |
 | S7 | — | Rate limiting inert until Upstash env vars set; login relies on Supabase auth limits | Provision Upstash + tune Supabase Auth → Rate Limits |

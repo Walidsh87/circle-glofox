@@ -12,10 +12,12 @@ export function shouldRateLimit(pathname: string): boolean {
 }
 
 // Serverless-safe limiter (shared state via Upstash Redis REST — works on Edge).
-// No-op (null) unless both env vars are present, so local dev and any deploy that
-// hasn't provisioned Upstash yet keep working instead of crashing.
-const url = process.env.UPSTASH_REDIS_REST_URL
-const token = process.env.UPSTASH_REDIS_REST_TOKEN
+// No-op (null) unless REST creds are present, so local dev and any deploy that
+// hasn't provisioned Redis yet keep working instead of crashing.
+// Accepts either the canonical Upstash names or Vercel's Marketplace names: the
+// Vercel Upstash integration injects KV_REST_API_URL/KV_REST_API_TOKEN instead.
+const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL
+const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN
 
 export const ratelimit =
   url && token

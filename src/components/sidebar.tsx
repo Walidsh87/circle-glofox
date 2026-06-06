@@ -48,6 +48,7 @@ function getNavGroups(role: string): NavGroup[] {
   const athleteItems: NavItem[] = []
   if (!isStaff) athleteItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
   athleteItems.push({ key: 'schedule', label: 'Book a class', href: '/dashboard/schedule', icon: 'book' })
+  if (!isStaff) athleteItems.push({ key: 'shop', label: 'Buy a pack', href: '/dashboard/shop', icon: 'tag' })
   athleteItems.push({ key: 'lifts', label: 'My 1RMs', href: '/dashboard/lifts', icon: 'barbell' })
   athleteItems.push({ key: 'feed', label: 'Activity Feed', href: '/dashboard/feed', icon: 'activity' })
   athleteItems.push({ key: 'profile', label: 'My Profile', href: '/dashboard/profile', icon: 'person' })

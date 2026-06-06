@@ -17,6 +17,21 @@ export type CreateCheckoutInput = {
   membershipId: string
 }
 
+// One-shot package purchase. Deliberately guest-style: no `customerRef` (unlike
+// the subscription CreateCheckoutInput) — packages aren't recurring, and the
+// webhook grants credits by `athlete_id` from metadata, so no Stripe customer
+// link is needed. `customerEmail` only prefills the receipt field.
+export type CreatePackageCheckoutInput = {
+  packageId: string
+  athleteId: string
+  boxId: string
+  packageName: string
+  priceAed: number
+  customerEmail: string | null
+  successUrl: string
+  cancelUrl: string
+}
+
 export type CreateCustomerInput = {
   email: string | null
   name: string | null
@@ -82,6 +97,10 @@ export type NormalisedEvent =
       subscriptionRef: string | null
       customerRef: string | null
       membershipId: string | null
+      packageId: string | null
+      athleteId: string | null
+      paymentRef: string | null
+      amountAed: number | null
     }
   | { kind: 'unknown'; rawId: string }
 
@@ -91,6 +110,7 @@ export interface PaymentProvider {
   createPlan(input: CreatePlanInput): Promise<{ planRef: string }>
   createCustomer(input: CreateCustomerInput): Promise<{ customerRef: string }>
   createCheckoutSession(input: CreateCheckoutInput): Promise<{ url: string; sessionId: string }>
+  createPackageCheckout(input: CreatePackageCheckoutInput): Promise<{ url: string; sessionId: string }>
   createPortalSession(customerRef: string, returnUrl: string): Promise<{ url: string }>
   refund(input: RefundInput): Promise<{ refundRef: string }>
 

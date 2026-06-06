@@ -3,6 +3,7 @@ import {
   PspConfigError,
   type CreateCheckoutInput,
   type CreateCustomerInput,
+  type CreatePackageCheckoutInput,
   type CreatePlanInput,
   type NormalisedEvent,
   type PaymentProvider,
@@ -54,6 +55,26 @@ export class StripeProvider implements PaymentProvider {
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       metadata: { membership_id: input.membershipId },
+    })
+    if (!session.url) throw new Error('Stripe did not return a checkout URL.')
+    return { url: session.url, sessionId: session.id }
+  }
+
+  async createPackageCheckout(input: CreatePackageCheckoutInput): Promise<{ url: string; sessionId: string }> {
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'aed',
+          product_data: { name: input.packageName },
+          unit_amount: Math.round(input.priceAed * 100),
+        },
+        quantity: 1,
+      }],
+      ...(input.customerEmail ? { customer_email: input.customerEmail } : {}),
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
+      metadata: { package_id: input.packageId, athlete_id: input.athleteId, box_id: input.boxId },
     })
     if (!session.url) throw new Error('Stripe did not return a checkout URL.')
     return { url: session.url, sessionId: session.id }
@@ -129,6 +150,10 @@ export class StripeProvider implements PaymentProvider {
           subscriptionRef: typeof s.subscription === 'string' ? s.subscription : s.subscription?.id ?? null,
           customerRef: typeof s.customer === 'string' ? s.customer : s.customer?.id ?? null,
           membershipId: s.metadata?.membership_id ?? null,
+          packageId: s.metadata?.package_id ?? null,
+          athleteId: s.metadata?.athlete_id ?? null,
+          paymentRef: typeof s.payment_intent === 'string' ? s.payment_intent : s.payment_intent?.id ?? null,
+          amountAed: s.amount_total != null ? s.amount_total / 100 : null,
         }
       }
       case 'customer.subscription.deleted': {

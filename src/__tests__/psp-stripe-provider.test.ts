@@ -44,7 +44,7 @@ describe('StripeProvider.translate', () => {
     })
   })
 
-  test('checkout.session.completed → checkout_completed surfaces metadata.membership_id', () => {
+  test('checkout.session.completed (subscription) → checkout_completed with null package fields', () => {
     const event = {
       id: 'evt_3',
       type: 'checkout.session.completed',
@@ -57,6 +57,30 @@ describe('StripeProvider.translate', () => {
       subscriptionRef: 'sub_x',
       customerRef: 'cus_y',
       membershipId: 'mem_123',
+      packageId: null,
+      athleteId: null,
+      paymentRef: null,
+      amountAed: null,
+    })
+  })
+
+  test('checkout.session.completed (package, mode=payment) → checkout_completed with package fields', () => {
+    const event = {
+      id: 'evt_3b',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_2', payment_intent: 'pi_55', amount_total: 50000, metadata: { package_id: 'pkg_1', athlete_id: 'ath_1', box_id: 'box_1' } } },
+    }
+    expect(provider().translate(event)).toEqual({
+      kind: 'checkout_completed',
+      rawId: 'evt_3b',
+      sessionId: 'cs_2',
+      subscriptionRef: null,
+      customerRef: null,
+      membershipId: null,
+      packageId: 'pkg_1',
+      athleteId: 'ath_1',
+      paymentRef: 'pi_55',
+      amountAed: 500,
     })
   })
 

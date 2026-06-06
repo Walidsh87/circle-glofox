@@ -15,15 +15,17 @@ import { cancelBooking } from '@/app/dashboard/schedule/_actions/cancel-booking'
 beforeEach(() => vi.clearAllMocks())
 
 test('credit-backed booking → deletes and refunds the credit', async () => {
-  serverCreate.mockResolvedValue(makeSupabaseMock({
+  const rls = makeSupabaseMock({
     user: { id: 'u1' },
     results: { bookings: { data: { credit_id: 'batch-1' }, error: null } },
-  }))
+  })
+  serverCreate.mockResolvedValue(rls)
   const svc = makeSupabaseMock({ rpc: { data: null, error: null } })
   serviceCreate.mockReturnValue(svc)
 
   const res = await cancelBooking('class-1')
   expect(res.error).toBeNull()
+  expect(rls.builder('bookings').delete).toHaveBeenCalled()
   expect(svc.rpc).toHaveBeenCalledWith('refund_credit', { p_credit_id: 'batch-1' })
 })
 

@@ -10,7 +10,9 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
   if (!user) return { error: 'Not authenticated.' }
 
   // Read which credit (if any) this booking drew from, before deleting it.
-  // Athletes can SELECT their own bookings under the athlete_book RLS policy.
+  // bookings' box_isolation_select policy lets any gym member read bookings in
+  // their box; the .eq('athlete_id') filter here — not RLS alone — is what scopes
+  // the result to the caller's own row.
   const { data: booking } = await supabase
     .from('bookings')
     .select('credit_id')
@@ -27,16 +29,25 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
   if (error) return { error: error.message }
 
   // Cancel refunds the credit. (No-show never reaches here, so it forfeits — by
-  // design.) Delete-then-refund: a double-click's second pass reads credit_id =
-  // null (row already gone), so a credit is never refunded twice.
+  // design.) Delete-then-refund: a *sequential* double-click's second pass finds
+  // no row (maybeSingle → null) and skips refund. A truly concurrent double-click
+  // could still call refund_credit twice, but the SQL fn caps at credits_total,
+  // so the counter is never over-refunded — that cap, not the ordering, is the
+  // real safety net here.
   if (booking?.credit_id) {
-    const service = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
-    // Best-effort refund; log if it fails so a stranded credit isn't silent.
-    const { error: refundErr } = await service.rpc('refund_credit', { p_credit_id: booking.credit_id })
-    if (refundErr) console.error('refund_credit failed on cancel; credit stranded:', booking.credit_id, refundErr)
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      // Misconfig: the cancel itself already succeeded, so don't fail it — just
+      // surface that the credit couldn't be refunded (safe to retry; SQL caps it).
+      console.error('SUPABASE_SERVICE_ROLE_KEY missing; cannot refund credit:', booking.credit_id)
+    } else {
+      const service = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+      )
+      // Best-effort refund; log if it fails so a stranded credit isn't silent.
+      const { error: refundErr } = await service.rpc('refund_credit', { p_credit_id: booking.credit_id })
+      if (refundErr) console.error('refund_credit failed on cancel; credit stranded:', booking.credit_id, refundErr)
+    }
   }
 
   revalidatePath('/dashboard/schedule')

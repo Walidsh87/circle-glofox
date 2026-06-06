@@ -62,7 +62,7 @@ Every box-scoped table carries `box_id` + an RLS policy filtering by `auth_box_i
 | `name` | text not null (e.g. "10-Class Pack") |
 | `type` | text not null check in (`class_pack`,`drop_in`,`pt_block`) |
 | `credit_count` | int not null check > 0 (drop_in = 1) |
-| `price` | int not null — **minor units; must match how `invoices` stores money (reconcile in planning)** |
+| `price_aed` | **`NUMERIC(10,2)` not null** — AED, matches `invoices.subtotal_aed` / `total_aed` (resolved 2026-06-06: invoices store decimal AED, not minor units) |
 | `expiry_days` | int null (null = credits never expire) |
 | `active` | bool not null default true (retire without deleting) |
 | `created_at` | timestamptz default now() |
@@ -157,7 +157,7 @@ Stripe **one-shot Checkout** (`mode: 'payment'`), via — and lightly extending 
 
 - **Concurrent credit consumption** → guarded atomic `UPDATE … WHERE remaining > 0 RETURNING`.
 - **PSP port lacks a one-shot method** → add `createPackageCheckout` to the Stripe adapter (PR-2 task).
-- **Money unit mismatch** with `invoices` → reconcile before coding (PR-1 task).
+- **Money unit** — ✅ resolved: `invoices` use `NUMERIC(10,2)` AED, so packages use `price_aed NUMERIC(10,2)`.
 - **Hard-gate behavior change** → only affects members with no membership + no credits (already blocked at check-in today); the gate just moves the rejection earlier. Document for the gym.
 - **Rollback:** PR-1/2 are additive (drop new tables/column). PR-3 reverts by restoring the original `book-class` / `check-in` / `cancel-booking` logic — credits simply stop being consumed.
 

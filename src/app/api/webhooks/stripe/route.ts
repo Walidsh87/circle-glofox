@@ -201,6 +201,12 @@ async function handleCheckoutCompleted(
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'checkout_completed' }>,
 ): Promise<NextResponse> {
+  // Package one-shot purchase → grant credits + issue invoice.
+  if (event.packageId && event.athleteId && event.paymentRef) {
+    return grantPackageCredits(boxId, event)
+  }
+
+  // Membership subscription checkout → backfill refs (unchanged).
   if (event.membershipId && event.subscriptionRef) {
     await service
       .from('memberships')
@@ -211,6 +217,85 @@ async function handleCheckoutCompleted(
       .eq('id', event.membershipId)
       .eq('box_id', boxId)
   }
+  return NextResponse.json({ received: true })
+}
+
+async function grantPackageCredits(
+  boxId: string,
+  event: Extract<NormalisedEvent, { kind: 'checkout_completed' }>,
+): Promise<NextResponse> {
+  const paymentRef = event.paymentRef as string
+  const packageId = event.packageId as string
+  const athleteId = event.athleteId as string
+
+  if (!(await claimEvent(boxId, event.rawId, 'package_purchased'))) {
+    return NextResponse.json({ received: true, duplicate: true })
+  }
+
+  // Idempotency: the credit batch's provider_charge_ref is UNIQUE.
+  const { data: alreadyGranted } = await service
+    .from('package_credits')
+    .select('id')
+    .eq('provider_charge_ref', paymentRef)
+    .maybeSingle()
+  if (alreadyGranted) return NextResponse.json({ received: true, duplicate: true })
+
+  const { data: pkg } = await service
+    .from('packages')
+    .select('name, type, credit_count, price_aed, expiry_days')
+    .eq('id', packageId)
+    .eq('box_id', boxId)
+    .single()
+  if (!pkg) return NextResponse.json({ received: true })
+
+  const { data: athlete } = await service
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', athleteId)
+    .single()
+
+  const kind = pkg.type === 'pt_block' ? 'pt_session' : 'class'
+  const expiresAt = pkg.expiry_days
+    ? new Date(Date.now() + Number(pkg.expiry_days) * 86_400_000).toISOString().slice(0, 10)
+    : null
+  const amountAed = event.amountAed ?? Number(pkg.price_aed)
+
+  const invoiceId = await issueInvoice({
+    boxId,
+    membershipId: null,
+    athleteId,
+    customerName: athlete?.full_name ?? null,
+    customerEmail: athlete?.email ?? null,
+    description: pkg.name,
+    amountAed,
+    // One-shot packages have no Stripe invoice (in_xxx) or charge.succeeded
+    // backfill, so the payment_intent doubles as both refs: provider_payment_ref
+    // drives refund lookup, and provider_charge_ref gives invoice-level
+    // idempotency (dedup if a retry slips past the gates above before the
+    // package_credits row lands).
+    chargeRef: paymentRef,
+    paymentRef,
+  })
+
+  const { error: creditErr } = await service.from('package_credits').insert({
+    box_id: boxId,
+    athlete_id: athleteId,
+    package_id: packageId,
+    kind,
+    credits_total: pkg.credit_count,
+    credits_remaining: pkg.credit_count,
+    expires_at: expiresAt,
+    invoice_id: invoiceId,
+    provider_charge_ref: paymentRef,
+  })
+  // 23505 = a concurrent delivery already granted this batch (unique
+  // provider_charge_ref) — safe to treat as success. Any other error means the
+  // athlete paid but got no credits: log + 500 so Stripe retries the delivery.
+  if (creditErr && creditErr.code !== '23505') {
+    console.error('package_credits insert failed (will retry):', creditErr)
+    return NextResponse.json({ error: 'grant failed' }, { status: 500 })
+  }
+
   return NextResponse.json({ received: true })
 }
 
@@ -313,7 +398,7 @@ async function handleRefunded(
 
 type IssueInvoiceArgs = {
   boxId: string
-  membershipId: string
+  membershipId: string | null
   athleteId: string | null
   customerName: string | null
   customerEmail: string | null
@@ -323,14 +408,14 @@ type IssueInvoiceArgs = {
   paymentRef: string | null
 }
 
-async function issueInvoice(args: IssueInvoiceArgs) {
+async function issueInvoice(args: IssueInvoiceArgs): Promise<string | null> {
   if (args.chargeRef) {
     const { data: existing } = await service
       .from('invoices')
       .select('id')
       .eq('provider_charge_ref', args.chargeRef)
       .maybeSingle()
-    if (existing) return
+    if (existing) return existing.id as string
   }
 
   const { data: box } = await service
@@ -338,17 +423,17 @@ async function issueInvoice(args: IssueInvoiceArgs) {
     .select('slug, trn, vat_rate, legal_name, billing_address, name')
     .eq('id', args.boxId)
     .single()
-  if (!box) return
+  if (!box) return null
 
   const vatRate = Number(box.vat_rate ?? 5)
   const { subtotalAed, vatAed, totalAed } = deriveVatFromInclusive(args.amountAed, vatRate)
 
   const { data: seqData, error: seqErr } = await service.rpc('next_invoice_sequence', { p_box_id: args.boxId })
-  if (seqErr || typeof seqData !== 'number') return
+  if (seqErr || typeof seqData !== 'number') return null
   const year = new Date().getFullYear()
   const invoiceNumber = formatInvoiceNumber(box.slug ?? box.name ?? '', year, seqData)
 
-  await service.from('invoices').insert({
+  const { data: inserted } = await service.from('invoices').insert({
     box_id: args.boxId,
     athlete_id: args.athleteId,
     membership_id: args.membershipId,
@@ -366,5 +451,7 @@ async function issueInvoice(args: IssueInvoiceArgs) {
     description: args.description,
     provider_charge_ref: args.chargeRef,
     provider_payment_ref: args.paymentRef,
-  })
+  }).select('id').single()
+
+  return (inserted?.id as string) ?? null
 }

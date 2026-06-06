@@ -17,7 +17,10 @@ export function PackageActions({ packageId, active }: { packageId: string; activ
       <button
         style={btn}
         disabled={pending}
-        onClick={() => startTransition(() => { void togglePackage(packageId, !active) })}
+        onClick={() => startTransition(async () => {
+          const res = await togglePackage(packageId, !active)
+          if (res.error) alert(res.error)
+        })}
       >
         {active ? 'Deactivate' : 'Activate'}
       </button>

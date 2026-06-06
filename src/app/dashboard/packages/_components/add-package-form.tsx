@@ -35,6 +35,7 @@ export function AddPackageForm() {
       </select>
       <div style={{ display: 'flex', gap: 10 }}>
         <input
+          key={type}
           name="creditCount"
           type="number"
           min={1}

@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { EditMemberForm } from './_components/edit-member-form'
+import { SellPackage } from './_components/sell-package'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -121,6 +122,16 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   ])
 
   if (!member) notFound()
+
+  const isOwner = viewer.role === 'owner'
+  const [{ data: activePackages }, { data: memberCredits }] = await Promise.all([
+    isOwner
+      ? supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', viewer.box_id).eq('active', true).order('name')
+      : Promise.resolve({ data: [] as { id: string; name: string; type: string; credit_count: number; price_aed: number }[] }),
+    isOwner
+      ? supabase.from('package_credits').select('id, kind, credits_remaining, credits_total, expires_at, packages(name)').eq('athlete_id', params.memberId).order('created_at', { ascending: false })
+      : Promise.resolve({ data: [] as { id: string; kind: string; credits_remaining: number; credits_total: number; expires_at: string | null; packages: { name: string } | { name: string }[] | null }[] }),
+  ])
 
   const activeMembership = memberships?.find((m) => !m.end_date) ?? null
   const rs = activeMembership ? (STATUS_STYLES[activeMembership.payment_status] ?? STATUS_STYLES.unpaid) : null
@@ -400,6 +411,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Packages & credits — owner only */}
+            {isOwner && (
+              <div style={{ marginTop: 20 }}>
+                <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} />
               </div>
             )}
 

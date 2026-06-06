@@ -26,10 +26,10 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 | Bucket | Status |
 |---|---|
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
-| **v2 Tier 1 (revenue blockers)** | 9 ✅ · 1 🚧 (#10 — Stripe port ✅; **Packages re-scoped onto Stripe**: PR-1 catalog + data model ✅ (migrations 020–022, PR #2); PR-2 purchase + PR-3 entitlement planned; Tabby + mobile API deferred) |
+| **v2 Tier 1 (revenue blockers)** | 9 ✅ · 1 🚧 (#10 — Stripe port ✅; **Packages on Stripe**: PR-1 catalog ✅ · PR-2a purchase backend + owner-sell ✅ (merged to main); PR-2b storefront + PR-3 entitlement planned; Tabby + mobile API deferred) |
 | **v2 Tier 2–13 (~95 items)** | 2 ✅ (#23 1RM charts, #25 activity feed) · #21 mobile API ⬜ (deferred) · rest ⬜ |
-| **Migrations** | 008–022 ✅ applied (019 RLS hardening · 020–022 packages) |
-| **Next session priority** | **Packages PR-2** — Stripe one-shot purchase + credit grant + member storefront; then PR-3 (booking entitlement) |
+| **Migrations** | 008–022 ✅ applied (019 RLS hardening · 020–022 packages); PR-2a added no migration |
+| **Next session priority** | **Packages PR-2b** — member self-serve storefront + "my credits"; then PR-3 (booking entitlement). Pending: Stripe-test-mode smoke of PR-2a purchase flow |
 
 ---
 
@@ -142,7 +142,8 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 9. ✅ `[GCC]` **PDPL data export per member** — UAE Federal Decree-Law 45 of 2021 compliance
 10. 🚧 `[Wedge][GCC]` **Multi-PSP + Packages** — PSP port PR-1 ✅ done (Stripe adapter, provider-agnostic columns). **Re-scoped 2026-06-06** (spec `docs/superpowers/specs/2026-06-06-packages-design.md`): next work is **Packages** — one-shot, credit-based products (class packs / drop-ins / PT blocks) on **Stripe**, in 3 sub-PRs:
     - **Packages-PR1** ✅ owner catalog + data model (migrations 020–022, `validatePackageInput` + tests) — PR #2.
-    - **Packages-PR2** 📋 Stripe one-shot purchase + credit grant + VAT invoice + member storefront.
+    - **Packages-PR2a** ✅ purchase backend + owner-sell (merged to main): one-shot `createPackageCheckout`, webhook grants `package_credits` + VAT invoice, owner sell-package action + member-profile UI. No migration.
+    - **Packages-PR2b** 📋 member self-serve storefront + "my credits" view.
     - **Packages-PR3** 📋 booking entitlement (hard-gate consume, cancel refund, check-in clause, PT redeem).
     - Deferred: Tabby BNPL adapter, `/api/packages/*` mobile API, original Telr/Tap/NI/PayTabs adapters, real-gym pilot.
 
@@ -292,6 +293,7 @@ Dated session ledger. Extend with each major shipped change.
 
 | Date | Scope | Commit |
 |---|---|---|
+| 2026-06-06 | **Packages PR-2a** — purchase backend + owner-sell: one-shot `createPackageCheckout` (Stripe `mode:payment`), webhook grants `package_credits` + VAT invoice (idempotent), owner sell-package action + member-profile sell-UI + credit balances. No migration (`invoices.membership_id` already nullable). 149 tests. Plan `…packages-pr2a-purchase-owner-sell.md`. | `0fd57c0` (merged) |
 | 2026-06-06 | **Packages PR-1** — credit-based packages data model (migrations 020–022: `packages` + `package_credits` + RLS + `bookings.credit_id`), **owner-only** catalog admin (`/dashboard/packages` CRUD), `validatePackageInput` + 10 tests. Built brainstorm→spec→plan→subagent-driven w/ spec+quality review per task. Also this session: rate-limiting activated live (Upstash), Supabase auth email unblocked (Resend SMTP), June-23 kill-switch lifted. | PR #2 |
 | 2026-05-31 | **The Wedge integration** — structured % prescription on WOD form, per-athlete loads on whiteboard + WOD page, fallback prompt, lift catalog 9→29, migration 018, shared `percentage.ts` lib, 105 tests | `3c2ddf2` |
 | 2026-05-29 | Security & correctness audit pass 2: CSP + HSTS headers, error message sanitisation, settings query tightening, portal access audit log (migration 017) | `2f915b9` |

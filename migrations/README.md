@@ -31,4 +31,4 @@ Seed/test data (never run in prod): `../seed-demo.sql`, `../reseed-instances.sql
 - New migrations: next number in sequence here (`020_*.sql`), **not** scattered in the repo root.
 - Make them **idempotent** (`DROP ... IF EXISTS`, `CREATE ... IF NOT EXISTS`, `REVOKE/GRANT`) so re-runs are safe — see `019_rls_hardening.sql`.
 - Include a `-- ROLLBACK:` comment block describing how to revert. Reverse procedures for the existing 008–019 migrations are collected in [ROLLBACKS.md](ROLLBACKS.md).
-- After applying in Supabase, regenerate `000_canonical_schema.sql` (above).
+- Optional: refresh the canonical `000_canonical_schema.sql` dump (see above) if you choose to keep one. `schema.sql` + the numbered migrations already reproduce prod, so this is belt-and-suspenders, not required — there is no committed dump today.

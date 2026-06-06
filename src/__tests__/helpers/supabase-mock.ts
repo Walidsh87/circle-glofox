@@ -13,6 +13,7 @@ export type MockResult = { data: unknown; error: unknown }
 export function makeSupabaseMock(opts: {
   user?: { id: string } | null
   results?: Record<string, MockResult>
+  rpc?: MockResult
 }) {
   const results = opts.results ?? {}
   const builders: Record<string, ReturnType<typeof makeBuilder>> = {}
@@ -37,6 +38,8 @@ export function makeSupabaseMock(opts: {
       admin: { deleteUser: vi.fn(() => Promise.resolve({ error: null })) },
     },
     from: vi.fn((table: string) => (builders[table] ??= makeBuilder(table))),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    rpc: vi.fn((_fn: string, _args?: unknown) => Promise.resolve(opts.rpc ?? { data: null, error: null })),
     builder: (table: string) => builders[table],
   }
 }

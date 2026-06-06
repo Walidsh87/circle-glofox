@@ -9,6 +9,12 @@ Reverse procedures for migrations `008`–`019` (referenced by the DR runbook, `
 
 ---
 
+### 023_credit_functions
+```sql
+DROP FUNCTION IF EXISTS consume_credit(UUID);
+DROP FUNCTION IF EXISTS refund_credit(UUID);
+```
+
 ### 019_rls_hardening — ⛔ DO NOT ROLL BACK
 This is a **security** migration. Reverting re-opens the holes it closed (members reading Stripe secrets off `boxes`; athletes reading/writing all invoices). If a policy needs adjusting, write a **forward** migration instead.
 

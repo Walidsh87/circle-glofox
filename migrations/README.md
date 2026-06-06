@@ -21,8 +21,8 @@ pg_dump --schema-only --no-owner --no-privileges --schema=public \
 1. `../schema.sql` — enums, core tables (boxes, profiles, memberships, classes, bookings, workouts, lifts, scores), base RLS, `auth_box_id()`/`auth_role()` helpers.
 2. Out-of-band root migrations (pre-numbering, order approximate):
    `../add-slug-migration.sql`, `../stripe-billing-migration.sql`, `../add-leads-rls.sql`, `../feed-progress-migration.sql`
-3. Numbered migrations, in order: `008` → `019`.
-   - `008` waivers · `009` check-in blocks · `010` billing reminders · `011` PDPL exports · `012` VAT invoices · `013` credit notes · `014` dunning · `015` membership terms · `016` multi-PSP · `017` portal access log · `018` strength prescription · `019` RLS hardening.
+3. Numbered migrations, in order: `008` → `022`.
+   - `008` waivers · `009` check-in blocks · `010` billing reminders · `011` PDPL exports · `012` VAT invoices · `013` credit notes · `014` dunning · `015` membership terms · `016` multi-PSP · `017` portal access log · `018` strength prescription · `019` RLS hardening · `020` packages (catalog + `package_credits` + RLS) · `021` `bookings.credit_id` · `022` packages catalog owner-only RLS.
 
 Seed/test data (never run in prod): `../seed-demo.sql`, `../reseed-instances.sql`, `seed-checkin-test.sql`.
 

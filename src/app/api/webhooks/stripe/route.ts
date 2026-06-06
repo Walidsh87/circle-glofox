@@ -252,6 +252,7 @@ async function grantPackageCredits(
     .from('profiles')
     .select('full_name, email')
     .eq('id', athleteId)
+    .eq('box_id', boxId)
     .single()
 
   const kind = pkg.type === 'pt_block' ? 'pt_session' : 'class'

@@ -22,7 +22,7 @@ export default async function PackagesPage() {
     .single()
 
   if (!profile) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
+  if (profile.role !== 'owner') redirect('/dashboard')
 
   const boxes = profile.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''

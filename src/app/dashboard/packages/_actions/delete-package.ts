@@ -10,8 +10,8 @@ export async function deletePackage(packageId: string): Promise<{ error: string 
 
   const { data: profile } = await supabase
     .from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!profile || !['owner', 'coach'].includes(profile.role)) {
-    return { error: 'Only owners and coaches can manage packages.' }
+  if (!profile || profile.role !== 'owner') {
+    return { error: 'Only owners can manage packages.' }
   }
 
   const { error } = await supabase

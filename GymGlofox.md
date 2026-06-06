@@ -13,7 +13,7 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 | # | Constraint | Status |
 |---|---|---|
 | 1 | **80-hour build budget to v1 demo** (~6 weeks at ~17h/week, tracked honestly per session) | Tracking — honest TBD |
-| 2 | **Kill switch: June 23, 2026** — if fewer than 2 signed LOIs by then, project stops | **Active** |
+| 2 | ~~**Kill switch: June 23, 2026**~~ — **LIFTED 2026-06-06.** Project continues regardless; build properly + sequence by dependency/correctness, not demo-speed-to-a-deadline | **Lifted** |
 | 3 | **Circle Fitness milestone: May 26, 2026** — one of {signed monthly fee / signed IP terms / written top-5 Glofox frustrations} | ✅ **Achieved** |
 | 4 | **Locked v1 scope** — only the 11 features below. Everything else defers to v2 | ✅ Closed — see v1 audit |
 

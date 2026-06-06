@@ -19,13 +19,16 @@ AS $$
 $$;
 
 -- Give one credit back to a batch (cancel, or roll back a failed booking insert).
+-- The `< credits_total` guard makes refund idempotent against the cap: a credit
+-- can never be refunded above what was purchased, even on a buggy double-refund.
 CREATE OR REPLACE FUNCTION refund_credit(p_credit_id UUID)
 RETURNS VOID
 LANGUAGE sql
 AS $$
   UPDATE package_credits
      SET credits_remaining = credits_remaining + 1
-   WHERE id = p_credit_id;
+   WHERE id = p_credit_id
+     AND credits_remaining < credits_total;
 $$;
 
 -- Defense in depth: only the service role may execute these. (RLS on

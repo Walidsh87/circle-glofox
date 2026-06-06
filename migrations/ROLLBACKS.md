@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`019` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`019` and `023` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`). NB: `020`–`022` (packages catalog/credits) are not yet documented here — add before a full DR rollback.
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.

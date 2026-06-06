@@ -30,6 +30,7 @@ export async function buyPackage(packageId: string): Promise<State> {
     .from('packages')
     .select('id, name, price_aed')
     .eq('id', packageId)
+    .eq('box_id', profile.box_id)
     .eq('active', true)
     .single()
   if (!pkg) return { error: 'Package not available.', url: null }

@@ -40,19 +40,30 @@ export async function checkIn(
   const today = new Date().toISOString().slice(0, 10)
   const status = getMembershipStatus(memberships ?? [], today)
 
-  if (status !== 'paid') {
-    const lastPaidDate = (memberships ?? [])
-      .map((m) => m.last_paid_date)
-      .filter((d): d is string => !!d)
-      .sort()
-      .pop() ?? null
-    return { error: 'BLOCKED', blocked: { reason: status, lastPaidDate } }
-  }
-
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+
+  if (status !== 'paid') {
+    // A credit-backed booking is a valid entitlement on its own — let it through.
+    const { data: booking } = await service
+      .from('bookings')
+      .select('credit_id')
+      .eq('class_instance_id', instanceId)
+      .eq('athlete_id', athleteId)
+      .eq('box_id', profile.box_id)
+      .maybeSingle()
+
+    if (!booking?.credit_id) {
+      const lastPaidDate = (memberships ?? [])
+        .map((m) => m.last_paid_date)
+        .filter((d): d is string => !!d)
+        .sort()
+        .pop() ?? null
+      return { error: 'BLOCKED', blocked: { reason: status, lastPaidDate } }
+    }
+  }
 
   const { error } = await service
     .from('bookings')

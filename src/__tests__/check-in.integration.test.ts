@@ -1,0 +1,51 @@
+import { vi, test, expect, beforeEach } from 'vitest'
+import { makeSupabaseMock } from './helpers/supabase-mock'
+
+const { serverCreate, serviceCreate } = vi.hoisted(() => ({
+  serverCreate: vi.fn(),
+  serviceCreate: vi.fn(),
+}))
+
+vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
+vi.mock('@supabase/supabase-js', () => ({ createClient: serviceCreate }))
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+
+import { checkIn } from '@/app/dashboard/whiteboard/_actions/check-in'
+
+beforeEach(() => vi.clearAllMocks())
+
+// Staff coach in box b1; the athlete being checked in has NO paid membership.
+function staffClient() {
+  return makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach' }, error: null },
+      memberships: { data: [], error: null }, // no_membership
+    },
+  })
+}
+
+test('blocks an unpaid athlete with no credit-backed booking', async () => {
+  serverCreate.mockResolvedValue(staffClient())
+  serviceCreate.mockReturnValue(makeSupabaseMock({
+    results: { bookings: { data: { credit_id: null }, error: null } },
+  }))
+
+  const res = await checkIn('class-1', 'athlete-1')
+  expect(res.error).toBe('BLOCKED')
+  expect(res.blocked?.reason).toBe('no_membership')
+})
+
+test('allows an unpaid athlete whose booking is credit-backed', async () => {
+  serverCreate.mockResolvedValue(staffClient())
+  const svc = makeSupabaseMock({
+    results: { bookings: { data: { credit_id: 'batch-1' }, error: null } },
+  })
+  serviceCreate.mockReturnValue(svc)
+
+  const res = await checkIn('class-1', 'athlete-1')
+  expect(res.error).toBeNull()
+  expect(svc.builder('bookings').update).toHaveBeenCalledWith(
+    expect.objectContaining({ checked_in: true }),
+  )
+})

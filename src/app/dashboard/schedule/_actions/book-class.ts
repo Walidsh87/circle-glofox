@@ -44,6 +44,8 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   // Entitlement precedence: paid membership → free; else a class credit; else refuse.
   const today = new Date().toISOString().slice(0, 10)
 
+  // Only a *paid* membership books for free. 'unpaid'/'no_membership' both fall
+  // through to the credit-or-refuse path below (membership only wins when paid).
   const { data: memberships } = await service
     .from('memberships')
     .select('payment_status, end_date')
@@ -82,6 +84,9 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   }
 
   // decision.kind === 'credit' — consume one atomically, then book linked to it.
+  // The same service client runs the whole credit transaction (consume → insert →
+  // refund-on-failure); the insert bypasses RLS but carries the already-validated
+  // box_id/athlete_id, so it stays tenant-correct.
   const creditId = decision.batch.id
   const { data: remaining, error: consumeErr } = await service.rpc('consume_credit', {
     p_credit_id: creditId,
@@ -97,7 +102,10 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
     credit_id: creditId,
   })
   if (insErr) {
-    await service.rpc('refund_credit', { p_credit_id: creditId }) // give it back
+    // Best-effort refund. If this itself fails the credit is stranded (the SQL fn
+    // caps at credits_total, so it's safe to retry) — log so it's not silent.
+    const { error: refundErr } = await service.rpc('refund_credit', { p_credit_id: creditId })
+    if (refundErr) console.error('refund_credit failed after booking insert error; credit stranded:', creditId, refundErr)
     if (insErr.code === '23505') return { error: 'Already booked.' }
     return { error: insErr.message }
   }

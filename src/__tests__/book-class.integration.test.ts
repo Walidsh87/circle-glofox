@@ -100,4 +100,6 @@ test('credit consumed but booking insert fails → refunds the credit', async ()
   const res = await bookClass('class-1')
   expect(res.error).toBe('Already booked.')
   expect(svc.rpc).toHaveBeenCalledWith('refund_credit', { p_credit_id: 'batch-1' })
+  // exactly one consume + one refund — guards against a double-refund regression
+  expect(svc.rpc).toHaveBeenCalledTimes(2)
 })

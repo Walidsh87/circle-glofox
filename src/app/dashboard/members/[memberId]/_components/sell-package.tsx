@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { sellPackage } from '../_actions/sell-package'
+import { redeemSession } from '../_actions/redeem-session'
 
 type Pkg = { id: string; name: string; type: string; credit_count: number; price_aed: number }
 type Credit = { id: string; kind: string; credits_remaining: number; credits_total: number; expires_at: string | null; packages: { name: string } | { name: string }[] | null }
@@ -18,6 +19,16 @@ export function SellPackage({ athleteId, packages, credits }: { athleteId: strin
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const [redeeming, setRedeeming] = useState<string | null>(null)
+
+  function onRedeem(creditId: string) {
+    setRedeeming(creditId)
+    startTransition(async () => {
+      const res = await redeemSession(creditId)
+      if (res.error) alert(res.error)
+      setRedeeming(null)
+    })
+  }
 
   function onSell() {
     setUrl(null); setError(null)
@@ -35,9 +46,20 @@ export function SellPackage({ athleteId, packages, credits }: { athleteId: strin
       {credits.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
           {credits.map((c) => (
-            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--c-ink-2)' }}>
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 13, color: 'var(--c-ink-2)' }}>
               <span>{pkgName(c)} <span className="mono" style={{ color: 'var(--c-ink-muted)' }}>({c.kind === 'pt_session' ? 'PT' : 'class'})</span></span>
-              <span className="mono">{c.credits_remaining}/{c.credits_total}{c.expires_at ? ` · exp ${c.expires_at}` : ''}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="mono">{c.credits_remaining}/{c.credits_total}{c.expires_at ? ` · exp ${c.expires_at}` : ''}</span>
+                {c.kind === 'pt_session' && c.credits_remaining > 0 && (
+                  <button
+                    onClick={() => onRedeem(c.id)}
+                    disabled={redeeming === c.id}
+                    style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-ink-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: redeeming === c.id ? 0.6 : 1 }}
+                  >
+                    {redeeming === c.id ? 'Redeeming…' : 'Redeem session'}
+                  </button>
+                )}
+              </span>
             </div>
           ))}
         </div>

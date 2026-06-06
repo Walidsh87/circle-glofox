@@ -3,3 +3,8 @@ export function validateSellPackageInput(packageId: string, athleteId: string): 
   if (!athleteId?.trim()) return 'Missing member.'
   return null
 }
+
+export function validateRedeemInput(creditId: string): string | null {
+  if (!creditId?.trim()) return 'Missing credit batch.'
+  return null
+}

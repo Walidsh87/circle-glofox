@@ -47,13 +47,14 @@ export async function checkIn(
 
   if (status !== 'paid') {
     // A credit-backed booking is a valid entitlement on its own — let it through.
-    const { data: booking } = await service
+    const { data: booking, error: bookingErr } = await service
       .from('bookings')
       .select('credit_id')
       .eq('class_instance_id', instanceId)
       .eq('athlete_id', athleteId)
       .eq('box_id', profile.box_id)
       .maybeSingle()
+    if (bookingErr) return { error: bookingErr.message }
 
     if (!booking?.credit_id) {
       const lastPaidDate = (memberships ?? [])

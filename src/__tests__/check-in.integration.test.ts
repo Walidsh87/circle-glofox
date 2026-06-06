@@ -36,8 +36,29 @@ test('blocks an unpaid athlete with no credit-backed booking', async () => {
   expect(res.blocked?.reason).toBe('no_membership')
 })
 
-test('allows an unpaid athlete whose booking is credit-backed', async () => {
+test('allows a no-membership athlete whose booking is credit-backed', async () => {
   serverCreate.mockResolvedValue(staffClient())
+  const svc = makeSupabaseMock({
+    results: { bookings: { data: { credit_id: 'batch-1' }, error: null } },
+  })
+  serviceCreate.mockReturnValue(svc)
+
+  const res = await checkIn('class-1', 'athlete-1')
+  expect(res.error).toBeNull()
+  expect(svc.builder('bookings').update).toHaveBeenCalledWith(
+    expect.objectContaining({ checked_in: true }),
+  )
+})
+
+test('allows an athlete with an active-but-unpaid membership when the booking is credit-backed', async () => {
+  // 'unpaid' (active row, not paid) and 'no_membership' share the credit fall-through path.
+  serverCreate.mockResolvedValue(makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach' }, error: null },
+      memberships: { data: [{ payment_status: 'unpaid', end_date: null, last_paid_date: null }], error: null },
+    },
+  }))
   const svc = makeSupabaseMock({
     results: { bookings: { data: { credit_id: 'batch-1' }, error: null } },
   })

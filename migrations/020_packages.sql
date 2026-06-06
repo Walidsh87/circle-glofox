@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS package_credits (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   box_id               UUID NOT NULL REFERENCES boxes(id) ON DELETE CASCADE,
   athlete_id           UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  -- ON DELETE RESTRICT by default (intentional): a catalog row with sold
+  -- credits cannot be deleted; delete-package.ts catches the 23503 and tells
+  -- the owner to deactivate instead.
   package_id           UUID NOT NULL REFERENCES packages(id),
   kind                 TEXT NOT NULL CHECK (kind IN ('class','pt_session')),
   credits_total        INTEGER NOT NULL CHECK (credits_total > 0),

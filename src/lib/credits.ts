@@ -20,6 +20,9 @@ export type EntitlementDecision =
  * before never-expiring ones so perishable credits aren't wasted. null = none.
  */
 export function selectBestBatch(batches: CreditBatch[], today: string): CreditBatch | null {
+  // The `credits_remaining > 0` guard is intentionally redundant with the
+  // `.gt('credits_remaining', 0)` DB pre-filter in book-class.ts — this keeps
+  // the function correct on its own for any caller (and for the unit tests).
   const usable = batches.filter(
     (b) => b.credits_remaining > 0 && (b.expires_at === null || b.expires_at >= today),
   )

@@ -45,6 +45,14 @@ describe('selectBestBatch', () => {
     ]
     expect(selectBestBatch(batches, today)?.id).toBe('forever')
   })
+
+  test('returns a usable batch when all are never-expiring (two null-expiry batches)', () => {
+    const batches: CreditBatch[] = [
+      { id: 'a', credits_remaining: 5, expires_at: null },
+      { id: 'b', credits_remaining: 3, expires_at: null },
+    ]
+    expect(selectBestBatch(batches, today)).not.toBeNull()
+  })
 })
 
 describe('decideEntitlement', () => {

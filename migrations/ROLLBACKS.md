@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`019` and `023` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`). NB: `020`–`022` (packages catalog/credits) are not yet documented here — add before a full DR rollback.
+Reverse procedures for migrations `008`–`023` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -13,6 +13,29 @@ Reverse procedures for migrations `008`–`019` and `023` (referenced by the DR 
 ```sql
 DROP FUNCTION IF EXISTS consume_credit(UUID);
 DROP FUNCTION IF EXISTS refund_credit(UUID);
+```
+
+### 022_packages_owner_only
+Reverts the owner-only tightening of the `packages` catalog policy back to the prior owner+coach. ⚠️ re-widens catalog management to coaches — only run this if that re-widening is intentional. A full packages rollback skips this entirely (020 drops the table and its policies).
+```sql
+DROP POLICY IF EXISTS packages_owner_all ON packages;
+CREATE POLICY packages_staff_all ON packages
+  FOR ALL
+  USING (box_id = auth_box_id() AND auth_role() IN ('owner','coach'))
+  WITH CHECK (box_id = auth_box_id() AND auth_role() IN ('owner','coach'));
+```
+
+### 021_bookings_credit_id
+Drops the booking→credit link. ⚠️ loses which credit batch each booking consumed (the `package_credits` rows themselves are untouched). Must run **before** dropping `package_credits` in 020 (FK dependency).
+```sql
+ALTER TABLE bookings DROP COLUMN IF EXISTS credit_id;
+```
+
+### 020_packages — ⚠️ destroys purchased credit balances
+`package_credits` holds credit batches members **paid money for** (with invoice links); `packages` is the catalog. Roll back `021` and `023` first — both reference these tables (the `bookings.credit_id` FK and the `consume_credit`/`refund_credit` functions). Export first (FTA/PDPL — these back paid invoices).
+```sql
+DROP TABLE IF EXISTS package_credits;   -- ⚠️ paid-for credit balances + invoice links
+DROP TABLE IF EXISTS packages;          -- package catalog (policies/indexes drop with it)
 ```
 
 ### 019_rls_hardening — ⛔ DO NOT ROLL BACK

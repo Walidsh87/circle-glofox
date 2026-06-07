@@ -58,6 +58,9 @@ export default async function ProgrammingPage(ctx: { searchParams: Promise<{ mon
           <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
             WOD Planner
           </h1>
+          <Link href="/dashboard/programming/import" style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink-2)', textDecoration: 'none', padding: '7px 14px', borderRadius: 8, border: '1px solid var(--c-border)' }}>
+            Import
+          </Link>
           <Link href="/dashboard/programming/library" style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink-2)', textDecoration: 'none', padding: '7px 14px', borderRadius: 8, border: '1px solid var(--c-border)' }}>
             Library →
           </Link>

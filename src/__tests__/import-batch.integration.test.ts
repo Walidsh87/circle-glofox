@@ -67,6 +67,42 @@ test('commitImport writes only NEW + REPLACE rows, box-scoped', async () => {
     expect.objectContaining({ box_id: 'b1', date: '2026-07-01', title: 'Fran', scoring_type: 'time', strength_lift: null, created_by: 'coach1' }),
     expect.objectContaining({ box_id: 'b1', date: '2026-07-02', title: 'Cindy', scoring_type: 'amrap' }),
   ])
+  // Tenant isolation is locked by tests, not just by implementation: the existing-workouts
+  // lookup is box-scoped, and the score lookup is scoped to ids from that box-scoped query.
+  expect(rls.builder('workouts').eq).toHaveBeenCalledWith('box_id', 'b1')
+  expect(rls.builder('workout_scores').in).toHaveBeenCalledWith('workout_id', ['w3'])
+})
+
+test('commitImport overwrites a REPLACE day (existing, unscored)', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach' }, error: null },
+      workouts: { data: [{ id: 'w1', date: '2026-07-01' }], error: null },
+      workout_scores: { data: [], error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await commitImport('2026-07-01 time\nFran\n21-15-9')
+  expect(res.error).toBeNull()
+  expect(res.written).toBe(1)
+  const arg = rls.builder('workouts').upsert.mock.calls[0][0]
+  expect(arg).toEqual([expect.objectContaining({ box_id: 'b1', date: '2026-07-01', title: 'Fran' })])
+})
+
+test('surfaces a DB error from the upsert without reporting a write', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach' }, error: null },
+      workouts: { data: [], error: { message: 'db down' } },
+      workout_scores: { data: [], error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await commitImport('2026-07-01 time\nFran\n21-15-9')
+  expect(res.error).toBe('db down')
+  expect(res.written).toBe(0)
 })
 
 test('all-invalid paste writes nothing and never touches workouts', async () => {

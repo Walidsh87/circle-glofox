@@ -27,9 +27,9 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 |---|---|
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
 | **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
-| **v2 Tier 2–13 (~95 items)** | 2 ✅ (#23 1RM charts, #25 activity feed) · #21 mobile API ⬜ (deferred) · rest ⬜ |
-| **Migrations** | 008–023 ✅ in repo (019 RLS hardening · 020–022 packages · 023 credit consume/refund fns). ⚠️ **Run 023 in Supabase SQL Editor before PR-3 goes live** (book/cancel call `consume_credit`/`refund_credit`) |
-| **Next session priority** | Stripe-test-mode smoke of the full Packages flow (buy → grant → book consumes credit → cancel refunds → check-in passes → PT redeem). Then resume v2 Tier 2 |
+| **v2 Tier 2–13 (~95 items)** | 3 ✅ (#11 WOD programming library+calendar, #23 1RM charts, #25 activity feed) · #21 mobile API ⬜ (deferred) · rest ⬜ |
+| **Migrations** | 008–024 ✅ in repo (019 RLS hardening · 020–022 packages · 023 credit fns · 024 workout_templates). 023 applied to prod ✅. ⚠️ **Run 024 in Supabase SQL Editor before the WOD Planner goes live** (library reads/writes `workout_templates`) |
+| **Next session priority** | Run migration 024 in Supabase, then resume v2 Tier 2 (next wedge candidates: #12 auto-PR detection, #13 coach prep view, #16 AI parser) |
 
 ---
 
@@ -148,7 +148,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
     - Deferred: Tabby BNPL adapter, `/api/packages/*` mobile API, original Telr/Tap/NI/PayTabs adapters, real-gym pilot.
 
 ### Tier 2 — The wedge: CrossFit programming layer (beats Glofox, matches Wodify/SugarWOD/BTWB)
-11. ⬜ `[Wedge]` **WOD programming library + drag-and-drop calendar**
+11. ✅ `[Wedge]` **WOD programming library + calendar** — `workout_templates` library + month calendar at `/dashboard/programming` (click-to-assign, snapshot into `workouts`); day editor reuses `WodForm`; copy-to-dates; score-guarded clear; library CRUD. Single-track (multi-track = #17), drag-drop deferred. Migration 024. Plan `…2026-06-07-wod-programming.md`.
 12. ⬜ `[Wedge]` **Barbell-lift / strength-tracking engine with auto-PR detection** (extend current 1RM tracking)
 13. ⬜ `[Wedge]` **Coach pre-class prep view** — roster with last attended, current 1RMs, scaling notes *(touches v1 #9 backfill)*
 14. ⬜ `[Wedge]` **Whiteboard / TV-display mode for the gym floor** *(touches v1 #9 backfill)*
@@ -293,6 +293,7 @@ Dated session ledger. Extend with each major shipped change.
 
 | Date | Scope | Commit |
 |---|---|---|
+| 2026-06-07 | **WOD programming library + calendar** (v2 Tier 2 #11) — `workout_templates` library (migration **024** + RLS) with create/edit/delete; staff month calendar `/dashboard/programming` (click-to-assign, `?month=` nav, gym-timezone today); day editor reuses `WodForm` + Load-from-library + Save-as-template + Copy-to-dates + score-guarded Clear; "WOD Planner" nav. Snapshot-not-link; one WOD/day (tracks → #17); athlete surfaces untouched. Pure calendar logic + backend action integration tests; 200 tests, build green. Subagent-driven w/ spec+quality review per task + opus integration review (SHIP). ⚠️ run 024 in Supabase before live. Plan `…2026-06-07-wod-programming.md`. | main `ea56d81…d89b68a` |
 | 2026-06-07 | **Packages PR-3** — booking entitlement (Packages feature complete): pure `src/lib/credits.ts` (`selectBestBatch`/`decideEntitlement`, 11 tests), migration **023** atomic `consume_credit`/`refund_credit` (guarded ±1, refund capped at total), hard-gate consume in `book-class` + refund-on-failed-insert, refund in `cancel-booking`, credit clause in `check-in`, owner PT `redeem-session`, whiteboard "Pack" badge + booking buy-a-pack link. Integration tests for book/cancel/check-in/redeem. 178 tests, build green. Built subagent-driven w/ spec+quality review per task. ⚠️ run 023 in Supabase before live. Plan `…packages-pr3-entitlement.md`. | main `2a3e738…71ae54d` |
 | 2026-06-06 | **Packages PR-2b** — member self-serve storefront `/dashboard/shop` (own credit balances + buy active packages), `buyPackage` self-action (athlete-only, reuses PR-2a `createPackageCheckout`), post-purchase banner, athlete "Buy a pack" nav. No migration/webhook change. 152 tests. *(Recovered from a detached-HEAD/iCloud git desync mid-merge — see [[env-instability-working-tree]].)* | `b1ab62f` (merged) |
 | 2026-06-06 | **Packages PR-2a** — purchase backend + owner-sell: one-shot `createPackageCheckout` (Stripe `mode:payment`), webhook grants `package_credits` + VAT invoice (idempotent), owner sell-package action + member-profile sell-UI + credit balances. No migration (`invoices.membership_id` already nullable). 149 tests. Plan `…packages-pr2a-purchase-owner-sell.md`. | `0fd57c0` (merged) |

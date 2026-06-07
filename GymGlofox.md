@@ -26,10 +26,10 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 | Bucket | Status |
 |---|---|
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
-| **v2 Tier 1 (revenue blockers)** | 9 ✅ · 1 🚧 (#10 — Stripe port ✅; **Packages on Stripe**: PR-1 catalog ✅ · PR-2a purchase + owner-sell ✅ · PR-2b member storefront ✅ (all merged to main); PR-3 entitlement planned; Tabby + mobile API deferred) |
+| **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
 | **v2 Tier 2–13 (~95 items)** | 2 ✅ (#23 1RM charts, #25 activity feed) · #21 mobile API ⬜ (deferred) · rest ⬜ |
-| **Migrations** | 008–022 ✅ applied (019 RLS hardening · 020–022 packages); PR-2a/2b added no migration |
-| **Next session priority** | **Packages PR-3** — booking entitlement (hard-gate consume, cancel refund, check-in clause, PT redeem). Pending: Stripe-test-mode smoke of the purchase→grant→invoice flow (PR-2a/2b) |
+| **Migrations** | 008–023 ✅ in repo (019 RLS hardening · 020–022 packages · 023 credit consume/refund fns). ⚠️ **Run 023 in Supabase SQL Editor before PR-3 goes live** (book/cancel call `consume_credit`/`refund_credit`) |
+| **Next session priority** | Stripe-test-mode smoke of the full Packages flow (buy → grant → book consumes credit → cancel refunds → check-in passes → PT redeem). Then resume v2 Tier 2 |
 
 ---
 
@@ -144,7 +144,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
     - **Packages-PR1** ✅ owner catalog + data model (migrations 020–022, `validatePackageInput` + tests) — PR #2.
     - **Packages-PR2a** ✅ purchase backend + owner-sell (merged to main): one-shot `createPackageCheckout`, webhook grants `package_credits` + VAT invoice, owner sell-package action + member-profile UI. No migration.
     - **Packages-PR2b** ✅ member self-serve storefront + "my credits" (merged to main): `/dashboard/shop` page, `buyPackage` self-action (athlete-only), athlete "Buy a pack" nav. Reuses PR-2a backend — no migration/webhook change.
-    - **Packages-PR3** 📋 booking entitlement (hard-gate consume, cancel refund, check-in clause, PT redeem).
+    - **Packages-PR3** ✅ booking entitlement (merged to main): pure `credits.ts` precedence (`selectBestBatch`/`decideEntitlement`), migration 023 atomic `consume_credit`/`refund_credit` fns, hard-gate consume in `book-class`, refund in `cancel-booking`, credit clause in `check-in`, owner PT `redeem-session`, whiteboard "Pack" badge + buy-a-pack link. Plan `…packages-pr3-entitlement.md`.
     - Deferred: Tabby BNPL adapter, `/api/packages/*` mobile API, original Telr/Tap/NI/PayTabs adapters, real-gym pilot.
 
 ### Tier 2 — The wedge: CrossFit programming layer (beats Glofox, matches Wodify/SugarWOD/BTWB)
@@ -293,6 +293,7 @@ Dated session ledger. Extend with each major shipped change.
 
 | Date | Scope | Commit |
 |---|---|---|
+| 2026-06-07 | **Packages PR-3** — booking entitlement (Packages feature complete): pure `src/lib/credits.ts` (`selectBestBatch`/`decideEntitlement`, 11 tests), migration **023** atomic `consume_credit`/`refund_credit` (guarded ±1, refund capped at total), hard-gate consume in `book-class` + refund-on-failed-insert, refund in `cancel-booking`, credit clause in `check-in`, owner PT `redeem-session`, whiteboard "Pack" badge + booking buy-a-pack link. Integration tests for book/cancel/check-in/redeem. 178 tests, build green. Built subagent-driven w/ spec+quality review per task. ⚠️ run 023 in Supabase before live. Plan `…packages-pr3-entitlement.md`. | main `2a3e738…71ae54d` |
 | 2026-06-06 | **Packages PR-2b** — member self-serve storefront `/dashboard/shop` (own credit balances + buy active packages), `buyPackage` self-action (athlete-only, reuses PR-2a `createPackageCheckout`), post-purchase banner, athlete "Buy a pack" nav. No migration/webhook change. 152 tests. *(Recovered from a detached-HEAD/iCloud git desync mid-merge — see [[env-instability-working-tree]].)* | `b1ab62f` (merged) |
 | 2026-06-06 | **Packages PR-2a** — purchase backend + owner-sell: one-shot `createPackageCheckout` (Stripe `mode:payment`), webhook grants `package_credits` + VAT invoice (idempotent), owner sell-package action + member-profile sell-UI + credit balances. No migration (`invoices.membership_id` already nullable). 149 tests. Plan `…packages-pr2a-purchase-owner-sell.md`. | `0fd57c0` (merged) |
 | 2026-06-06 | **Packages PR-1** — credit-based packages data model (migrations 020–022: `packages` + `package_credits` + RLS + `bookings.credit_id`), **owner-only** catalog admin (`/dashboard/packages` CRUD), `validatePackageInput` + 10 tests. Built brainstorm→spec→plan→subagent-driven w/ spec+quality review per task. Also this session: rate-limiting activated live (Upstash), Supabase auth email unblocked (Resend SMTP), June-23 kill-switch lifted. | PR #2 |

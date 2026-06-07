@@ -29,7 +29,7 @@ export function LibraryList({ templates }: { templates: Template[] }) {
       <div style={{ maxWidth: 640 }}>
         <button type="button" onClick={() => { setCreating(false); setEditing(null) }} style={{ marginBottom: 14, background: 'none', border: 'none', color: 'var(--c-ink-muted)', cursor: 'pointer', fontSize: 13 }}>← Back to library</button>
         <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '20px 22px', boxShadow: 'var(--c-shadow-sm)' }}>
-          <TemplateForm existing={editing} onSaved={() => { setCreating(false); setEditing(null); router.refresh() }} />
+          <TemplateForm key={editing?.id ?? 'new'} existing={editing} onSaved={() => { setCreating(false); setEditing(null); router.refresh() }} />
         </div>
       </div>
     )

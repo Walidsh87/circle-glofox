@@ -59,6 +59,12 @@ test('coach edit updates by id scoped to their box (no insert)', async () => {
   const res = await saveTemplate({ error: null }, form({ id: 't1', title: 'Fran', description: '21-15-9', scoringType: 'time' }))
   expect(res.error).toBeNull()
   expect(rls.builder('workout_templates').update).toHaveBeenCalled()
+  // both the id AND box scope must be applied — a dropped id filter would
+  // silently become a bulk update of the box's templates
+  expect(rls.builder('workout_templates').eq).toHaveBeenCalledWith('id', 't1')
   expect(rls.builder('workout_templates').eq).toHaveBeenCalledWith('box_id', 'b1')
   expect(rls.builder('workout_templates').insert).not.toHaveBeenCalled()
+  // edit must NOT rewrite created_by (provenance preserved)
+  const updatePayload = rls.builder('workout_templates').update.mock.calls[0][0]
+  expect(updatePayload).not.toHaveProperty('created_by')
 })

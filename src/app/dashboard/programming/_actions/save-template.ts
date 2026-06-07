@@ -47,13 +47,13 @@ export async function saveTemplate(prevState: State, formData: FormData): Promis
     strength_description: strengthDescription,
     strength_lift: strengthLift || null,
     strength_sets: strengthLift ? (strengthSets as StrengthSet[]) : null,
-    created_by: user.id,
   }
 
-  // Update (own box, RLS-scoped) when editing; insert otherwise.
+  // Update (own box, RLS-scoped) when editing; insert otherwise. created_by is
+  // set only on insert, so an edit never rewrites the original author.
   const { error } = id
     ? await supabase.from('workout_templates').update(row).eq('id', id).eq('box_id', profile.box_id)
-    : await supabase.from('workout_templates').insert(row)
+    : await supabase.from('workout_templates').insert({ ...row, created_by: user.id })
 
   if (error) return { error: error.message }
 

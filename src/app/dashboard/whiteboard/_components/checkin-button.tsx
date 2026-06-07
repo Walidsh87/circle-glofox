@@ -43,7 +43,10 @@ export function CheckInButton({
     setDone(true)
   }
 
-  const showDot = !done && membershipStatus !== 'paid' && !hasCredit
+  // A not-yet-checked-in, non-paid row carries a status indicator: a danger dot
+  // when nothing covers it, or a "Pack" badge when a credit does.
+  const showStatusIndicator = !done && membershipStatus !== 'paid'
+  const showDot = showStatusIndicator && !hasCredit
   const dotTitle = membershipStatus === 'unpaid'
     ? `Payment overdue${lastPaidDate ? ` — last paid ${new Date(lastPaidDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}`
     : 'No active membership'
@@ -74,13 +77,14 @@ export function CheckInButton({
             }}
           />
         )}
-        {!done && membershipStatus !== 'paid' && hasCredit && (
+        {showStatusIndicator && hasCredit && (
           <span
+            className="mono"
             title="Booked with a class credit"
             style={{
-              fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5,
+              fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
               background: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)',
-              textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0,
+              textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
             }}
           >
             Pack

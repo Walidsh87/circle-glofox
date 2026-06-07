@@ -8,7 +8,7 @@ import { DayActions } from '../../_components/day-actions'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import type { WodFields } from '../../_actions/copy-wod-to-dates'
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
 
 type WodRow = {
   title: string; description: string; scoring_type: string

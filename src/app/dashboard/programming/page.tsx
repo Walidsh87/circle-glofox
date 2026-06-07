@@ -4,8 +4,18 @@ import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { monthGridDays, prevMonth, nextMonth, monthRange, formatMonth } from './_lib/calendar'
 
-const MONTH_RE = /^\d{4}-\d{2}$/
+const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+// Match the rest of the app: "today" is the gym's local date, not server UTC.
+const TIMEZONE_OFFSETS: Record<string, number> = {
+  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
+  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
+}
+function todayInTimezone(timezone: string): string {
+  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
+  return new Date(Date.now() + offsetHours * 3_600_000).toISOString().slice(0, 10)
+}
 
 export default async function ProgrammingPage(ctx: { searchParams: Promise<{ month?: string }> }) {
   const searchParams = await ctx.searchParams
@@ -15,18 +25,19 @@ export default async function ProgrammingPage(ctx: { searchParams: Promise<{ mon
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
+    .select('full_name, role, box_id, boxes(name, timezone)')
     .eq('id', user.id)
     .single()
   if (!profile) redirect('/onboarding')
   if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
 
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const boxes = profile.boxes as { name: string; timezone: string | null }[] | { name: string; timezone: string | null } | null
+  const box = Array.isArray(boxes) ? (boxes[0] ?? null) : boxes
+  const boxName = box?.name ?? ''
 
-  const month = MONTH_RE.test(searchParams.month ?? '') ? searchParams.month! : new Date().toISOString().slice(0, 7)
+  const today = todayInTimezone(box?.timezone ?? 'Asia/Dubai')
+  const month = MONTH_RE.test(searchParams.month ?? '') ? searchParams.month! : today.slice(0, 7)
   const { start, end } = monthRange(month)
-  const today = new Date().toISOString().slice(0, 10)
 
   const { data: workouts } = await supabase
     .from('workouts')

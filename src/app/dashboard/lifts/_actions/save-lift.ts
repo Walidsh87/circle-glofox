@@ -55,7 +55,10 @@ export async function saveLift(prevState: State, formData: FormData): Promise<St
 
   if (error) return { error: error.message, pr: null }
 
-  await supabase.from('athlete_lifts_history').insert({
+  // The history row powers the chart marker and the activity feed, so a PR is
+  // only "real" once it persists — otherwise we'd celebrate a PR that never
+  // shows up anywhere. The 1RM itself is already saved regardless.
+  const { error: histError } = await supabase.from('athlete_lifts_history').insert({
     box_id: profile.box_id,
     athlete_id: user.id,
     lift_name: liftName,
@@ -68,6 +71,6 @@ export async function saveLift(prevState: State, formData: FormData): Promise<St
   revalidatePath('/dashboard/feed')
   return {
     error: null,
-    pr: isPr ? { liftName, newKg: newGrams / 1000, prevKg: (previousGrams as number) / 1000, deltaKg: deltaGrams / 1000 } : null,
+    pr: isPr && !histError ? { liftName, newKg: newGrams / 1000, prevKg: (previousGrams as number) / 1000, deltaKg: deltaGrams / 1000 } : null,
   }
 }

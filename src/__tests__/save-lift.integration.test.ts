@@ -67,3 +67,31 @@ test('validation error returns pr: null and never touches the database', async (
   expect(res).toEqual({ error: 'Select a lift and enter a valid weight.', pr: null })
   expect(rls.builder('athlete_lifts')).toBeUndefined()
 })
+
+test('surfaces an upsert error and does not celebrate', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'a1' },
+    results: {
+      profiles: { data: { box_id: 'b1' }, error: null },
+      athlete_lifts: { data: { one_rm_grams: 140000 }, error: { message: 'db down' } },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await saveLift({ error: null, pr: null }, fd('back_squat', '142.5'))
+  expect(res).toEqual({ error: 'db down', pr: null })
+})
+
+test('does not claim a PR if the history row (feed/chart source) fails to persist', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'a1' },
+    results: {
+      profiles: { data: { box_id: 'b1' }, error: null },
+      athlete_lifts: { data: { one_rm_grams: 140000 }, error: null },
+      athlete_lifts_history: { data: null, error: { message: 'history insert failed' } },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await saveLift({ error: null, pr: null }, fd('back_squat', '142.5'))
+  expect(res.error).toBeNull() // the 1RM itself still saved
+  expect(res.pr).toBeNull()    // but we don't celebrate a PR that won't show up
+})

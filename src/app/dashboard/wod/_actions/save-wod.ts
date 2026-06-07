@@ -59,5 +59,6 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/wod')
+  revalidatePath('/dashboard/programming')
   return { error: null }
 }

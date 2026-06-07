@@ -1,6 +1,6 @@
 'use client'
 
-type Entry = { recorded_on: string; one_rm_grams: number }
+type Entry = { recorded_on: string; one_rm_grams: number; is_pr: boolean }
 
 export function LiftChart({ entries }: { entries: Entry[] }) {
   if (entries.length < 2) return null
@@ -19,7 +19,7 @@ export function LiftChart({ entries }: { entries: Entry[] }) {
     const x = PAD + (i / (sorted.length - 1)) * (W - PAD * 2)
     const kg = e.one_rm_grams / 1000
     const y = PAD + (1 - (kg - minKg) / range) * (H - PAD * 2)
-    return { x, y, kg, date: e.recorded_on }
+    return { x, y, kg, date: e.recorded_on, isPr: e.is_pr }
   })
 
   const polyline = points.map((p) => `${p.x},${p.y}`).join(' ')
@@ -50,9 +50,11 @@ export function LiftChart({ entries }: { entries: Entry[] }) {
           strokeLinecap="round"
         />
         {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={3}
-            fill={improved ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)'}
-            aria-label={`${p.date} — ${p.kg.toFixed(1)} kg`}
+          <circle key={i} cx={p.x} cy={p.y} r={p.isPr ? 4 : 3}
+            fill={p.isPr ? 'var(--circle-lime-ink)' : (improved ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)')}
+            stroke={p.isPr ? 'var(--c-surface)' : 'none'}
+            strokeWidth={p.isPr ? 1.5 : 0}
+            aria-label={`${p.date} — ${p.kg.toFixed(1)} kg${p.isPr ? ' (PR)' : ''}`}
           />
         ))}
       </svg>

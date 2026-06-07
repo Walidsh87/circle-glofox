@@ -31,14 +31,14 @@ export default async function LiftsPage() {
 
   const { data: liftHistory } = await supabase
     .from('athlete_lifts_history')
-    .select('lift_name, one_rm_grams, recorded_on')
+    .select('lift_name, one_rm_grams, recorded_on, is_pr')
     .eq('athlete_id', user.id)
-    .order('recorded_on')
+    .order('created_at')
 
-  const historyByLift = (liftHistory ?? []).reduce<Record<string, { recorded_on: string; one_rm_grams: number }[]>>(
+  const historyByLift = (liftHistory ?? []).reduce<Record<string, { recorded_on: string; one_rm_grams: number; is_pr: boolean }[]>>(
     (acc, row) => {
       if (!acc[row.lift_name]) acc[row.lift_name] = []
-      acc[row.lift_name].push({ recorded_on: row.recorded_on, one_rm_grams: row.one_rm_grams })
+      acc[row.lift_name].push({ recorded_on: row.recorded_on, one_rm_grams: row.one_rm_grams, is_pr: row.is_pr })
       return acc
     },
     {}
@@ -90,6 +90,9 @@ export default async function LiftsPage() {
                         <tr style={{ borderBottom: historyByLift[lift.lift_name]?.length >= 2 ? 'none' : '1px solid var(--c-divider)' }}>
                           <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--c-ink)' }}>
                             {LIFT_NAMES.find((l) => l.value === lift.lift_name)?.label ?? lift.lift_name}
+                            {historyByLift[lift.lift_name]?.at(-1)?.is_pr && (
+                              <span title="Current 1RM is a personal record" style={{ marginLeft: 6 }}>🏆</span>
+                            )}
                           </td>
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                             <span className="mono" style={{ fontSize: 16, fontWeight: 600, color: 'var(--circle-lime-ink)' }}>

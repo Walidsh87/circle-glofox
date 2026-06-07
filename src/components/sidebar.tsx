@@ -40,6 +40,7 @@ function getNavGroups(role: string): NavGroup[] {
       items: [
         { key: 'classes', label: 'Class schedule', href: '/dashboard/classes', icon: 'calendar' },
         { key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' },
+        { key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' },
         { key: 'whiteboard', label: 'Whiteboard', href: '/dashboard/whiteboard', icon: 'monitor', badge: 'live', badgeVariant: 'lime' },
       ],
     })

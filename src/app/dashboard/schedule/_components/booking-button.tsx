@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { bookClass } from '../_actions/book-class'
 import { cancelBooking } from '../_actions/cancel-booking'
 
@@ -14,11 +15,17 @@ export function BookingButton({
   isFull: boolean
 }) {
   const [loading, setLoading] = useState(false)
+  const [needsCredits, setNeedsCredits] = useState(false)
 
   async function handleClick() {
     setLoading(true)
-    const { error } = isBooked ? await cancelBooking(instanceId) : await bookClass(instanceId)
-    if (error) alert(error)
+    setNeedsCredits(false)
+    const res = isBooked ? await cancelBooking(instanceId) : await bookClass(instanceId)
+    if ('needsCredits' in res && res.needsCredits) {
+      setNeedsCredits(true)
+    } else if (res.error) {
+      alert(res.error)
+    }
     setLoading(false)
   }
 
@@ -35,21 +42,28 @@ export function BookingButton({
   }
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      style={{
-        height: 30, padding: '0 14px',
-        background: isBooked ? 'transparent' : 'var(--circle-lime)',
-        border: isBooked ? '1px solid var(--c-border)' : 'none',
-        borderRadius: 7, cursor: loading ? 'not-allowed' : 'pointer',
-        fontSize: 12.5, fontWeight: 700,
-        color: isBooked ? 'var(--c-ink-2)' : 'var(--circle-ink)',
-        fontFamily: 'inherit', transition: 'opacity 120ms',
-        opacity: loading ? 0.5 : 1,
-      }}
-    >
-      {loading ? '…' : isBooked ? 'Cancel' : 'Book'}
-    </button>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        style={{
+          height: 30, padding: '0 14px',
+          background: isBooked ? 'transparent' : 'var(--circle-lime)',
+          border: isBooked ? '1px solid var(--c-border)' : 'none',
+          borderRadius: 7, cursor: loading ? 'not-allowed' : 'pointer',
+          fontSize: 12.5, fontWeight: 700,
+          color: isBooked ? 'var(--c-ink-2)' : 'var(--circle-ink)',
+          fontFamily: 'inherit', transition: 'opacity 120ms',
+          opacity: loading ? 0.5 : 1,
+        }}
+      >
+        {loading ? '…' : isBooked ? 'Cancel' : 'Book'}
+      </button>
+      {needsCredits && (
+        <Link href="/dashboard/shop" style={{ fontSize: 11, color: 'var(--circle-lime-ink)', textDecoration: 'underline' }}>
+          Need a class credit — buy a pack
+        </Link>
+      )}
+    </div>
   )
 }

@@ -31,6 +31,34 @@ test('upserts a trimmed note scoped to the caller box', async () => {
   expect(res.error).toBeNull()
   const arg = rls.builder('athlete_coach_notes').upsert.mock.calls[0][0]
   expect(arg).toEqual(expect.objectContaining({ box_id: 'b1', athlete_id: 'a2', note: 'bad shoulder', updated_by: 'coach1' }))
+  // Lock the conflict target — a wrong/missing onConflict turns upsert into a dup-key insert error at runtime.
+  expect(rls.builder('athlete_coach_notes').upsert.mock.calls[0][1]).toEqual({ onConflict: 'box_id,athlete_id' })
+})
+
+test('surfaces a DB error from the upsert', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach' }, error: null },
+      athlete_coach_notes: { data: null, error: { message: 'upsert failed' } },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await saveCoachNote('a2', 'bad shoulder')
+  expect(res.error).toBe('upsert failed')
+})
+
+test('surfaces a DB error from the delete', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach' }, error: null },
+      athlete_coach_notes: { data: null, error: { message: 'delete failed' } },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await saveCoachNote('a2', '   ')
+  expect(res.error).toBe('delete failed')
 })
 
 test('an empty note deletes the row (box + athlete scoped), no upsert', async () => {

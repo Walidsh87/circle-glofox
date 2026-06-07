@@ -70,7 +70,7 @@ export default async function WhiteboardPage() {
       id, starts_at, capacity, status,
       class_templates(name),
       profiles(full_name),
-      bookings(athlete_id, checked_in, profiles!bookings_athlete_id_fkey(full_name))
+      bookings(athlete_id, checked_in, credit_id, profiles!bookings_athlete_id_fkey(full_name))
     `)
     .eq('box_id', profile.box_id)
     .eq('status', 'scheduled')
@@ -218,6 +218,7 @@ export default async function WhiteboardPage() {
             const bookings = instance.bookings as {
               athlete_id: string
               checked_in: boolean
+              credit_id: string | null
               profiles: { full_name: string } | { full_name: string }[]
             }[] | null
             const time = formatTime(instance.starts_at, timezone)
@@ -280,6 +281,7 @@ export default async function WhiteboardPage() {
                             checkedIn={booking.checked_in}
                             membershipStatus={status}
                             lastPaidDate={lastPaid}
+                            hasCredit={!!booking.credit_id}
                           />
                         </div>
                         {load && (

@@ -19,11 +19,13 @@ export function SellPackage({ athleteId, packages, credits }: { athleteId: strin
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  // Separate transition so redeeming doesn't disable the unrelated sell button.
+  const [, startRedeemTransition] = useTransition()
   const [redeeming, setRedeeming] = useState<string | null>(null)
 
   function onRedeem(creditId: string) {
     setRedeeming(creditId)
-    startTransition(async () => {
+    startRedeemTransition(async () => {
       const res = await redeemSession(creditId)
       if (res.error) alert(res.error)
       setRedeeming(null)

@@ -30,6 +30,10 @@ export async function clearDay(date: string): Promise<{ error: string | null }> 
   if (!workout) return { error: null } // nothing to clear
 
   // Deleting a workout cascades to workout_scores — refuse if any results exist.
+  // This count-then-delete narrows but doesn't fully close the window: a score
+  // logged between the count and the delete would still be cascade-deleted.
+  // Accepted at this stage (staff-only path; fully closing it needs a
+  // transactional RPC). Revisit if athletes report lost scores.
   const { count } = await supabase
     .from('workout_scores')
     .select('id', { count: 'exact', head: true })

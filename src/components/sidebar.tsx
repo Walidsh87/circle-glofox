@@ -38,6 +38,7 @@ function getNavGroups(role: string): NavGroup[] {
     groups.push({
       section: 'Programming',
       items: [
+        { key: 'prep', label: 'Class prep', href: '/dashboard/prep', icon: 'users' },
         { key: 'classes', label: 'Class schedule', href: '/dashboard/classes', icon: 'calendar' },
         { key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' },
         { key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' },

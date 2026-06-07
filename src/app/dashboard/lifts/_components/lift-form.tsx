@@ -1,9 +1,13 @@
 'use client'
 
 import { useFormState, useFormStatus } from 'react-dom'
-import { saveLift } from '../_actions/save-lift'
+import { saveLift, type PrInfo } from '../_actions/save-lift'
 import { useEffect, useRef } from 'react'
 import { LIFT_NAMES } from '../_lib/lift-names'
+
+function prLabel(pr: PrInfo): string {
+  return LIFT_NAMES.find((l) => l.value === pr.liftName)?.label ?? pr.liftName
+}
 
 const inputStyle: React.CSSProperties = {
   height: 38, padding: '0 12px',
@@ -36,7 +40,7 @@ function SubmitButton() {
 type Lift = { lift_name: string; one_rm_grams: number }
 
 export function LiftForm({ lifts }: { lifts: Lift[] }) {
-  const [state, formAction] = useFormState(saveLift, { error: null })
+  const [state, formAction] = useFormState(saveLift, { error: null, pr: null })
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
@@ -79,6 +83,11 @@ export function LiftForm({ lifts }: { lifts: Lift[] }) {
         <SubmitButton />
         {state.error && (
           <span style={{ fontSize: 12.5, color: 'var(--c-danger)' }}>{state.error}</span>
+        )}
+        {state.pr && (
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>
+            🏆 {prLabel(state.pr)} PR! {state.pr.newKg}kg — +{state.pr.deltaKg}kg over your previous best
+          </span>
         )}
       </div>
     </form>

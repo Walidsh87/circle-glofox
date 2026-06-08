@@ -79,6 +79,8 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
       if (error.code === '23505') return { error: 'Already booked.' }
       return { error: error.message }
     }
+    // Booked → leave the waitlist for this class (best-effort; a missing row is fine).
+    await service.from('class_waitlist').delete().eq('class_instance_id', instanceId).eq('athlete_id', user.id)
     revalidatePath('/dashboard/schedule')
     return { error: null }
   }
@@ -110,6 +112,8 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
     return { error: insErr.message }
   }
 
+  // Booked → leave the waitlist for this class (best-effort; a missing row is fine).
+  await service.from('class_waitlist').delete().eq('class_instance_id', instanceId).eq('athlete_id', user.id)
   revalidatePath('/dashboard/schedule')
   return { error: null }
 }

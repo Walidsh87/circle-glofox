@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { sendWaitlistEmail } from '@/lib/email'
+import { env } from '@/env'
 
 export async function cancelBooking(instanceId: string): Promise<{ error: string | null }> {
   const supabase = await createClient()
@@ -48,6 +50,49 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
       const { error: refundErr } = await service.rpc('refund_credit', { p_credit_id: booking.credit_id })
       if (refundErr) console.error('refund_credit failed on cancel; credit stranded:', booking.credit_id, refundErr)
     }
+  }
+
+  // A spot just freed → email the next person in line. Best-effort; never fails the cancel.
+  try {
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const svc = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      const { data: next } = await svc
+        .from('class_waitlist')
+        .select('athlete_id')
+        .eq('class_instance_id', instanceId)
+        .order('created_at')
+        .limit(1)
+        .maybeSingle()
+      if (next) {
+        const { data: athlete } = await svc.from('profiles').select('email, full_name').eq('id', next.athlete_id).single()
+        const { data: inst } = await svc
+          .from('class_instances')
+          .select('starts_at, class_templates(name), boxes(name, timezone)')
+          .eq('id', instanceId)
+          .single()
+        if (athlete?.email && inst) {
+          const tmpl = Array.isArray(inst.class_templates) ? inst.class_templates[0] : inst.class_templates
+          const box = Array.isArray(inst.boxes) ? inst.boxes[0] : inst.boxes
+          const classTime = new Intl.DateTimeFormat('en-GB', {
+            timeZone: box?.timezone ?? 'Asia/Dubai',
+            weekday: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          }).format(new Date(inst.starts_at))
+          await sendWaitlistEmail({
+            to: athlete.email,
+            athleteName: athlete.full_name ?? 'there',
+            className: tmpl?.name ?? 'your class',
+            classTime,
+            gymName: box?.name ?? 'your gym',
+            bookUrl: `${env.NEXT_PUBLIC_APP_URL}/dashboard/schedule`,
+          })
+        }
+      }
+    }
+  } catch (e) {
+    console.error('waitlist notify failed (cancel still succeeded):', e)
   }
 
   revalidatePath('/dashboard/schedule')

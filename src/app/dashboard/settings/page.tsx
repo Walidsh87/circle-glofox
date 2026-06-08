@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { SettingsForm } from './_components/settings-form'
+import { env } from '@/env'
+import { TvDisplayCard } from './_components/tv-display-card'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -25,7 +27,7 @@ export default async function SettingsPage() {
   const [{ data: box }, { count: stripeConnectedCount }] = await Promise.all([
     supabase
       .from('boxes')
-      .select('trn, legal_name, billing_address')
+      .select('trn, legal_name, billing_address, tv_token')
       .eq('id', profile.box_id)
       .single(),
     supabase
@@ -62,6 +64,7 @@ export default async function SettingsPage() {
               initialBillingAddress={box?.billing_address ?? ''}
               stripeConnected={stripeConnected}
             />
+            <TvDisplayCard link={box?.tv_token ? `${env.NEXT_PUBLIC_APP_URL}/tv/${box.tv_token}` : null} />
           </div>
         </div>
       </div>

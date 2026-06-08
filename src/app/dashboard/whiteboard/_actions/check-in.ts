@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { getMembershipStatus, type MembershipStatus } from '@/lib/membership-status'
+import { awardConsistency } from './_award'
 
 type CheckInResult = {
   error: string | null
@@ -74,6 +75,9 @@ export async function checkIn(
     .eq('box_id', profile.box_id)
 
   if (error) return { error: error.message }
+
+  try { await awardConsistency(service, profile.box_id, athleteId, today) }
+  catch (e) { console.error('awardConsistency failed (check-in still succeeded):', e) }
 
   revalidatePath('/dashboard/whiteboard')
   return { error: null }

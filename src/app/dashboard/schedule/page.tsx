@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { BookingButton } from './_components/booking-button'
+import { waitlistPosition } from './_lib/waitlist'
 
 function formatDateTime(startsAt: string, timezone: string) {
   const date = new Date(startsAt)
@@ -36,7 +37,7 @@ export default async function SchedulePage() {
 
   const now = new Date().toISOString()
 
-  const [{ data: instances }, { data: box }, { data: myBookings }] = await Promise.all([
+  const [{ data: instances }, { data: box }, { data: myBookings }, { data: waitlist }] = await Promise.all([
     supabase
       .from('class_instances')
       .select(`id, starts_at, duration_minutes, capacity, status, class_templates(name), profiles(full_name), bookings(athlete_id)`)
@@ -47,10 +48,18 @@ export default async function SchedulePage() {
       .limit(30),
     supabase.from('boxes').select('timezone').eq('id', profile.box_id).single(),
     supabase.from('bookings').select('class_instance_id').eq('athlete_id', user.id),
+    supabase.from('class_waitlist').select('class_instance_id, athlete_id, created_at').eq('box_id', profile.box_id),
   ])
 
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const bookedInstanceIds = new Set((myBookings ?? []).map((b) => b.class_instance_id))
+
+  const waitlistByInstance = new Map<string, { athlete_id: string; created_at: string }[]>()
+  for (const w of (waitlist ?? []) as { class_instance_id: string; athlete_id: string; created_at: string }[]) {
+    const arr = waitlistByInstance.get(w.class_instance_id) ?? []
+    arr.push({ athlete_id: w.athlete_id, created_at: w.created_at })
+    waitlistByInstance.set(w.class_instance_id, arr)
+  }
 
   const grouped = new Map<string, typeof instances>()
   for (const instance of instances ?? []) {
@@ -136,7 +145,11 @@ export default async function SchedulePage() {
                             </div>
                           </div>
                           <div style={{ flexShrink: 0 }}>
-                            <BookingButton instanceId={instance.id} isBooked={isBooked} isFull={isFull} />
+                            {(() => {
+                              const entries = waitlistByInstance.get(instance.id) ?? []
+                              const pos = waitlistPosition(entries, user.id)
+                              return <BookingButton instanceId={instance.id} isBooked={isBooked} isFull={isFull} isWaitlisted={pos !== null} waitlistPosition={pos} />
+                            })()}
                           </div>
                         </div>
                       )

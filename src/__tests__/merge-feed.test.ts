@@ -21,9 +21,22 @@ describe('mergeTimeline', () => {
     const items = mergeTimeline(
       [score('s1', '2026-06-01T00:00:00Z'), score('s2', '2026-06-02T00:00:00Z')],
       [pr('p1', '2026-06-03T00:00:00Z')],
+      [],
       2,
     )
     expect(items.map((i) => i.id)).toEqual(['p1', 's2'])
+  })
+
+  test('merges achievements by timestamp too', () => {
+    const ach = (id: string, at: string): FeedItem => ({
+      kind: 'achievement', id, at, athleteId: 'z', athleteName: 'Z', achievementKind: 'milestone', threshold: 100,
+    })
+    const items = mergeTimeline(
+      [score('s1', '2026-06-05T10:00:00Z')],
+      [pr('p1', '2026-06-06T10:00:00Z')],
+      [ach('a1', '2026-06-07T10:00:00Z')],
+    )
+    expect(items.map((i) => i.id)).toEqual(['a1', 'p1', 's1'])
   })
 
   test('handles empty inputs', () => {

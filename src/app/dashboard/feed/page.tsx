@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { FistBumpButton } from './_components/fist-bump-button'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
-import { mergeTimeline, type FeedItem, type ScoreItem, type PrItem } from './_lib/merge-feed'
+import { mergeTimeline, type FeedItem, type ScoreItem, type PrItem, type AchievementItem } from './_lib/merge-feed'
 
 function formatScore(value: number, scoringType: string): string {
   if (scoringType === 'time') {
@@ -58,6 +58,13 @@ export default async function FeedPage() {
     .order('created_at', { ascending: false })
     .limit(30)
 
+  const { data: achievements } = await supabase
+    .from('member_achievements')
+    .select('id, kind, threshold, earned_at, athlete_id, profiles(full_name)')
+    .eq('box_id', profile.box_id)
+    .order('earned_at', { ascending: false })
+    .limit(30)
+
   const { data: reactions } = await supabase
     .from('score_reactions')
     .select('score_id, athlete_id')
@@ -90,7 +97,16 @@ export default async function FeedPage() {
     }
   })
 
-  const items = mergeTimeline(scoreItems, prItems)
+  const achievementItems: FeedItem[] = (achievements ?? []).map((a): AchievementItem => {
+    const athlete = Array.isArray(a.profiles) ? a.profiles[0] : a.profiles
+    return {
+      kind: 'achievement', id: a.id, at: a.earned_at,
+      athleteId: a.athlete_id, athleteName: athlete?.full_name ?? 'Athlete',
+      achievementKind: a.kind, threshold: a.threshold,
+    }
+  })
+
+  const items = mergeTimeline(scoreItems, prItems, achievementItems)
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
@@ -110,9 +126,11 @@ export default async function FeedPage() {
         <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
           <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {items.length > 0 ? items.map((item) => (
-              item.kind === 'pr'
-                ? <PrCard key={`pr-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
-                : <ScoreCard key={`score-${item.id}`} item={item} isSelf={item.athleteId === user.id} reaction={reactionsByScore[item.id] ?? { count: 0, reacted: false }} />
+              item.kind === 'achievement'
+                ? <AchievementCard key={`ach-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
+                : item.kind === 'pr'
+                  ? <PrCard key={`pr-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
+                  : <ScoreCard key={`score-${item.id}`} item={item} isSelf={item.athleteId === user.id} reaction={reactionsByScore[item.id] ?? { count: 0, reacted: false }} />
             )) : (
               <div style={{
                 background: 'var(--c-surface)', border: '1px solid var(--c-border)',
@@ -188,6 +206,28 @@ function PrCard({ item, isSelf }: { item: PrItem; isSelf: boolean }) {
         <div style={{ marginTop: 4 }}>
           <span className="mono" style={{ fontSize: 18, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>{item.kg} kg</span>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function AchievementCard({ item, isSelf }: { item: AchievementItem; isSelf: boolean }) {
+  const emoji = item.achievementKind === 'milestone' ? '🏅' : '🔥'
+  const text = item.achievementKind === 'milestone'
+    ? `joined the ${item.threshold} Club`
+    : `hit a ${item.threshold}-week streak`
+  return (
+    <div style={{
+      background: isSelf ? 'var(--circle-lime-soft)' : 'var(--c-surface)',
+      border: `1px solid ${isSelf ? 'var(--circle-lime)' : 'var(--c-border)'}`,
+      borderRadius: 14, padding: '14px 18px', boxShadow: 'var(--c-shadow-sm)',
+      display: 'flex', alignItems: 'center', gap: 12,
+    }}>
+      <span style={{ fontSize: 22 }}>{emoji}</span>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-ink)' }}>{item.athleteName}</span>
+        <span style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>{text}</span>
+        <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>{formatDate(item.at)}</span>
       </div>
     </div>
   )

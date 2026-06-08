@@ -97,6 +97,36 @@ export async function sendCardFailedEmail(
   }
 }
 
+export type WaitlistEmailInput = {
+  to: string
+  athleteName: string
+  className: string
+  classTime: string
+  gymName: string
+  bookUrl: string
+}
+
+export async function sendWaitlistEmail(
+  input: WaitlistEmailInput
+): Promise<{ id: string | null; error: string | null }> {
+  const body = `<p>Hi ${input.athleteName},</p>
+<p>A spot just opened in <strong>${input.className}</strong> (${input.classTime}) at ${input.gymName}. Spots go fast — book now:</p>
+<p><a href="${input.bookUrl}" style="display:inline-block;padding:12px 20px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Book now</a></p>
+<p>— ${input.gymName}</p>`
+  try {
+    const { data, error } = await resend.emails.send({
+      from: env.RESEND_FROM_EMAIL,
+      to: input.to,
+      subject: `A spot opened in ${input.className} at ${input.gymName}`,
+      html: body,
+    })
+    if (error) return { id: null, error: error.message }
+    return { id: data?.id ?? null, error: null }
+  } catch (e) {
+    return { id: null, error: e instanceof Error ? e.message : 'Unknown error' }
+  }
+}
+
 export async function sendBillingReminderEmail(
   input: ReminderEmailInput
 ): Promise<{ id: string | null; error: string | null }> {

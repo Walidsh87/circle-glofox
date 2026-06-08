@@ -27,9 +27,9 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 |---|---|
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
 | **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
-| **v2 Tier 2–13 (~95 items)** | 10 ✅ (Tier 2: #11 WOD programming + batch import, #12 auto-PR, #13 coach prep, #14 whiteboard/TV, #16 AI parser, #17 scaling · Tier 3: #18 at-risk scoring, **#24 workout timer**, #23 1RM charts, #25 feed) · #21 mobile API ⬜ (deferred) · rest ⬜. **Tier 2 done bar #15. Tier 3: 3 wedges left (#19/#20/#26).** |
-| **Migrations** | 008–030 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028_tv_token.sql` + `029_workout_scaling.sql` + `030_member_outreach.sql`** (028 TV; 029 WOD scaling; 030 retention outreach log). |
-| **Next session priority** | Run migrations 028 + 029 + 030 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. Continue Tier 3 (#19 KPI dashboard, #20 gamification, #26 waitlist) or Tier 4 (Membership depth). |
+| **v2 Tier 2–13 (~95 items)** | 11 ✅ (Tier 2: #11 WOD programming + batch import, #12 auto-PR, #13 coach prep, #14 whiteboard/TV, #16 AI parser, #17 scaling · Tier 3: #18 at-risk scoring, **#24 workout timer**, **#26 waitlist**, #23 1RM charts, #25 feed) · #21 mobile API ⬜ (deferred) · rest ⬜. **Tier 2 done bar #15. Tier 3: 2 wedges left (#19/#20).** |
+| **Migrations** | 008–031 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028_tv_token.sql` + `029_workout_scaling.sql` + `030_member_outreach.sql` + `031_class_waitlist.sql`** (028 TV; 029 WOD scaling; 030 retention outreach log; 031 class waitlist). |
+| **Next session priority** | Run migrations 028 + 029 + 030 + 031 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. Continue Tier 3 (#19 KPI dashboard, #20 gamification) or Tier 4 (Membership depth). |
 
 ---
 
@@ -165,7 +165,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 23. ✅ `[Kept]` 1RM progress charts + WOD score history
 24. ✅ `[Kept]` **In-app workout timer** — `/dashboard/timer` (everyone): For Time / AMRAP / EMOM / Intervals + 10s lead-in + Web Audio beeps. Pure `tick(config, elapsed)` engine (fully unit-tested) + thin client `Timer` component (pause-safe interval, phase-colored display, AudioContext on Start). No backend/migration. Spec `…workout-timer-design.md`.
 25. ✅ `[Kept]` Activity feed + reactions
-26. ⬜ `[Kept]` Waitlist with auto-notification
+26. ✅ `[Kept]` **Waitlist with auto-notification** — `class_waitlist` (mig 031, box-read + athlete-manage RLS). Athletes Join/Leave a full class from `/dashboard/schedule` (shows "On waitlist · #N"). On a cancel, a best-effort hook emails **only #1** in line to come book (`sendWaitlistEmail` via Resend) — **notify-to-book, not auto-promote** (booking still runs the membership/credit entitlement gate; no silent credit consumption). `bookClass` removes the booker's waitlist row. Pure `nextInLine`/`waitlistPosition` (unit-tested) + join/leave + cancel-notify integration tests. Spec `…class-waitlist-design.md`.
 
 ### Tier 4 — Membership depth (how owners model their business)
 27. ⬜ `[G-gap]` Membership type catalog — recurring / drop-in / class pack / PT block / unlimited *(partially addressed by 🆕 Packages umbrella)*

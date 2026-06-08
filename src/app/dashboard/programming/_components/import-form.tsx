@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { previewImport, commitImport, type PreviewRow } from '../_actions/import-batch'
+import { AiParsePanel } from './ai-parse-panel'
 
 const PLACEHOLDER = `2026-07-01 For Time
 Fran
@@ -53,6 +54,8 @@ export function ImportForm() {
       <p style={{ fontSize: 13, color: 'var(--c-ink-muted)', marginBottom: 12, lineHeight: 1.5 }}>
         Paste one day per block: a date line (optionally with scoring — For Time, AMRAP, Rounds + Reps, Load), then the title, then the workout. Separate days with a blank line.
       </p>
+
+      <AiParsePanel onParsed={setText} />
 
       <textarea
         value={text}

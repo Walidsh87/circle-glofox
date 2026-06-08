@@ -4,7 +4,7 @@ import { Redis } from '@upstash/redis'
 // Public, unauthenticated, abuse-prone routes worth throttling per-IP.
 // Deliberately EXCLUDES /api/webhooks (Stripe — high-volume, signature-verified)
 // and /api/cron (CRON_SECRET-gated) so legitimate machine traffic is never blocked.
-const RATE_LIMITED_PREFIXES = ['/api/gym', '/portal', '/auth']
+const RATE_LIMITED_PREFIXES = ['/api/gym', '/portal', '/auth', '/tv']
 
 /** Pure routing predicate — which request paths get rate limited. */
 export function shouldRateLimit(pathname: string): boolean {

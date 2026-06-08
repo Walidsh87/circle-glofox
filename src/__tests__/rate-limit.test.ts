@@ -14,6 +14,10 @@ describe('shouldRateLimit', () => {
     expect(shouldRateLimit('/auth/callback')).toBe(true)
   })
 
+  test('limits the public TV board (unauthenticated, service-role reads)', () => {
+    expect(shouldRateLimit('/tv/9f3a-secret')).toBe(true)
+  })
+
   test('does NOT limit the Stripe webhook (signature-verified, high volume)', () => {
     expect(shouldRateLimit('/api/webhooks/stripe')).toBe(false)
   })

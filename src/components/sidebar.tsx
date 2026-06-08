@@ -27,6 +27,7 @@ function getNavGroups(role: string): NavGroup[] {
   const runTheGym: NavItem[] = [
     { key: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'home' },
   ]
+  if (isStaff) runTheGym.push({ key: 'retention', label: 'Retention', href: '/dashboard/retention', icon: 'activity' })
   if (isOwner) runTheGym.push({ key: 'members', label: 'Member directory', href: '/dashboard/members', icon: 'users' })
   if (isOwner) runTheGym.push({ key: 'waivers', label: 'Waivers', href: '/dashboard/waivers', icon: 'shield' })
   if (isOwner) runTheGym.push({ key: 'payments', label: 'Payments', href: '/dashboard/payments', icon: 'card' })

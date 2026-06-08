@@ -1,0 +1,136 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Sidebar } from '@/components/sidebar'
+import { getMembershipStatus } from '@/lib/membership-status'
+import { scoreMember } from './_lib/risk'
+import { lastCheckInByAthlete, daysBetween } from './_lib/aggregate'
+import { MarkContacted } from './_components/mark-contacted'
+
+const TIMEZONE_OFFSETS: Record<string, number> = {
+  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
+  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
+}
+function todayLocalDate(timezone: string): string {
+  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
+  return new Date(Date.now() + offsetHours * 3_600_000).toISOString().slice(0, 10)
+}
+
+const SNOOZE_DAYS = 14
+
+type MembershipRowFull = {
+  athlete_id: string; end_date: string | null
+  payment_status: 'paid' | 'unpaid'; start_date: string
+  profiles: { full_name: string } | { full_name: string }[] | null
+}
+
+export default async function RetentionPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name, role, box_id, boxes(name, timezone)')
+    .eq('id', user.id)
+    .single()
+  if (!profile) redirect('/onboarding')
+  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
+
+  const box = profile.boxes as { name: string; timezone: string | null }[] | { name: string; timezone: string | null } | null
+  const boxObj = Array.isArray(box) ? box[0] : box
+  const boxName = boxObj?.name ?? ''
+  const timezone = boxObj?.timezone ?? 'Asia/Dubai'
+  const todayIso = todayLocalDate(timezone)
+  const nowIso = new Date().toISOString()
+
+  // Members = athletes with >=1 membership record.
+  const { data: memberships } = await supabase
+    .from('memberships')
+    .select('athlete_id, end_date, payment_status, start_date, profiles(full_name)')
+    .eq('box_id', profile.box_id)
+
+  const rowsByAthlete = new Map<string, MembershipRowFull[]>()
+  for (const m of (memberships ?? []) as MembershipRowFull[]) {
+    const arr = rowsByAthlete.get(m.athlete_id) ?? []
+    arr.push(m)
+    rowsByAthlete.set(m.athlete_id, arr)
+  }
+  const memberIds = [...rowsByAthlete.keys()]
+
+  const [attendance, outreach] = memberIds.length
+    ? await Promise.all([
+        supabase.from('bookings').select('athlete_id, class_instances(starts_at)').eq('box_id', profile.box_id).eq('checked_in', true).in('athlete_id', memberIds),
+        supabase.from('member_outreach').select('athlete_id, contacted_at').eq('box_id', profile.box_id).in('athlete_id', memberIds),
+      ])
+    : [{ data: [] }, { data: [] }]
+
+  const attendanceRows = ((attendance.data ?? []) as { athlete_id: string; class_instances: { starts_at: string } | { starts_at: string }[] | null }[]).map((r) => {
+    const ci = Array.isArray(r.class_instances) ? r.class_instances[0] : r.class_instances
+    return { athlete_id: r.athlete_id, starts_at: ci?.starts_at ?? null }
+  })
+  const lastCheckIn = lastCheckInByAthlete(attendanceRows, nowIso)
+
+  const lastOutreach = new Map<string, string>()
+  for (const o of (outreach.data ?? []) as { athlete_id: string; contacted_at: string }[]) {
+    const cur = lastOutreach.get(o.athlete_id)
+    if (!cur || o.contacted_at > cur) lastOutreach.set(o.athlete_id, o.contacted_at)
+  }
+
+  type Card = { athleteId: string; name: string; tier: 'high' | 'medium'; score: number; reasons: string[]; lastInDays: number | null }
+  const cards: Card[] = []
+  for (const [athleteId, rows] of rowsByAthlete) {
+    const last = lastOutreach.get(athleteId)
+    if (last && daysBetween(last, todayIso) < SNOOZE_DAYS) continue // snoozed
+
+    const membershipStatus = getMembershipStatus(rows.map((r) => ({ payment_status: r.payment_status, end_date: r.end_date })), todayIso)
+    const activeEnds = rows.map((r) => r.end_date).filter((d): d is string => d !== null && d >= todayIso).sort()
+    const daysUntilExpiry = activeEnds.length ? daysBetween(todayIso, activeEnds[0]) : null
+    const lastIso = lastCheckIn.get(athleteId) ?? null
+    const daysSinceLastCheckIn = lastIso ? daysBetween(lastIso, todayIso) : null
+    const earliestStart = rows.map((r) => r.start_date).sort()[0]
+    const daysSinceJoined = daysBetween(earliestStart, todayIso)
+
+    const res = scoreMember({ daysSinceLastCheckIn, membershipStatus, daysUntilExpiry, daysSinceJoined })
+    if (res.tier === 'none') continue
+    const prof = Array.isArray(rows[0].profiles) ? rows[0].profiles[0] : rows[0].profiles
+    cards.push({ athleteId, name: prof?.full_name ?? 'Member', tier: res.tier, score: res.score, reasons: res.reasons, lastInDays: daysSinceLastCheckIn })
+  }
+  cards.sort((a, b) => b.score - a.score || (b.lastInDays ?? 9999) - (a.lastInDays ?? 9999))
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
+      <Sidebar active="retention" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0, gap: 12 }}>
+          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Retention</h1>
+          <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{cards.length} to reach out</span>
+        </header>
+
+        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
+          {cards.length === 0 ? (
+            <div style={{ maxWidth: 640, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '48px 24px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 14 }}>
+              No at-risk members right now 🎉
+            </div>
+          ) : (
+            <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {cards.map((c) => (
+                <div key={c.athleteId} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '14px 16px', boxShadow: 'var(--c-shadow-sm)' }}>
+                  <span className="mono" style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase', flexShrink: 0, background: c.tier === 'high' ? 'var(--c-danger-soft)' : 'var(--c-warn-soft)', color: c.tier === 'high' ? 'var(--c-danger-ink)' : 'var(--c-warn-ink)' }}>{c.tier}</span>
+                  <Link href={`/dashboard/members/${c.athleteId}`} style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)', textDecoration: 'none' }}>{c.name}</Link>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+                    {c.reasons.map((r, i) => (
+                      <span key={i} className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', background: 'var(--c-surface-alt)', borderRadius: 5, padding: '2px 7px' }}>{r}</span>
+                    ))}
+                  </div>
+                  <MarkContacted athleteId={c.athleteId} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

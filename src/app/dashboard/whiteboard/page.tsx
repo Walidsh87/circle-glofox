@@ -112,7 +112,7 @@ export default async function WhiteboardPage() {
   // The Wedge — today's strength prescription + each booked athlete's 1RM for that lift
   const { data: wod } = await supabase
     .from('workouts')
-    .select('strength_lift, strength_sets')
+    .select('strength_lift, strength_sets, scaling')
     .eq('box_id', profile.box_id)
     .eq('date', todayIso)
     .maybeSingle()
@@ -196,6 +196,17 @@ export default async function WhiteboardPage() {
             <span className="mono" style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>
               {strengthSets.map((s) => `${s.sets}×${s.reps} @ ${s.percentage}%`).join('  ·  ')}
             </span>
+          </div>
+        )}
+
+        {((wod?.scaling ?? []) as import('@/app/dashboard/wod/_lib/validation').ScalingTier[]).length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+            {((wod?.scaling ?? []) as import('@/app/dashboard/wod/_lib/validation').ScalingTier[]).map((t, i) => (
+              <div key={i} style={{ flex: '1 1 240px', padding: '12px 16px', borderRadius: 12, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
+                <div className="mono" style={{ fontSize: 11, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t.label}</div>
+                <div style={{ fontSize: 14, color: 'var(--c-ink-2)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{t.description}</div>
+              </div>
+            ))}
           </div>
         )}
 

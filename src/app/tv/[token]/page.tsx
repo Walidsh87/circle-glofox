@@ -52,7 +52,7 @@ export default async function TvBoardPage(ctx: { params: Promise<{ token: string
 
   const { data: wod } = await service
     .from('workouts')
-    .select('id, title, description, scoring_type, strength_lift, strength_sets')
+    .select('id, title, description, scoring_type, strength_lift, strength_sets, scaling')
     .eq('box_id', box.id)
     .eq('date', todayIso)
     .maybeSingle()
@@ -120,6 +120,16 @@ export default async function TvBoardPage(ctx: { params: Promise<{ token: string
             {strengthLabel && strengthSets.length > 0 && (
               <div className="mono" style={{ marginTop: 16, fontSize: 16, color: 'var(--circle-lime-ink)' }}>
                 Strength · {strengthLabel} · {strengthSets.map((s) => `${s.sets}×${s.reps} @ ${s.percentage}%`).join('  ·  ')}
+              </div>
+            )}
+            {((wod.scaling ?? []) as { label: string; description: string }[]).length > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                {((wod.scaling ?? []) as { label: string; description: string }[]).map((t, i) => (
+                  <div key={i} style={{ flex: '1 1 260px' }}>
+                    <div className="mono" style={{ fontSize: 13, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.label}</div>
+                    <div style={{ fontSize: 18, color: 'var(--c-ink-2)', whiteSpace: 'pre-wrap', lineHeight: 1.4, marginTop: 2 }}>{t.description}</div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

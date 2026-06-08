@@ -7,6 +7,7 @@ import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { loadForPercent } from '@/lib/percentage'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
+import { currentStreakWeeks } from '@/lib/consistency'
 
 const TIMEZONE_OFFSETS: Record<string, number> = {
   'Asia/Dubai':   4,
@@ -133,6 +134,28 @@ export default async function WhiteboardPage() {
     : { data: [] as Array<{ athlete_id: string; one_rm_grams: number }> }
 
   const oneRmByAthlete = new Map((liftRows ?? []).map((r) => [r.athlete_id, r.one_rm_grams]))
+
+  // Committed Club: each rostered athlete's full checked-in history → current streak.
+  const { data: attendanceRows } = athleteIds.length > 0
+    ? await supabase
+        .from('bookings')
+        .select('athlete_id, class_instances(starts_at)')
+        .eq('box_id', profile.box_id)
+        .eq('checked_in', true)
+        .in('athlete_id', athleteIds)
+    : { data: [] as Array<{ athlete_id: string; class_instances: { starts_at: string } | { starts_at: string }[] | null }> }
+
+  const datesByAthlete = new Map<string, string[]>()
+  for (const r of attendanceRows ?? []) {
+    const ci = Array.isArray(r.class_instances) ? r.class_instances[0] : r.class_instances
+    const d = (ci as { starts_at: string } | null)?.starts_at?.slice(0, 10)
+    if (!d) continue
+    const arr = datesByAthlete.get(r.athlete_id) ?? []
+    arr.push(d)
+    datesByAthlete.set(r.athlete_id, arr)
+  }
+  const streakByAthlete = new Map<string, number>()
+  for (const [id, dates] of datesByAthlete) streakByAthlete.set(id, currentStreakWeeks(dates, todayIso))
 
   return (
     <div className="circle-dark" style={{
@@ -282,6 +305,7 @@ export default async function WhiteboardPage() {
                     const load = wod?.strength_lift && topPct !== null
                       ? (oneRm !== null ? `${loadForPercent(oneRm, topPct).barKg} kg` : '— log 1RM')
                       : null
+                    const streak = streakByAthlete.get(booking.athlete_id) ?? 0
                     return (
                       <div key={booking.athlete_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ flex: 1 }}>
@@ -295,6 +319,9 @@ export default async function WhiteboardPage() {
                             hasCredit={!!booking.credit_id}
                           />
                         </div>
+                        {streak > 0 && (
+                          <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--circle-lime-ink)', whiteSpace: 'nowrap' }}>🔥{streak}</span>
+                        )}
                         {load && (
                           <span className="mono" style={{
                             fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap',

@@ -51,6 +51,7 @@ function getNavGroups(role: string): NavGroup[] {
   const athleteItems: NavItem[] = []
   if (!isStaff) athleteItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
   athleteItems.push({ key: 'schedule', label: 'Book a class', href: '/dashboard/schedule', icon: 'book' })
+  athleteItems.push({ key: 'timer', label: 'Timer', href: '/dashboard/timer', icon: 'clock' })
   if (!isStaff) athleteItems.push({ key: 'shop', label: 'Buy a pack', href: '/dashboard/shop', icon: 'tag' })
   athleteItems.push({ key: 'lifts', label: 'My 1RMs', href: '/dashboard/lifts', icon: 'barbell' })
   athleteItems.push({ key: 'feed', label: 'Activity Feed', href: '/dashboard/feed', icon: 'activity' })
@@ -71,6 +72,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   calendar: <><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M3.5 9.5h17M8 3v4M16 3v4" /></>,
   flame: <><path d="M12 3c2 4 5 5 5 9a5 5 0 1 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-8z" /></>,
   activity: <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></>,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>,
   monitor: <><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M9 20h6M12 17v3" /></>,
   book: <><path d="M4 5h7v15H4zM13 5h7v15h-7z" /><path d="M4 5c0-1 1-2 2.5-2H11M20 5c0-1-1-2-2.5-2H13" /></>,
   barbell: <><path d="M3 12h2M19 12h2M6 8v8M8 8v8M16 8v8M18 8v8M8 12h8" /></>,

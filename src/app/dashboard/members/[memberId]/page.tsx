@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { EditMemberForm } from './_components/edit-member-form'
 import { SellPackage } from './_components/sell-package'
+import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } from '@/lib/consistency'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -135,6 +136,25 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
 
   const activeMembership = memberships?.find((m) => !m.end_date) ?? null
   const rs = activeMembership ? (STATUS_STYLES[activeMembership.payment_status] ?? STATUS_STYLES.unpaid) : null
+
+  // Consistency (Committed Club): full checked-in history (the bookings list above is capped at 10).
+  const { data: attendance } = await supabase
+    .from('bookings')
+    .select('class_instances(starts_at)')
+    .eq('athlete_id', params.memberId)
+    .eq('box_id', viewer.box_id)
+    .eq('checked_in', true)
+  const checkInDates = (attendance ?? [])
+    .map((b) => {
+      const ci = Array.isArray(b.class_instances) ? b.class_instances[0] : b.class_instances
+      return (ci as { starts_at: string } | null)?.starts_at?.slice(0, 10) ?? null
+    })
+    .filter((d): d is string => d !== null)
+  const today = new Date().toISOString().slice(0, 10)
+  const consistencyTotal = totalCheckins(checkInDates)
+  const consistencyStreak = currentStreakWeeks(checkInDates, today)
+  const consistencyBadge = currentMilestone(consistencyTotal)
+  const consistencyNext = nextMilestone(consistencyTotal)
   const roleSt = ROLE_STYLES[member.role] ?? ROLE_STYLES.athlete
 
   return (
@@ -229,6 +249,18 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Consistency (Committed Club) */}
+            <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+              <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Consistency</div>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <div><span className="mono" style={{ fontSize: 22, fontWeight: 700, color: 'var(--c-ink)' }}>{consistencyStreak > 0 ? `🔥 ${consistencyStreak}` : '—'}</span> <span style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>week streak</span></div>
+                <div><span className="mono" style={{ fontSize: 22, fontWeight: 700, color: 'var(--c-ink)' }}>{consistencyTotal}</span> <span style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>check-ins{consistencyBadge !== null ? ` · 🏅 ${consistencyBadge} Club` : ''}</span></div>
+              </div>
+              {consistencyNext && (
+                <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 8 }}>{consistencyNext.remaining} to the {consistencyNext.threshold} Club</div>
+              )}
             </div>
 
             {/* 1RMs + Recent Scores */}

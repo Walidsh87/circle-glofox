@@ -8,6 +8,7 @@ export type ScoreItem = {
   scoringType: string
   scoreValue: number
   rx: boolean
+  isPr: boolean
 }
 
 export type PrItem = {

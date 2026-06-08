@@ -45,7 +45,7 @@ export default async function FeedPage() {
 
   const { data: scores } = await supabase
     .from('workout_scores')
-    .select('id, score_value, rx, logged_at, athlete_id, profiles(full_name), workouts(title, scoring_type)')
+    .select('id, score_value, rx, is_pr, logged_at, athlete_id, profiles(full_name), workouts(title, scoring_type)')
     .eq('box_id', profile.box_id)
     .order('logged_at', { ascending: false })
     .limit(30)
@@ -77,7 +77,7 @@ export default async function FeedPage() {
       kind: 'score', id: s.id, at: s.logged_at,
       athleteId: s.athlete_id, athleteName: athlete?.full_name ?? 'Athlete',
       wodTitle: wod?.title ?? 'WOD', scoringType: wod?.scoring_type ?? '',
-      scoreValue: s.score_value, rx: s.rx,
+      scoreValue: s.score_value, rx: s.rx, isPr: s.is_pr,
     }
   })
 
@@ -163,6 +163,7 @@ function ScoreCard({ item, isSelf, reaction }: { item: ScoreItem; isSelf: boolea
           {item.rx && (
             <span className="mono" style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)' }}>RX</span>
           )}
+          {item.isPr && <span title="Personal record" style={{ fontSize: 13 }}>🏆</span>}
         </div>
       </div>
       <FistBumpButton scoreId={item.id} initialCount={reaction.count} initialReacted={reaction.reacted} />

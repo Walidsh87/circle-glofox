@@ -2,7 +2,7 @@ import { mergeTimeline, type FeedItem } from '@/app/dashboard/feed/_lib/merge-fe
 
 const score = (id: string, at: string): FeedItem => ({
   kind: 'score', id, at, athleteId: 'x', athleteName: 'X',
-  wodTitle: 'Fran', scoringType: 'time', scoreValue: 222, rx: true,
+  wodTitle: 'Fran', scoringType: 'time', scoreValue: 222, rx: true, isPr: false,
 })
 const pr = (id: string, at: string): FeedItem => ({
   kind: 'pr', id, at, athleteId: 'y', athleteName: 'Y', liftName: 'back_squat', kg: 142.5,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useFormState, useFormStatus } from 'react-dom'
-import { logScore } from '../_actions/log-score'
+import { logScore, type WodPrInfo } from '../_actions/log-score'
 
 function formatScore(value: number, scoringType: string): string {
   if (scoringType === 'time') {
@@ -11,6 +11,15 @@ function formatScore(value: number, scoringType: string): string {
   }
   if (scoringType === 'load_kg') return `${value} kg`
   return `${value} reps`
+}
+
+function prBlurb(pr: WodPrInfo): string {
+  const bracket = pr.rx ? 'Rx' : 'Scaled'
+  if (pr.scoringType === 'time') {
+    return `🏆 ${bracket} ${pr.benchmark} PR! −${Math.round(pr.prevBest - pr.newScore)}s`
+  }
+  const unit = pr.scoringType === 'load_kg' ? 'kg' : 'reps'
+  return `🏆 ${bracket} ${pr.benchmark} PR! +${pr.newScore - pr.prevBest} ${unit}`
 }
 
 const inputStyle: React.CSSProperties = {
@@ -44,6 +53,7 @@ type Score = {
   athlete_id: string
   score_value: number
   rx: boolean
+  is_pr: boolean
   notes: string | null
   profiles: { full_name: string } | { full_name: string }[] | null
 }
@@ -56,7 +66,7 @@ export function ScoreSection({
   myScore: Score | null
   scores: Score[]
 }) {
-  const [state, formAction] = useFormState(logScore, { error: null })
+  const [state, formAction] = useFormState(logScore, { error: null, pr: null })
 
   const isTimeBased = scoringType === 'time'
   const hint = isTimeBased
@@ -129,6 +139,9 @@ export function ScoreSection({
           {state.error && (
             <p style={{ marginTop: 8, fontSize: 12.5, color: 'var(--c-danger)' }}>{state.error}</p>
           )}
+          {state.pr && (
+            <p style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>{prBlurb(state.pr)}</p>
+          )}
         </form>
       </div>
 
@@ -177,6 +190,7 @@ export function ScoreSection({
                       )}
                     </td>
                     <td style={{ padding: '11px 16px', textAlign: 'right' }}>
+                      {s.is_pr && <span title="PR when logged" style={{ marginRight: 6 }}>🏆</span>}
                       <span className="mono" style={{
                         fontSize: isFirst ? 17 : 15, fontWeight: 700,
                         color: isFirst ? 'var(--circle-lime-ink)' : 'var(--c-ink)',

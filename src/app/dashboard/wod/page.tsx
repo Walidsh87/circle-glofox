@@ -138,7 +138,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
   const { data: scores } = wod
     ? await supabase
         .from('workout_scores')
-        .select('athlete_id, score_value, rx, notes, profiles(full_name)')
+        .select('athlete_id, score_value, rx, notes, is_pr, profiles(full_name)')
         .eq('workout_id', wod.id)
     : { data: null }
 

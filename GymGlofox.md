@@ -28,7 +28,7 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
 | **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
 | **v2 Tier 2–13 (~95 items)** | 6 ✅ (#11 WOD programming + batch import, #12 auto-PR detection (lift + WOD), #13 coach prep view, **#14 whiteboard/TV mode**, #23 1RM charts, #25 activity feed) · #21 mobile API ⬜ (deferred) · rest ⬜ |
-| **Migrations** | 008–028 ✅ in repo (… 025 lift is_pr · 026 coach notes · 027 wod is_pr · 028 tv_token). 023 + 024 applied to prod ✅. ⚠️ **Run 025 + 026 + 027 + 028 in Supabase before those features go live** (025 lift-PR; 026 coach notes; 027 WOD-PR; 028 `boxes.tv_token` for the TV board). |
+| **Migrations** | 008–028 ✅ in repo. 023–027 applied to prod ✅ (025 lift-PR, 026 coach notes, 027 WOD-PR done 2026-06-08). ⚠️ **Only `028_tv_token.sql` still pending in Supabase** (`boxes.tv_token` for the public TV board). |
 | **Next session priority** | Run migrations 025–028 in Supabase. Then next wedge candidates: #16 AI parser (feeds the batch-import pipeline), or other v2 Tier 2 items. |
 
 ---

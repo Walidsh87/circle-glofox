@@ -25,3 +25,19 @@ export function validateStrengthPrescription(lift: string, sets: unknown): strin
   }
   return null
 }
+
+export type ScalingTier = { label: string; description: string }
+
+const scalingTierSchema = z.object({
+  label: z.string().trim().min(1),
+  description: z.string().trim().min(1),
+})
+
+// null/undefined or [] => no tiers, valid. Otherwise up to 6 tiers, each with a
+// non-empty label + description.
+export function validateScaling(raw: unknown): string | null {
+  if (raw == null) return null
+  const result = z.array(scalingTierSchema).max(6).safeParse(raw)
+  if (!result.success) return 'Each scaling tier needs a label and a description (max 6 tiers).'
+  return null
+}

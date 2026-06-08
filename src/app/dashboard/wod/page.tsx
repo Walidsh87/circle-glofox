@@ -130,7 +130,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
 
   const { data: wod } = await supabase
     .from('workouts')
-    .select('id, title, description, scoring_type, strength_title, strength_description, strength_lift, strength_sets')
+    .select('id, title, description, scoring_type, strength_title, strength_description, strength_lift, strength_sets, scaling')
     .eq('box_id', profile.box_id)
     .eq('date', date)
     .single()
@@ -245,6 +245,16 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
                   <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-geist-mono)', fontSize: 14, color: 'rgba(250,250,250,0.85)', lineHeight: 1.7, margin: 0 }}>
                     {wod.description}
                   </pre>
+                  {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).length > 0 && (
+                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).map((t, i) => (
+                        <div key={i}>
+                          <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.label}</span>
+                          <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 13.5, color: 'rgba(250,250,250,0.8)', whiteSpace: 'pre-wrap', marginTop: 2 }}>{t.description}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -278,6 +288,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
                   strength_description: wod.strength_description,
                   strength_lift: wod.strength_lift,
                   strength_sets: wod.strength_sets,
+                  scaling: wod.scaling as import('./_lib/validation').ScalingTier[] | null,
                 } : null} />
               </div>
             )}

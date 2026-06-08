@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { validateTemplateInput } from '../_lib/validation'
-import { validateStrengthPrescription, type StrengthSet } from '@/app/dashboard/wod/_lib/validation'
+import { validateStrengthPrescription, type StrengthSet, type ScalingTier } from '@/app/dashboard/wod/_lib/validation'
 
 export type WodFields = {
   title: string
@@ -13,6 +13,7 @@ export type WodFields = {
   strengthDescription?: string | null
   strengthLift?: string | null
   strengthSets?: StrengthSet[] | null
+  scaling?: ScalingTier[] | null
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -51,6 +52,7 @@ export async function copyWodToDates(fields: WodFields, dates: string[]): Promis
     strength_description: fields.strengthDescription?.trim() || null,
     strength_lift: lift || null,
     strength_sets: lift ? (fields.strengthSets ?? []) : null,
+    scaling: fields.scaling ?? null,
     created_by: user.id,
   }))
 

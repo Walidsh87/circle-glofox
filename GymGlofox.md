@@ -27,9 +27,9 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 |---|---|
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
 | **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
-| **v2 Tier 2–13 (~95 items)** | 11 ✅ (Tier 2: #11 WOD programming + batch import, #12 auto-PR, #13 coach prep, #14 whiteboard/TV, #16 AI parser, #17 scaling · Tier 3: #18 at-risk scoring, **#24 workout timer**, **#26 waitlist**, #23 1RM charts, #25 feed) · #21 mobile API ⬜ (deferred) · rest ⬜. **Tier 2 done bar #15. Tier 3: 2 wedges left (#19/#20).** |
+| **v2 Tier 2–13 (~95 items)** | 12 ✅ (Tier 2: #11 WOD programming + batch import, #12 auto-PR, #13 coach prep, #14 whiteboard/TV, #16 AI parser, #17 scaling · Tier 3: #18 at-risk scoring, **#19 KPI dashboard**, **#24 workout timer**, **#26 waitlist**, #23 1RM charts, #25 feed) · #21 mobile API ⬜ (deferred) · rest ⬜. **Tier 2 done bar #15. Tier 3: 1 wedge left (#20).** |
 | **Migrations** | 008–031 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028_tv_token.sql` + `029_workout_scaling.sql` + `030_member_outreach.sql` + `031_class_waitlist.sql`** (028 TV; 029 WOD scaling; 030 retention outreach log; 031 class waitlist). |
-| **Next session priority** | Run migrations 028 + 029 + 030 + 031 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. Continue Tier 3 (#19 KPI dashboard, #20 gamification) or Tier 4 (Membership depth). |
+| **Next session priority** | Run migrations 028 + 029 + 030 + 031 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. Finish Tier 3 (#20 consistency gamification — last wedge) then Tier 4 (Membership depth). |
 
 ---
 
@@ -158,7 +158,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 
 ### Tier 3 — Retention & engagement
 18. ✅ `[Wedge]` **At-risk member scoring** — owner/coach `/dashboard/retention` reach-out list ranked by a **deterministic** `scoreMember` heuristic (recency: days since last check-in + membership: unpaid/no-plan/expiring; 14d new-member grace). "Mark contacted" logs to `member_outreach` (migration 030) + snoozes 14d. Members-only (leads excluded). AI deferred. Spec `…at-risk-scoring-design.md`.
-19. ⬜ `[Wedge]` **Two-Brain-style KPI dashboard** — ARM, LEG, LTV, churn
+19. ✅ `[Wedge]` **Two-Brain-style KPI dashboard** — owner-only `/dashboard/kpi`: ARM, LEG, LTV, churn + active members + MRR cards, plus a trailing 12-complete-month MRR & members trend (inline-SVG sparklines). Pure `computeKpis(memberships, purchases, today)` (unit-tested): stock metrics (active/MRR/LEG) as-of-today, rate metrics (ARM last full month, churn 3-month avg) over calendar months; ARM/LTV fold package sales (`package_credits.created_at` × `packages.price_aed`) into membership MRR. No migration (reads existing tables). Owner-gated page + "Metrics" nav + `chart` icon. Spec `…kpi-dashboard-design.md`.
 20. ⬜ `[Wedge]` **Committed-Club / consistency gamification**
 21. 🆕🚧 `[Kept]` Native mobile app (Expo / React Native) — promoted from backlog. API endpoints (`/api/packages/*`) ship with Packages PR; app itself is separate work.
 22. ⬜ `[Kept]` Push notifications

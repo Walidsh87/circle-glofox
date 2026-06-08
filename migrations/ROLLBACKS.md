@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`027` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`028` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,12 @@ Reverse procedures for migrations `008`–`027` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 028_tv_token
+```sql
+DROP INDEX IF EXISTS idx_boxes_tv_token;
+ALTER TABLE boxes DROP COLUMN IF EXISTS tv_token;
+```
 
 ### 027_wod_pr
 ```sql

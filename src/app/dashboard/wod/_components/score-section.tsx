@@ -19,7 +19,8 @@ function prBlurb(pr: WodPrInfo): string {
     return `🏆 ${bracket} ${pr.benchmark} PR! −${Math.round(pr.prevBest - pr.newScore)}s`
   }
   const unit = pr.scoringType === 'load_kg' ? 'kg' : 'reps'
-  return `🏆 ${bracket} ${pr.benchmark} PR! +${pr.newScore - pr.prevBest} ${unit}`
+  const delta = Math.round((pr.newScore - pr.prevBest) * 100) / 100
+  return `🏆 ${bracket} ${pr.benchmark} PR! +${delta} ${unit}`
 }
 
 const inputStyle: React.CSSProperties = {

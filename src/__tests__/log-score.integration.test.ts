@@ -81,3 +81,41 @@ test('validation error returns pr: null before any DB call', async () => {
   expect(res).toEqual({ error: 'Enter a valid score.', pr: null })
   expect(rls.builder('workout_scores')).toBeUndefined()
 })
+
+test('a Scaled rep-count PR is detected (non-time, higher is better)', async () => {
+  const rls = mockWith([{ score_value: 120, workout_id: 'w-old' }], 'amrap')
+  serverCreate.mockResolvedValue(rls)
+  const res = await logScore({ error: null, pr: null }, fd({ workoutId: 'w-today', scoreValue: '150' })) // rx omitted → Scaled
+  expect(res.pr).toEqual({ benchmark: 'Fran', rx: false, scoringType: 'amrap', newScore: 150, prevBest: 120 })
+  expect(rls.builder('workout_scores').upsert.mock.calls[0][0].is_pr).toBe(true)
+  // bracket isolation: the prior-best lookup was scoped to the Scaled bracket
+  expect(rls.builder('workout_scores').eq).toHaveBeenCalledWith('rx', false)
+})
+
+test('escapes ILIKE wildcards in the benchmark title', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'a1' },
+    results: {
+      profiles: { data: { box_id: 'b1' }, error: null },
+      workouts: { data: { title: '50% Death_by', scoring_type: 'time' }, error: null },
+      workout_scores: { data: [], error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  await logScore({ error: null, pr: null }, fd({ workoutId: 'w1', scoreValue: '200', rx: true }))
+  expect(rls.builder('workout_scores').ilike).toHaveBeenCalledWith('workouts.title', '50\\% Death\\_by')
+})
+
+test('surfaces a DB error from the upsert and does not celebrate', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'a1' },
+    results: {
+      profiles: { data: { box_id: 'b1' }, error: null },
+      workouts: { data: { title: 'Fran', scoring_type: 'time' }, error: null },
+      workout_scores: { data: [], error: { message: 'db down' } },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await logScore({ error: null, pr: null }, fd({ workoutId: 'w1', scoreValue: '200', rx: true }))
+  expect(res).toEqual({ error: 'db down', pr: null })
+})

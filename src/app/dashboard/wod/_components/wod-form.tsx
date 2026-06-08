@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { saveWod } from '../_actions/save-wod'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
-import type { StrengthSet } from '../_lib/validation'
+import type { StrengthSet, ScalingTier } from '../_lib/validation'
 
 const SCORING_TYPES = [
   { value: 'time',        label: 'For Time' },
@@ -53,6 +53,7 @@ type Wod = {
   strength_description?: string | null
   strength_lift?: string | null
   strength_sets?: StrengthSet[] | null
+  scaling?: ScalingTier[] | null
 } | null
 
 export function WodForm({ date, existing }: { date: string; existing: Wod }) {
@@ -68,6 +69,18 @@ export function WodForm({ date, existing }: { date: string; existing: Wod }) {
   }
   function removeSet(i: number) {
     setSets((prev) => prev.filter((_, idx) => idx !== i))
+  }
+
+  const [scaling, setScaling] = useState<ScalingTier[]>(existing?.scaling ?? [])
+  function updateTier(i: number, key: keyof ScalingTier, value: string) {
+    setScaling((prev) => prev.map((t, idx) => (idx === i ? { ...t, [key]: value } : t)))
+  }
+  function addTier() {
+    const SUGGESTED = ['Rx', 'Scaled', 'Beginner']
+    setScaling((prev) => [...prev, { label: SUGGESTED[prev.length] ?? '', description: '' }])
+  }
+  function removeTier(i: number) {
+    setScaling((prev) => prev.filter((_, idx) => idx !== i))
   }
 
   return (
@@ -199,6 +212,30 @@ export function WodForm({ date, existing }: { date: string; existing: Wod }) {
             style={{ ...inputStyle, height: 'auto', padding: '8px 12px', resize: 'vertical', lineHeight: 1.6, fontFamily: 'var(--font-geist-mono)', fontSize: 13 }}
           />
         </div>
+      </div>
+
+      {/* Scaling section */}
+      <div style={{
+        padding: '14px 16px', borderRadius: 10,
+        background: 'var(--c-surface-alt)', border: '1px solid var(--c-border)',
+        display: 'flex', flexDirection: 'column', gap: 10,
+      }}>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          Scaling options (optional)
+        </span>
+        {scaling.map((t, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, borderTop: i > 0 ? '1px solid var(--c-border)' : 'none', paddingTop: i > 0 ? 10 : 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="text" value={t.label} onChange={(e) => updateTier(i, 'label', e.target.value)} placeholder="Rx" style={{ ...inputStyle, width: 160 }} aria-label="tier label" />
+              <button type="button" onClick={() => removeTier(i)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--c-danger)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }} aria-label="remove tier">×</button>
+            </div>
+            <textarea value={t.description} onChange={(e) => updateTier(i, 'description', e.target.value)} rows={2} placeholder="42.5/30kg thrusters, pull-ups" style={{ ...inputStyle, height: 'auto', padding: '8px 12px', resize: 'vertical', lineHeight: 1.6, fontFamily: 'var(--font-geist-mono)', fontSize: 13 }} aria-label="tier description" />
+          </div>
+        ))}
+        <button type="button" onClick={addTier} style={{ alignSelf: 'flex-start', background: 'var(--c-surface)', border: '1px solid var(--c-border-strong)', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, cursor: 'pointer', color: 'var(--c-ink-2)' }}>
+          + Add scaling tier
+        </button>
+        <input type="hidden" name="scaling" value={JSON.stringify(scaling)} />
       </div>
 
       {state.error && (

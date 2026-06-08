@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { validateStrengthPrescription, type StrengthSet } from '../_lib/validation'
+import { validateStrengthPrescription, validateScaling, type StrengthSet, type ScalingTier } from '../_lib/validation'
 
 type State = { error: string | null }
 
@@ -25,6 +25,12 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
 
   const prescriptionError = validateStrengthPrescription(strengthLift, strengthSets)
   if (prescriptionError) return { error: prescriptionError }
+
+  const scalingRaw = (formData.get('scaling') as string) || '[]'
+  let scaling: unknown
+  try { scaling = JSON.parse(scalingRaw) } catch { scaling = null }
+  const scalingError = validateScaling(scaling)
+  if (scalingError) return { error: scalingError }
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -51,6 +57,7 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
       strength_description: strengthDescription,
       strength_lift: strengthLift || null,
       strength_sets: strengthLift ? (strengthSets as StrengthSet[]) : null,
+      scaling: (scaling ?? []) as ScalingTier[],
       created_by: user.id,
     },
     { onConflict: 'box_id,date' }

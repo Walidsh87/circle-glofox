@@ -83,7 +83,7 @@ export function Timer() {
       if (prev.phase === 'leadin' && cur.phase !== 'leadin' && cur.phase !== 'done') beep(1320, 500) // GO
       if (cur.phase !== 'leadin') {
         if (cur.round !== prev.round && cur.phase === 'work' && prev.phase === 'work') beep(1320, 200) // EMOM new round
-        if (cur.phase !== prev.phase && (cur.phase === 'work' || cur.phase === 'rest')) beep(1100, 200) // intervals flip
+        if (cur.phase !== prev.phase && prev.phase !== 'leadin' && (cur.phase === 'work' || cur.phase === 'rest')) beep(1100, 200) // intervals flip (not the GO transition)
         if (cur.phase === 'done' && prev.phase !== 'done') beep(660, 700) // end
       }
     }

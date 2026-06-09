@@ -48,7 +48,7 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   // through to the credit-or-refuse path below (membership only wins when paid).
   const { data: memberships } = await service
     .from('memberships')
-    .select('payment_status, end_date')
+    .select('payment_status, end_date, frozen_from, frozen_until')
     .eq('athlete_id', user.id)
     .eq('box_id', profile.box_id)
   const membershipPaid = getMembershipStatus(memberships ?? [], today) === 'paid'

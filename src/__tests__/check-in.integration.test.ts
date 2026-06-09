@@ -50,6 +50,21 @@ test('allows a no-membership athlete whose booking is credit-backed', async () =
   )
 })
 
+test('blocks a frozen athlete with no credit-backed booking', async () => {
+  serverCreate.mockResolvedValue(makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach' }, error: null },
+      memberships: { data: [{ payment_status: 'paid', end_date: null, last_paid_date: null, frozen_from: '2026-01-01', frozen_until: null }], error: null },
+    },
+  }))
+  serviceCreate.mockReturnValue(makeSupabaseMock({ results: { bookings: { data: { credit_id: null }, error: null } } }))
+
+  const res = await checkIn('class-1', 'athlete-1')
+  expect(res.error).toBe('BLOCKED')
+  expect(res.blocked?.reason).toBe('frozen')
+})
+
 test('allows an athlete with an active-but-unpaid membership when the booking is credit-backed', async () => {
   // 'unpaid' (active row, not paid) and 'no_membership' share the credit fall-through path.
   serverCreate.mockResolvedValue(makeSupabaseMock({

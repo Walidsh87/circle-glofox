@@ -1,4 +1,5 @@
-export type MembershipStatus = 'paid' | 'unpaid' | 'no_membership'
+import type { MembershipStatus } from '@/lib/membership-status'
+export type { MembershipStatus }
 export type RiskInput = {
   daysSinceLastCheckIn: number | null // null = never checked in
   membershipStatus: MembershipStatus

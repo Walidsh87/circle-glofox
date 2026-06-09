@@ -25,7 +25,7 @@ export function CheckInButton({
   const [done, setDone] = useState(checkedIn)
   const [loading, setLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
-  const [blockReason, setBlockReason] = useState<'unpaid' | 'no_membership'>('unpaid')
+  const [blockReason, setBlockReason] = useState<'unpaid' | 'no_membership' | 'frozen'>('unpaid')
   const [modalLastPaid, setModalLastPaid] = useState<string | null>(null)
 
   async function handleTap() {
@@ -49,6 +49,7 @@ export function CheckInButton({
   const showDot = showStatusIndicator && !hasCredit
   const dotTitle = membershipStatus === 'unpaid'
     ? `Payment overdue${lastPaidDate ? ` — last paid ${new Date(lastPaidDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}`
+    : membershipStatus === 'frozen' ? 'Membership frozen'
     : 'No active membership'
 
   return (

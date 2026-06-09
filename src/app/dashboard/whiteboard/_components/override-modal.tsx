@@ -28,7 +28,7 @@ export function OverrideModal({
   instanceId: string
   athleteId: string
   athleteName: string
-  blockReason: 'unpaid' | 'no_membership'
+  blockReason: 'unpaid' | 'no_membership' | 'frozen'
   lastPaidDate: string | null
 }) {
   const [selected, setSelected] = useState<Reason | null>(null)
@@ -51,7 +51,7 @@ export function OverrideModal({
     })
   }
 
-  const title = blockReason === 'unpaid' ? 'Payment overdue' : 'No active membership'
+  const title = blockReason === 'unpaid' ? 'Payment overdue' : blockReason === 'frozen' ? 'Membership frozen' : 'No active membership'
 
   return (
     <div

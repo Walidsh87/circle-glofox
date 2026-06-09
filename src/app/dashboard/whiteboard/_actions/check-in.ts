@@ -34,7 +34,7 @@ export async function checkIn(
 
   const { data: memberships } = await supabase
     .from('memberships')
-    .select('payment_status, end_date, last_paid_date')
+    .select('payment_status, end_date, last_paid_date, frozen_from, frozen_until')
     .eq('athlete_id', athleteId)
     .eq('box_id', profile.box_id)
 

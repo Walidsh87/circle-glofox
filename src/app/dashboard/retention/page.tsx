@@ -21,6 +21,7 @@ const SNOOZE_DAYS = 14
 type MembershipRowFull = {
   athlete_id: string; end_date: string | null
   payment_status: 'paid' | 'unpaid'; start_date: string
+  frozen_from: string | null; frozen_until: string | null
   profiles: { full_name: string } | { full_name: string }[] | null
 }
 
@@ -47,7 +48,7 @@ export default async function RetentionPage() {
   // Members = athletes with >=1 membership record.
   const { data: memberships } = await supabase
     .from('memberships')
-    .select('athlete_id, end_date, payment_status, start_date, profiles(full_name)')
+    .select('athlete_id, end_date, payment_status, start_date, frozen_from, frozen_until, profiles(full_name)')
     .eq('box_id', profile.box_id)
 
   const rowsByAthlete = new Map<string, MembershipRowFull[]>()
@@ -83,7 +84,8 @@ export default async function RetentionPage() {
     const last = lastOutreach.get(athleteId)
     if (last && daysBetween(last, todayIso) < SNOOZE_DAYS) continue // snoozed
 
-    const membershipStatus = getMembershipStatus(rows.map((r) => ({ payment_status: r.payment_status, end_date: r.end_date })), todayIso)
+    const membershipStatus = getMembershipStatus(rows.map((r) => ({ payment_status: r.payment_status, end_date: r.end_date, frozen_from: r.frozen_from, frozen_until: r.frozen_until })), todayIso)
+    if (membershipStatus === 'frozen') continue // paused members aren't churn risks
     const activeEnds = rows.map((r) => r.end_date).filter((d): d is string => d !== null && d >= todayIso).sort()
     const daysUntilExpiry = activeEnds.length ? daysBetween(todayIso, activeEnds[0]) : null
     const lastIso = lastCheckIn.get(athleteId) ?? null

@@ -5,8 +5,9 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { sendWaitlistEmail } from '@/lib/email'
 import { env } from '@/env'
+import { isLateCancel } from '@/lib/booking-policy'
 
-export async function cancelBooking(instanceId: string): Promise<{ error: string | null }> {
+export async function cancelBooking(instanceId: string): Promise<{ error: string | null; forfeited?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
@@ -30,14 +31,24 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
     .eq('athlete_id', user.id)
   if (error) return { error: error.message }
 
-  // Cancel refunds the credit. (No-show never reaches here, so it forfeits — by
-  // design.) Delete-then-refund: a *sequential* double-click's second pass finds
-  // no row (maybeSingle → null) and skips refund. A truly concurrent double-click
-  // could still call refund_credit twice, but the SQL fn caps at credits_total,
-  // so the counter is never over-refunded — that cap, not the ordering, is the
-  // real safety net here.
+  // Late-cancel policy: cancelling within late_cancel_hours of the start forfeits the credit.
+  const { data: policyInstance } = await supabase
+    .from('class_instances')
+    .select('starts_at, boxes(late_cancel_hours)')
+    .eq('id', instanceId)
+    .single()
+  const policyBox = Array.isArray(policyInstance?.boxes) ? policyInstance.boxes[0] : policyInstance?.boxes
+  const late = policyInstance ? isLateCancel(policyInstance.starts_at, new Date().toISOString(), policyBox?.late_cancel_hours ?? 0) : false
+
+  // Cancel refunds the credit — unless it's a late cancel (forfeit) or a no-show (which never
+  // reaches here). Delete-then-refund: a *sequential* double-click's second pass finds no row
+  // (maybeSingle → null) and skips refund. A concurrent double-click could call refund_credit
+  // twice, but the SQL fn caps at credits_total, so the counter is never over-refunded.
+  let forfeited = false
   if (booking?.credit_id) {
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (late) {
+      forfeited = true // late cancel → credit forfeited, no refund
+    } else if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       // Misconfig: the cancel itself already succeeded, so don't fail it — just
       // surface that the credit couldn't be refunded (safe to retry; SQL caps it).
       console.error('SUPABASE_SERVICE_ROLE_KEY missing; cannot refund credit:', booking.credit_id)
@@ -96,5 +107,5 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
   }
 
   revalidatePath('/dashboard/schedule')
-  return { error: null }
+  return { error: null, forfeited }
 }

@@ -31,6 +31,8 @@ export function BookingButton({
       setNeedsCredits(true)
     } else if (res.error) {
       alert(res.error)
+    } else if ('forfeited' in res && res.forfeited) {
+      alert('Late cancel — your class credit wasn’t refunded.')
     }
     setLoading(false)
   }

@@ -77,3 +77,39 @@ test('a failing notify never fails the cancel', async () => {
   const res = await cancelBooking('class-1')
   expect(res.error).toBeNull()
 })
+
+test('a late cancel of a credit booking forfeits the credit (no refund)', async () => {
+  const startsAt = new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1h away, inside a 2h window
+  serverCreate.mockResolvedValue(makeSupabaseMock({
+    user: { id: 'u1' },
+    results: {
+      bookings: { data: { credit_id: 'batch-1' }, error: null },
+      class_instances: { data: { starts_at: startsAt, boxes: { late_cancel_hours: 2 } }, error: null },
+    },
+  }))
+  const svc = makeSupabaseMock({ rpc: { data: null, error: null } })
+  serviceCreate.mockReturnValue(svc)
+
+  const res = await cancelBooking('class-1')
+  expect(res.error).toBeNull()
+  expect(res.forfeited).toBe(true)
+  expect(svc.rpc).not.toHaveBeenCalledWith('refund_credit', expect.anything())
+})
+
+test('an early cancel still refunds the credit', async () => {
+  const startsAt = new Date(Date.now() + 100 * 60 * 60 * 1000).toISOString() // 100h away
+  serverCreate.mockResolvedValue(makeSupabaseMock({
+    user: { id: 'u1' },
+    results: {
+      bookings: { data: { credit_id: 'batch-1' }, error: null },
+      class_instances: { data: { starts_at: startsAt, boxes: { late_cancel_hours: 2 } }, error: null },
+    },
+  }))
+  const svc = makeSupabaseMock({ rpc: { data: null, error: null } })
+  serviceCreate.mockReturnValue(svc)
+
+  const res = await cancelBooking('class-1')
+  expect(res.error).toBeNull()
+  expect(res.forfeited).toBeFalsy()
+  expect(svc.rpc).toHaveBeenCalledWith('refund_credit', { p_credit_id: 'batch-1' })
+})

@@ -4,7 +4,7 @@ import { makeSupabaseMock } from './helpers/supabase-mock'
 const { serverCreate, serviceCreate, emailMock } = vi.hoisted(() => ({
   serverCreate: vi.fn(),
   serviceCreate: vi.fn(),
-  emailMock: vi.fn(() => Promise.resolve({ ok: true, error: null })),
+  emailMock: vi.fn(() => Promise.resolve({ ok: true, error: null, ids: ['re_1'] })),
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: serviceCreate }))

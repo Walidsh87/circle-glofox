@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { env } from '@/env'
-import { renderBroadcastBody, firstNameOf } from '@/lib/broadcast-render'
+import { renderEmail, firstNameOf } from '@/lib/broadcast-render'
+import type { Block } from '@/lib/email-blocks'
 import { sendBroadcastEmails, type BroadcastMessage } from '@/lib/email'
 
 type Result = { error: string | null; sent?: number; failed?: number }
@@ -20,7 +21,7 @@ export async function retryFailedBroadcast(broadcastId: string): Promise<Result>
 
   const service = createServiceClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
-  const { data: bc } = await service.from('broadcasts').select('id, box_id, subject, body').eq('id', broadcastId).single()
+  const { data: bc } = await service.from('broadcasts').select('id, box_id, subject, body, body_blocks').eq('id', broadcastId).single()
   if (!bc || bc.box_id !== caller.box_id) return { error: 'Broadcast not found.' }
 
   const { data: failedRows } = await service
@@ -46,20 +47,27 @@ export async function retryFailedBroadcast(broadcastId: string): Promise<Result>
     const messages: BroadcastMessage[] = chunk.map((t) => ({
       to: t.email,
       subject: bc.subject,
-      html: renderBroadcastBody(bc.body, {
-        firstName: firstNameOf(byId.get(t.athlete_id)?.full_name ?? ''),
-        gymName,
-        unsubscribeUrl: `${env.NEXT_PUBLIC_APP_URL}/unsubscribe/${byId.get(t.athlete_id)?.unsubscribe_token ?? ''}`,
+      html: renderEmail({
+        blocks: (bc.body_blocks as Block[] | null) ?? null,
+        plainBody: bc.body,
+        ctx: {
+          firstName: firstNameOf(byId.get(t.athlete_id)?.full_name ?? ''),
+          gymName,
+          unsubscribeUrl: `${env.NEXT_PUBLIC_APP_URL}/unsubscribe/${byId.get(t.athlete_id)?.unsubscribe_token ?? ''}`,
+        },
       }),
     }))
     const chunkIds = chunk.map((t) => t.athlete_id)
-    const { ok, error } = await sendBroadcastEmails(messages)
-    if (ok) {
+    const result = await sendBroadcastEmails(messages)
+    if (result.ok) {
       sent += chunk.length
-      await service.from('broadcast_recipients').update({ status: 'sent', sent_at: new Date().toISOString(), error: null }).eq('broadcast_id', broadcastId).in('athlete_id', chunkIds)
+      const now = new Date().toISOString()
+      for (let j = 0; j < chunk.length; j++) {
+        await service.from('broadcast_recipients').update({ status: 'sent', sent_at: now, error: null, resend_id: result.ids[j] ?? null }).eq('broadcast_id', broadcastId).eq('athlete_id', chunk[j].athlete_id)
+      }
     } else {
       failed += chunk.length
-      await service.from('broadcast_recipients').update({ status: 'failed', error: error ?? 'send failed' }).eq('broadcast_id', broadcastId).in('athlete_id', chunkIds)
+      await service.from('broadcast_recipients').update({ status: 'failed', error: result.error ?? 'send failed' }).eq('broadcast_id', broadcastId).in('athlete_id', chunkIds)
     }
   }
 

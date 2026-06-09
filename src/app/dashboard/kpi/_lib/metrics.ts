@@ -1,6 +1,6 @@
 import { isFrozenOn } from '@/lib/membership-status'
 
-export type MembershipRow = { athlete_id: string; monthly_price_aed: number | null; start_date: string; end_date: string | null; frozen_from?: string | null; frozen_until?: string | null }
+export type MembershipRow = { athlete_id: string; monthly_price_aed: number | null; start_date: string; end_date: string | null; frozen_from?: string | null; frozen_until?: string | null; is_trial?: boolean | null }
 export type PurchaseRow = { created_at: string; price_aed: number }
 
 export type TrendPoint = { label: string; monthEnd: string; mrr: number; members: number; packageRev: number }
@@ -20,7 +20,7 @@ const round2 = (x: number) => Math.round(x * 100) / 100
 
 // Active on a date: started on/before it AND not yet ended by it (ISO strings compare lexicographically).
 function activeOn(r: MembershipRow, onDate: string): boolean {
-  return r.start_date <= onDate && (r.end_date === null || r.end_date > onDate) && !isFrozenOn(r, onDate)
+  return r.start_date <= onDate && (r.end_date === null || r.end_date > onDate) && !isFrozenOn(r, onDate) && !r.is_trial
 }
 function activeAthletes(rows: MembershipRow[], onDate: string): Set<string> {
   const set = new Set<string>()

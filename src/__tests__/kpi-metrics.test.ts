@@ -81,6 +81,14 @@ describe('computeKpis', () => {
   })
 })
 
+describe('trial exclusion', () => {
+  const trial: MembershipRow[] = [{ athlete_id: 't', monthly_price_aed: 0, start_date: '2026-01-01', end_date: '2026-12-31', is_trial: true }]
+  test('a trial membership is excluded from MRR/active', () => {
+    expect(mrrAt(trial, '2026-06-01')).toBe(0)
+    expect(activeAt(trial, '2026-06-01')).toBe(0)
+  })
+})
+
 describe('frozen membership exclusion', () => {
   const frozen: MembershipRow[] = [{ athlete_id: 'f', monthly_price_aed: 300, start_date: '2025-01-01', end_date: null, frozen_from: '2026-03-01', frozen_until: '2026-05-01' }]
   test('excluded from MRR/active inside the freeze window', () => {

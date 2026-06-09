@@ -28,8 +28,8 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
 | **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
 | **v2 Tier 2–13 (~95 items)** | 13 ✅ (Tier 2: #11 WOD programming + batch import, #12 auto-PR, #13 coach prep, #14 whiteboard/TV, #16 AI parser, #17 scaling · Tier 3: #18 at-risk scoring, **#19 KPI dashboard**, **#20 Committed Club**, **#24 workout timer**, **#26 waitlist**, #23 1RM charts, #25 feed) · #21 mobile API ⬜ (deferred) · rest ⬜. **Tier 2 done bar #15. Tier 3 COMPLETE.** |
-| **Migrations** | 008–032 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028_tv_token.sql` + `029_workout_scaling.sql` + `030_member_outreach.sql` + `031_class_waitlist.sql` + `032_member_achievements.sql`** (028 TV; 029 WOD scaling; 030 retention outreach; 031 class waitlist; 032 Committed Club achievements). |
-| **Next session priority** | Run migrations 028 + 029 + 030 + 031 + 032 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. **Tier 3 complete** → Tier 4 (Membership depth) or #15 (programming marketplace). |
+| **Migrations** | 008–033 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028`–`033`** (028 TV; 029 WOD scaling; 030 retention outreach; 031 class waitlist; 032 Committed Club achievements; 033 membership freeze cols + cron-fn frozen-skip). |
+| **Next session priority** | Run migrations 028–033 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. **Tier 3 complete; Tier 4 started (#28+#29 done).** Continue Tier 4 (#27 plan catalog · #33 tags · #34 custom fields · #35 booking policies · #36 belt progression) or #15 (programming marketplace). |
 
 ---
 
@@ -169,8 +169,8 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 
 ### Tier 4 — Membership depth (how owners model their business)
 27. ⬜ `[G-gap]` Membership type catalog — recurring / drop-in / class pack / PT block / unlimited *(partially addressed by 🆕 Packages umbrella)*
-28. ⬜ `[G-gap]` Membership freezes / pauses (with optional auto-resume date)
-29. ⬜ `[G-gap]` Scheduled cancellations (end-of-period)
+28. ✅ `[G-gap]` **Membership freezes / pauses** — `frozen_from`/`frozen_until` cols on `memberships` (mig 033). Window `[from, until)` → **auto-resume by date, no cron**; `until` NULL = indefinite. One pure `isFrozenOn(m, date)` in `membership-status.ts`; `getMembershipStatus` gains `'frozen'`. **Full pause:** blocked from check-in/booking (credit-backed bookings still bypass — pre-paid), excluded from MRR + active count (KPIs + payments), and `cron_eligible_memberships` skips frozen → no billing-due reminders; retention skips frozen (not a churn risk). Owner Freeze/Resume on the member page + ❄️ badges. Spec `…membership-lifecycle-design.md`.
+29. ✅ `[G-gap]` **Scheduled cancellations (end-of-period)** — reuses `end_date` (a future `end_date` is already "active until then" in `getMembershipStatus`). Owner Schedule-cancellation / Undo on the member page + "Cancels on {date}" badge (member + payments); active-membership lookup now includes future-dated rows so the cancel can be undone.
 30. ⬜ `[G-gap]` Family / couples / team memberships
 31. ⬜ `[G-gap]` Prorations on mid-cycle plan changes
 32. ⬜ `[G-gap]` Trial passes / intro offers *(partially addressed by 🆕 Packages umbrella)*

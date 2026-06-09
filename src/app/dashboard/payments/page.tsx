@@ -6,6 +6,8 @@ import { Sidebar } from '@/components/sidebar'
 import { AddMembershipForm } from './_components/add-membership-form'
 import { PaymentActions } from './_components/payment-actions'
 import { CreateStripePlanForm } from './_components/create-stripe-plan-form'
+import { AddMembershipPlanForm } from './_components/add-membership-plan-form'
+import { MembershipPlanRow } from './_components/membership-plan-row'
 import { RemindersToggle } from './_components/reminders-toggle'
 import { isFrozenOn } from '@/lib/membership-status'
 
@@ -42,7 +44,7 @@ export default async function PaymentsPage() {
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }, { data: reminders }] = await Promise.all([
+  const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }, { data: reminders }, { data: plans }] = await Promise.all([
     supabase
       .from('memberships')
       .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, frozen_from, frozen_until, provider_plan_ref, failed_charge_attempts, last_failed_at, profiles(full_name)')
@@ -82,6 +84,12 @@ export default async function PaymentsPage() {
       .eq('box_id', profile.box_id)
       .order('sent_at', { ascending: false })
       .limit(10),
+    supabase
+      .from('membership_plans')
+      .select('id, name, monthly_price_aed, provider_plan_ref, active')
+      .eq('box_id', profile.box_id)
+      .order('active', { ascending: false })
+      .order('name'),
   ])
 
   const stripeConnected = !!(box?.stripe_secret_key)
@@ -171,6 +179,32 @@ export default async function PaymentsPage() {
             </div>
           )}
 
+          {/* Membership plans catalog */}
+          <div style={{
+            background: 'var(--c-surface)', border: '1px solid var(--c-border)',
+            borderRadius: 14, padding: '18px 20px', marginBottom: 16,
+            boxShadow: 'var(--c-shadow-sm)',
+          }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Membership plans</p>
+            <AddMembershipPlanForm />
+            {(plans?.length ?? 0) > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 14 }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <th style={{ padding: '6px 14px' }}>Plan</th>
+                    <th style={{ padding: '6px 14px' }}>Price</th>
+                    <th style={{ padding: '6px 14px' }}>Stripe ID</th>
+                    <th style={{ padding: '6px 14px' }}>Status</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {plans!.map((p) => <MembershipPlanRow key={p.id} plan={p} />)}
+                </tbody>
+              </table>
+            )}
+          </div>
+
           {/* Add membership */}
           <div style={{
             background: 'var(--c-surface)', border: '1px solid var(--c-border)',
@@ -178,7 +212,7 @@ export default async function PaymentsPage() {
             boxShadow: 'var(--c-shadow-sm)',
           }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Add membership</p>
-            <AddMembershipForm athletes={athletes ?? []} stripeConnected={stripeConnected} />
+            <AddMembershipForm athletes={athletes ?? []} stripeConnected={stripeConnected} plans={(plans ?? []).filter((p) => p.active)} />
           </div>
 
           {/* Recent overrides (30 days) */}

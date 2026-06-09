@@ -7,6 +7,7 @@ import { SellPackage } from './_components/sell-package'
 import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } from '@/lib/consistency'
 import { MembershipLifecycle } from './_components/membership-lifecycle'
 import { ChangePlan } from './_components/change-plan'
+import { MemberTags } from './_components/member-tags'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -155,6 +156,15 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   ])
 
   const today = new Date().toISOString().slice(0, 10)
+
+  // Tags (#33): staff-only metadata, box-scoped. Members never see their own tags.
+  const isStaff = ['owner', 'coach'].includes(viewer.role)
+  const { data: tagRows } = isStaff
+    ? await supabase.from('member_tags').select('tag, athlete_id').eq('box_id', viewer.box_id)
+    : { data: [] as { tag: string; athlete_id: string }[] }
+  const memberTags = (tagRows ?? []).filter((r) => r.athlete_id === params.memberId).map((r) => r.tag).sort()
+  const tagSuggestions = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
+
   // A membership with a *future* end_date (scheduled to cancel) is still the active one.
   const activeMembership = memberships?.find((m) => !m.end_date || m.end_date >= today) ?? null
   const rs = activeMembership ? (STATUS_STYLES[activeMembership.payment_status] ?? STATUS_STYLES.unpaid) : null
@@ -311,6 +321,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                 <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 8 }}>{consistencyNext.remaining} to the {consistencyNext.threshold} Club</div>
               )}
             </div>
+
+            {isStaff && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Tags</div>
+                <MemberTags athleteId={member.id} tags={memberTags} suggestions={tagSuggestions} />
+              </div>
+            )}
 
             {/* Personal & medical */}
             <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>

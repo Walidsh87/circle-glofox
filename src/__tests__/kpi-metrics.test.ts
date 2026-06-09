@@ -87,6 +87,13 @@ describe('trial exclusion', () => {
     expect(mrrAt(trial, '2026-06-01')).toBe(0)
     expect(activeAt(trial, '2026-06-01')).toBe(0)
   })
+  test('a trial expiring does not count as churn', () => {
+    const rows: MembershipRow[] = [
+      { athlete_id: 'real', monthly_price_aed: 300, start_date: '2026-01-01', end_date: null },
+      { athlete_id: 'tr', monthly_price_aed: 0, start_date: '2026-05-20', end_date: '2026-05-27', is_trial: true },
+    ]
+    expect(churnForMonth(rows, '2026-05-01', '2026-05-31')).toBe(0)
+  })
 })
 
 describe('frozen membership exclusion', () => {

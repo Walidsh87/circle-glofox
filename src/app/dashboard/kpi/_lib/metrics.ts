@@ -67,7 +67,7 @@ export function churnForMonth(rows: MembershipRow[], mStart: string, mEnd: strin
   const activeEnd = activeAthletes(rows, mEnd)
   const churned = new Set<string>()
   for (const r of rows) {
-    if (r.end_date && r.end_date >= mStart && r.end_date <= mEnd && !activeEnd.has(r.athlete_id)) {
+    if (r.end_date && r.end_date >= mStart && r.end_date <= mEnd && !activeEnd.has(r.athlete_id) && !r.is_trial) {
       churned.add(r.athlete_id)
     }
   }

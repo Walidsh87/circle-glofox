@@ -95,7 +95,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
       .single(),
     supabase
       .from('memberships')
-      .select('id, plan_name, monthly_price_aed, payment_status, start_date, last_paid_date, end_date, frozen_from, frozen_until')
+      .select('id, plan_name, monthly_price_aed, payment_status, start_date, last_paid_date, end_date, frozen_from, frozen_until, is_trial')
       .eq('athlete_id', params.memberId)
       .eq('box_id', viewer.box_id)
       .order('start_date', { ascending: false }),
@@ -251,6 +251,11 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                       {activeMembership.plan_name}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                      {activeMembership.is_trial && (
+                        <span className="mono" style={{ fontSize: 11, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>
+                          Trial{activeMembership.end_date ? ` · ends ${activeMembership.end_date}` : ''}
+                        </span>
+                      )}
                       {activeMembership.monthly_price_aed && (
                         <span className="mono" style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>
                           AED {activeMembership.monthly_price_aed}/mo

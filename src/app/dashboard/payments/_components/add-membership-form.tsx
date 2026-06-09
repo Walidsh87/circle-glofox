@@ -11,15 +11,16 @@ function SubmitButton() {
 }
 
 type Athlete = { id: string; full_name: string }
-type Plan = { id: string; name: string; monthly_price_aed: number | null; provider_plan_ref: string | null }
+type Plan = { id: string; name: string; monthly_price_aed: number | null; provider_plan_ref: string | null; is_trial: boolean; trial_days: number | null }
 
 const cls = 'rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 
-export function AddMembershipForm({ athletes, stripeConnected, plans }: { athletes: Athlete[]; stripeConnected: boolean; plans: Plan[] }) {
+export function AddMembershipForm({ athletes, stripeConnected, plans, athletesWithTrials }: { athletes: Athlete[]; stripeConnected: boolean; plans: Plan[]; athletesWithTrials: string[] }) {
   const [state, formAction] = useFormState(saveMembership, { error: null })
   const formRef = useRef<HTMLFormElement>(null)
   const today = new Date().toISOString().slice(0, 10)
 
+  const [athleteId, setAthleteId] = useState('')
   const [planId, setPlanId] = useState('')
   const [planName, setPlanName] = useState('')
   const [monthlyPrice, setMonthlyPrice] = useState('')
@@ -28,9 +29,12 @@ export function AddMembershipForm({ athletes, stripeConnected, plans }: { athlet
   useEffect(() => {
     if (!state.error && formRef.current) {
       formRef.current.reset()
-      setPlanId(''); setPlanName(''); setMonthlyPrice(''); setStripePriceId('')
+      setAthleteId(''); setPlanId(''); setPlanName(''); setMonthlyPrice(''); setStripePriceId('')
     }
   }, [state])
+
+  const pickedPlan = plans.find((p) => p.id === planId)
+  const showTrialWarning = !!pickedPlan?.is_trial && athletesWithTrials.includes(athleteId)
 
   function onPick(id: string) {
     setPlanId(id)
@@ -45,14 +49,14 @@ export function AddMembershipForm({ athletes, stripeConnected, plans }: { athlet
   return (
     <form ref={formRef} action={formAction} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <input type="hidden" name="planId" value={planId} />
-      <select name="athleteId" required className={cls}>
+      <select name="athleteId" required value={athleteId} onChange={(e) => setAthleteId(e.target.value)} className={cls}>
         <option value="">Select athlete</option>
         {athletes.map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
       </select>
       {plans.length > 0 && (
         <select value={planId} onChange={(e) => onPick(e.target.value)} className={cls}>
           <option value="">— Plan (or type below) —</option>
-          {plans.map((p) => <option key={p.id} value={p.id}>{p.name}{p.monthly_price_aed != null ? ` · ${p.monthly_price_aed} AED` : ''}</option>)}
+          {plans.map((p) => <option key={p.id} value={p.id}>{p.name}{p.is_trial ? ` · trial ${p.trial_days}d` : p.monthly_price_aed != null ? ` · ${p.monthly_price_aed} AED` : ''}</option>)}
         </select>
       )}
       <input name="planName" type="text" required placeholder="Plan (e.g. Unlimited)" value={planName} onChange={(e) => setPlanName(e.target.value)} className={cls} />
@@ -61,6 +65,7 @@ export function AddMembershipForm({ athletes, stripeConnected, plans }: { athlet
       {stripeConnected && (
         <input name="stripePriceId" type="text" placeholder="Stripe Price ID (optional, e.g. price_...)" value={stripePriceId} onChange={(e) => setStripePriceId(e.target.value)} className={`col-span-2 sm:col-span-4 font-mono ${cls}`} />
       )}
+      {showTrialWarning && <p className="col-span-2 sm:col-span-4 text-sm" style={{ color: 'var(--c-warn-ink)' }}>⚠️ This athlete has had a trial before.</p>}
       <div className="col-span-2 sm:col-span-4 flex items-center gap-3">
         <SubmitButton />
         {state.error && <p className="text-sm text-destructive">{state.error}</p>}

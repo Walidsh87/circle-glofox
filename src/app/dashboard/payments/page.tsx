@@ -47,7 +47,7 @@ export default async function PaymentsPage() {
   const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }, { data: reminders }, { data: plans }] = await Promise.all([
     supabase
       .from('memberships')
-      .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, frozen_from, frozen_until, provider_plan_ref, failed_charge_attempts, last_failed_at, profiles(full_name)')
+      .select('id, athlete_id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, frozen_from, frozen_until, is_trial, provider_plan_ref, failed_charge_attempts, last_failed_at, profiles(full_name)')
       .eq('box_id', profile.box_id)
       .order('payment_status')
       .order('start_date', { ascending: false }),
@@ -86,7 +86,7 @@ export default async function PaymentsPage() {
       .limit(10),
     supabase
       .from('membership_plans')
-      .select('id, name, monthly_price_aed, provider_plan_ref, active')
+      .select('id, name, monthly_price_aed, provider_plan_ref, active, is_trial, trial_days')
       .eq('box_id', profile.box_id)
       .order('active', { ascending: false })
       .order('name'),
@@ -100,6 +100,7 @@ export default async function PaymentsPage() {
   const overdueCount = memberships?.filter((m) => m.payment_status === 'overdue').length ?? 0
 
   const todayIso = new Date().toISOString().slice(0, 10)
+  const athletesWithTrials = [...new Set((memberships ?? []).filter((m) => m.is_trial).map((m) => m.athlete_id as string))]
   const active = memberships?.filter((m) => !m.end_date && !isFrozenOn(m, todayIso)) ?? []
   const mrr = active.reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
   const collected = active.filter((m) => m.payment_status === 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
@@ -212,7 +213,7 @@ export default async function PaymentsPage() {
             boxShadow: 'var(--c-shadow-sm)',
           }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Add membership</p>
-            <AddMembershipForm athletes={athletes ?? []} stripeConnected={stripeConnected} plans={(plans ?? []).filter((p) => p.active)} />
+            <AddMembershipForm athletes={athletes ?? []} stripeConnected={stripeConnected} plans={(plans ?? []).filter((p) => p.active)} athletesWithTrials={athletesWithTrials} />
           </div>
 
           {/* Recent overrides (30 days) */}
@@ -382,6 +383,9 @@ export default async function PaymentsPage() {
                           <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
                           {m.payment_status}
                         </span>
+                        {m.is_trial && (
+                          <span className="mono" style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>Trial{m.end_date ? ` · ends ${m.end_date}` : ''}</span>
+                        )}
                         {isFrozenOn(m, todayIso) && (
                           <span className="mono" style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: 'var(--c-warn-ink)' }}>❄️ Frozen</span>
                         )}

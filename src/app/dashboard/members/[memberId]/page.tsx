@@ -9,6 +9,7 @@ import { MembershipLifecycle } from './_components/membership-lifecycle'
 import { ChangePlan } from './_components/change-plan'
 import { MemberTags } from './_components/member-tags'
 import { HouseholdCard } from './_components/household-card'
+import { SkillsEditor } from './_components/skills-editor'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -165,6 +166,12 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     : { data: [] as { tag: string; athlete_id: string }[] }
   const memberTags = (tagRows ?? []).filter((r) => r.athlete_id === params.memberId).map((r) => r.tag).sort()
   const tagSuggestions = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
+
+  // Skills (#36): staff assess belts per skill for this member.
+  const { data: skillRows } = isStaff
+    ? await supabase.from('skill_levels').select('skill_key, belt').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id)
+    : { data: [] as { skill_key: string; belt: string }[] }
+  const skillLevels: Record<string, string> = Object.fromEntries((skillRows ?? []).map((r) => [r.skill_key, r.belt]))
 
   // Household (#30): owner-managed. Members of this member's household + the box's households (to add to one).
   const { data: household } = isOwner && member.household_id
@@ -338,6 +345,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
                 <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Tags</div>
                 <MemberTags athleteId={member.id} tags={memberTags} suggestions={tagSuggestions} />
+              </div>
+            )}
+
+            {isStaff && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Skills</div>
+                <SkillsEditor athleteId={member.id} levels={skillLevels} />
               </div>
             )}
 

@@ -135,7 +135,9 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
       : Promise.resolve({ data: [] as { id: string; kind: string; credits_remaining: number; credits_total: number; expires_at: string | null; packages: { name: string } | { name: string }[] | null }[] }),
   ])
 
-  const activeMembership = memberships?.find((m) => !m.end_date) ?? null
+  const today = new Date().toISOString().slice(0, 10)
+  // A membership with a *future* end_date (scheduled to cancel) is still the active one.
+  const activeMembership = memberships?.find((m) => !m.end_date || m.end_date >= today) ?? null
   const rs = activeMembership ? (STATUS_STYLES[activeMembership.payment_status] ?? STATUS_STYLES.unpaid) : null
 
   // Consistency (Committed Club): full checked-in history (the bookings list above is capped at 10).
@@ -151,7 +153,6 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
       return (ci as { starts_at: string } | null)?.starts_at?.slice(0, 10) ?? null
     })
     .filter((d): d is string => d !== null)
-  const today = new Date().toISOString().slice(0, 10)
   const consistencyTotal = totalCheckins(checkInDates)
   const consistencyStreak = currentStreakWeeks(checkInDates, today)
   const consistencyBadge = currentMilestone(consistencyTotal)

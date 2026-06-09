@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/sidebar'
 import { SettingsForm } from './_components/settings-form'
 import { env } from '@/env'
 import { TvDisplayCard } from './_components/tv-display-card'
+import { BookingPolicyCard } from './_components/booking-policy-card'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -27,7 +28,7 @@ export default async function SettingsPage() {
   const [{ data: box }, { count: stripeConnectedCount }] = await Promise.all([
     supabase
       .from('boxes')
-      .select('trn, legal_name, billing_address, tv_token')
+      .select('trn, legal_name, billing_address, tv_token, booking_close_minutes, late_cancel_hours')
       .eq('id', profile.box_id)
       .single(),
     supabase
@@ -65,6 +66,7 @@ export default async function SettingsPage() {
               stripeConnected={stripeConnected}
             />
             <TvDisplayCard link={box?.tv_token ? `${env.NEXT_PUBLIC_APP_URL}/tv/${box.tv_token}` : null} />
+            <BookingPolicyCard closeMinutes={box?.booking_close_minutes ?? 0} lateCancelHours={box?.late_cancel_hours ?? 0} />
           </div>
         </div>
       </div>

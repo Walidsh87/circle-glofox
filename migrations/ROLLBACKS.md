@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`041` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`042` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,14 @@ Reverse procedures for migrations `008`–`041` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 042_email_campaigns
+```sql
+DROP TABLE IF EXISTS email_templates;
+DROP INDEX IF EXISTS idx_broadcast_recipients_resend;
+ALTER TABLE broadcast_recipients DROP COLUMN IF EXISTS clicked_at, DROP COLUMN IF EXISTS opened_at, DROP COLUMN IF EXISTS resend_id;
+ALTER TABLE broadcasts DROP COLUMN IF EXISTS template_id, DROP COLUMN IF EXISTS body_blocks;
+```
 
 ### 041_broadcasts
 ```sql

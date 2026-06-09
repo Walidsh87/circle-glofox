@@ -6,6 +6,7 @@ import { EditMemberForm } from './_components/edit-member-form'
 import { SellPackage } from './_components/sell-package'
 import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } from '@/lib/consistency'
 import { MembershipLifecycle } from './_components/membership-lifecycle'
+import { ChangePlan } from './_components/change-plan'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -141,13 +142,16 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   if (!member) notFound()
 
   const isOwner = viewer.role === 'owner'
-  const [{ data: activePackages }, { data: memberCredits }] = await Promise.all([
+  const [{ data: activePackages }, { data: memberCredits }, { data: planList }] = await Promise.all([
     isOwner
       ? supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', viewer.box_id).eq('active', true).order('name')
       : Promise.resolve({ data: [] as { id: string; name: string; type: string; credit_count: number; price_aed: number }[] }),
     isOwner
       ? supabase.from('package_credits').select('id, kind, credits_remaining, credits_total, expires_at, packages(name)').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id).order('created_at', { ascending: false })
       : Promise.resolve({ data: [] as { id: string; kind: string; credits_remaining: number; credits_total: number; expires_at: string | null; packages: { name: string } | { name: string }[] | null }[] }),
+    isOwner
+      ? supabase.from('membership_plans').select('id, name, monthly_price_aed').eq('box_id', viewer.box_id).eq('active', true).eq('is_trial', false).order('name')
+      : Promise.resolve({ data: [] as { id: string; name: string; monthly_price_aed: number | null }[] }),
   ])
 
   const today = new Date().toISOString().slice(0, 10)
@@ -282,6 +286,17 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
                 <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Membership lifecycle</div>
                 <MembershipLifecycle membershipId={activeMembership.id} frozenFrom={activeMembership.frozen_from ?? null} frozenUntil={activeMembership.frozen_until ?? null} endDate={activeMembership.end_date ?? null} today={today} />
+                {!activeMembership.is_trial && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--c-divider)' }}>
+                    <ChangePlan
+                      membershipId={activeMembership.id}
+                      currentMonthly={activeMembership.monthly_price_aed ?? null}
+                      anchor={activeMembership.last_paid_date ?? activeMembership.start_date}
+                      today={today}
+                      plans={planList ?? []}
+                    />
+                  </div>
+                )}
               </div>
             )}
 

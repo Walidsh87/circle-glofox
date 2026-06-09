@@ -46,7 +46,7 @@ test('editMembershipPlan updates scoped by id + box', async () => {
   const rls = owner(); serverCreate.mockResolvedValue(rls)
   const res = await editMembershipPlan('p1', 'Student', 200, null)
   expect(res.error).toBeNull()
-  expect(rls.builder('membership_plans').update).toHaveBeenCalledWith({ name: 'Student', monthly_price_aed: 200, provider_plan_ref: null })
+  expect(rls.builder('membership_plans').update).toHaveBeenCalledWith({ name: 'Student', monthly_price_aed: 200, provider_plan_ref: null, is_trial: false, trial_days: null })
   expect(rls.builder('membership_plans').eq).toHaveBeenCalledWith('id', 'p1')
   expect(rls.builder('membership_plans').eq).toHaveBeenCalledWith('box_id', 'b1')
 })

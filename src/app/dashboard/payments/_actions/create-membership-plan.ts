@@ -11,8 +11,11 @@ export async function createMembershipPlan(prevState: State, formData: FormData)
   const priceRaw = (formData.get('monthlyPrice') as string)?.trim()
   const monthlyPrice = priceRaw ? parseFloat(priceRaw) : null
   const providerPlanRef = (formData.get('providerPlanRef') as string)?.trim() || null
+  const isTrial = formData.get('isTrial') === 'on'
+  const trialRaw = (formData.get('trialDays') as string)?.trim()
+  const trialDays = isTrial && trialRaw ? parseInt(trialRaw) : null
 
-  const err = validatePlan(name, monthlyPrice, providerPlanRef)
+  const err = validatePlan(name, monthlyPrice, providerPlanRef, isTrial, trialDays)
   if (err) return { error: err }
 
   const supabase = await createClient()
@@ -26,6 +29,8 @@ export async function createMembershipPlan(prevState: State, formData: FormData)
     name,
     monthly_price_aed: monthlyPrice,
     provider_plan_ref: providerPlanRef,
+    is_trial: isTrial,
+    trial_days: trialDays,
   })
   if (error) return { error: error.message }
 

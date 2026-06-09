@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`033` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`034` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,16 @@ Reverse procedures for migrations `008`–`033` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 034_member_fields
+```sql
+ALTER TABLE profiles
+  DROP COLUMN IF EXISTS emergency_contact_name,
+  DROP COLUMN IF EXISTS emergency_contact_phone,
+  DROP COLUMN IF EXISTS blood_type,
+  DROP COLUMN IF EXISTS allergies,
+  DROP COLUMN IF EXISTS date_of_birth;   -- ⚠️ deletes member safety/medical data (export first)
+```
 
 ### 033_membership_freeze
 ```sql

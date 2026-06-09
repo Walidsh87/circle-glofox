@@ -131,16 +131,17 @@ export type BroadcastMessage = { to: string; subject: string; html: string }
 
 export async function sendBroadcastEmails(
   messages: BroadcastMessage[]
-): Promise<{ ok: boolean; error: string | null }> {
-  if (messages.length === 0) return { ok: true, error: null }
+): Promise<{ ok: boolean; error: string | null; ids: (string | null)[] }> {
+  if (messages.length === 0) return { ok: true, error: null, ids: [] }
   try {
-    const { error } = await resend.batch.send(
+    const { data, error } = await resend.batch.send(
       messages.map((m) => ({ from: env.RESEND_FROM_EMAIL, to: m.to, subject: m.subject, html: m.html }))
     )
-    if (error) return { ok: false, error: error.message }
-    return { ok: true, error: null }
+    if (error) return { ok: false, error: error.message, ids: [] }
+    const ids = (data?.data ?? []).map((d: { id: string }) => d.id ?? null)
+    return { ok: true, error: null, ids }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Unknown error' }
+    return { ok: false, error: e instanceof Error ? e.message : 'Unknown error', ids: [] }
   }
 }
 

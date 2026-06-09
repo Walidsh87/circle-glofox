@@ -7,6 +7,7 @@ import { AddMembershipForm } from './_components/add-membership-form'
 import { PaymentActions } from './_components/payment-actions'
 import { CreateStripePlanForm } from './_components/create-stripe-plan-form'
 import { RemindersToggle } from './_components/reminders-toggle'
+import { isFrozenOn } from '@/lib/membership-status'
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   paid:    { bg: 'var(--c-ok-soft)',    color: 'var(--c-ok-ink)' },
@@ -44,7 +45,7 @@ export default async function PaymentsPage() {
   const [{ data: memberships }, { data: athletes }, { data: box }, { data: overrides }, { data: reminders }] = await Promise.all([
     supabase
       .from('memberships')
-      .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, provider_plan_ref, failed_charge_attempts, last_failed_at, profiles(full_name)')
+      .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, frozen_from, frozen_until, provider_plan_ref, failed_charge_attempts, last_failed_at, profiles(full_name)')
       .eq('box_id', profile.box_id)
       .order('payment_status')
       .order('start_date', { ascending: false }),
@@ -90,7 +91,8 @@ export default async function PaymentsPage() {
   const paidCount = memberships?.filter((m) => m.payment_status === 'paid').length ?? 0
   const overdueCount = memberships?.filter((m) => m.payment_status === 'overdue').length ?? 0
 
-  const active = memberships?.filter((m) => !m.end_date) ?? []
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const active = memberships?.filter((m) => !m.end_date && !isFrozenOn(m, todayIso)) ?? []
   const mrr = active.reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
   const collected = active.filter((m) => m.payment_status === 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
   const outstanding = active.filter((m) => m.payment_status !== 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
@@ -346,6 +348,12 @@ export default async function PaymentsPage() {
                           <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor' }} />
                           {m.payment_status}
                         </span>
+                        {isFrozenOn(m, todayIso) && (
+                          <span className="mono" style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: 'var(--c-warn-ink)' }}>❄️ Frozen</span>
+                        )}
+                        {m.end_date && m.end_date >= todayIso && (
+                          <span className="mono" style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: 'var(--c-danger)' }}>Cancels {m.end_date}</span>
+                        )}
                         {(m.failed_charge_attempts ?? 0) > 0 && (
                           <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--c-warn-ink)' }}>
                             {m.failed_charge_attempts} card {m.failed_charge_attempts === 1 ? 'failure' : 'failures'}

@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/sidebar'
 import { EditMemberForm } from './_components/edit-member-form'
 import { SellPackage } from './_components/sell-package'
 import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } from '@/lib/consistency'
+import { MembershipLifecycle } from './_components/membership-lifecycle'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -79,7 +80,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
       .single(),
     supabase
       .from('memberships')
-      .select('id, plan_name, monthly_price_aed, payment_status, start_date, last_paid_date, end_date')
+      .select('id, plan_name, monthly_price_aed, payment_status, start_date, last_paid_date, end_date, frozen_from, frozen_until')
       .eq('athlete_id', params.memberId)
       .eq('box_id', viewer.box_id)
       .order('start_date', { ascending: false }),
@@ -250,6 +251,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                 )}
               </div>
             </div>
+
+            {viewer.role === 'owner' && activeMembership && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Membership lifecycle</div>
+                <MembershipLifecycle membershipId={activeMembership.id} frozenFrom={activeMembership.frozen_from ?? null} frozenUntil={activeMembership.frozen_until ?? null} endDate={activeMembership.end_date ?? null} today={today} />
+              </div>
+            )}
 
             {/* Consistency (Committed Club) */}
             <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>

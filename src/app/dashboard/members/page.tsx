@@ -12,7 +12,7 @@ type Tab = 'members' | 'coaches' | 'leads'
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: { tab?: string }
+  searchParams: { tab?: string; tag?: string }
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -58,6 +58,20 @@ export default async function MembersPage({
         .eq('box_id', profile.box_id)
         .order('created_at', { ascending: false })
     : { data: null }
+
+  // Tags (#33): box-scoped, grouped by athlete, for the members/coaches tabs.
+  const tagFilter = searchParams.tag ?? null
+  const { data: tagRows } = tab !== 'leads'
+    ? await supabase.from('member_tags').select('athlete_id, tag').eq('box_id', profile.box_id)
+    : { data: [] as { athlete_id: string; tag: string }[] }
+  const tagsByAthlete = new Map<string, string[]>()
+  for (const r of tagRows ?? []) {
+    const arr = tagsByAthlete.get(r.athlete_id) ?? []
+    arr.push(r.tag)
+    tagsByAthlete.set(r.athlete_id, arr)
+  }
+  const allTags = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
+  const shownPeople = (people ?? []).filter((p) => !tagFilter || (tagsByAthlete.get(p.id) ?? []).includes(tagFilter))
 
   const TABS = [
     { key: 'members' as Tab, label: 'Members',  count: memberCount ?? 0 },
@@ -143,6 +157,15 @@ export default async function MembersPage({
                 <AddMemberForm defaultRole={tab === 'coaches' ? 'coach' : 'athlete'} />
               </div>
 
+              {allTags.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                  <Link href={`/dashboard/members?tab=${tab}`} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, textDecoration: 'none', background: !tagFilter ? 'var(--circle-lime-soft)' : 'var(--c-surface-alt)', color: !tagFilter ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)' }}>All</Link>
+                  {allTags.map((t) => (
+                    <Link key={t} href={`/dashboard/members?tab=${tab}&tag=${encodeURIComponent(t)}`} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, textDecoration: 'none', background: tagFilter === t ? 'var(--circle-lime-soft)' : 'var(--c-surface-alt)', color: tagFilter === t ? 'var(--circle-lime-ink)' : 'var(--c-ink-2)' }}>{t}</Link>
+                  ))}
+                </div>
+              )}
+
               <div style={{
                 background: 'var(--c-surface)', border: '1px solid var(--c-border)',
                 borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
@@ -158,12 +181,19 @@ export default async function MembersPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {people?.map((member) => (
+                    {shownPeople.map((member) => (
                       <tr key={member.id} style={{ borderBottom: '1px solid var(--c-divider)' }}>
                         <td style={{ padding: '12px 16px', fontWeight: 600 }}>
                           <Link href={`/dashboard/members/${member.id}`} className="member-link" style={{ color: 'var(--c-ink)', textDecoration: 'none' }}>
                             {member.full_name}
                           </Link>
+                          {(tagsByAthlete.get(member.id) ?? []).length > 0 && (
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                              {(tagsByAthlete.get(member.id) ?? []).map((t) => (
+                                <span key={t} className="mono" style={{ fontSize: 10, fontWeight: 700, color: 'var(--circle-lime-ink)', background: 'var(--circle-lime-soft)', padding: '1px 6px', borderRadius: 999 }}>{t}</span>
+                              ))}
+                            </div>
+                          )}
                         </td>
                         <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{member.email}</td>
                         <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{member.phone ?? '—'}</td>
@@ -183,10 +213,10 @@ export default async function MembersPage({
                         </td>
                       </tr>
                     ))}
-                    {(!people || people.length === 0) && (
+                    {shownPeople.length === 0 && (
                       <tr>
                         <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
-                          No {tab} yet.
+                          {tagFilter ? `No ${tab} with the tag “${tagFilter}”.` : `No ${tab} yet.`}
                         </td>
                       </tr>
                     )}

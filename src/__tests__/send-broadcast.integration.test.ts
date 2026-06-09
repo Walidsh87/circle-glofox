@@ -4,8 +4,8 @@ import { makeSupabaseMock } from './helpers/supabase-mock'
 const { serverCreate, serviceCreate, emailMock } = vi.hoisted(() => ({
   serverCreate: vi.fn(),
   serviceCreate: vi.fn(),
-  emailMock: vi.fn<(messages: { to: string; subject: string; html: string }[]) => Promise<{ ok: boolean; error: string | null }>>(
-    () => Promise.resolve({ ok: true, error: null })
+  emailMock: vi.fn<(messages: { to: string; subject: string; html: string }[]) => Promise<{ ok: boolean; error: string | null; ids: (string | null)[] }>>(
+    () => Promise.resolve({ ok: true, error: null, ids: ['re_1'] })
   ),
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
@@ -14,6 +14,7 @@ vi.mock('@/lib/email', () => ({ sendBroadcastEmails: emailMock }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 import { sendBroadcast } from '@/app/dashboard/broadcasts/_actions/send-broadcast'
+import type { Block } from '@/lib/email-blocks'
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -80,4 +81,20 @@ test('opted-out member is skipped, not emailed', async () => {
   expect(emailMock).not.toHaveBeenCalled()
   const recInsert = svc.builder('broadcast_recipients').insert.mock.calls[0][0]
   expect(recInsert).toEqual(expect.arrayContaining([expect.objectContaining({ athlete_id: 'a1', status: 'skipped' })]))
+})
+
+test('a campaign with blocks stores body_blocks and the resend id', async () => {
+  serverCreate.mockResolvedValue(ownerRls())
+  const svc = service([{ id: 'a1', full_name: 'Sarah Lee', email: 's@x.com', marketing_opt_out: false, unsubscribe_token: 'tok1' }])
+  serviceCreate.mockReturnValue(svc)
+
+  const blocks = [{ type: 'heading', text: 'Hi {{first_name}}' }, { type: 'paragraph', text: 'Welcome' }] as const
+  const res = await sendBroadcast('Hi', 'Hi\n\nWelcome', 'all', null, blocks as unknown as Block[])
+
+  expect(res.error).toBeNull()
+  expect(res.sent).toBe(1)
+  const bcInsert = svc.builder('broadcasts').insert.mock.calls[0][0]
+  expect(bcInsert).toEqual(expect.objectContaining({ body_blocks: blocks }))
+  const updateCalls = svc.builder('broadcast_recipients').update.mock.calls.map((c: unknown[]) => c[0])
+  expect(updateCalls).toEqual(expect.arrayContaining([expect.objectContaining({ status: 'sent', resend_id: 're_1' })]))
 })

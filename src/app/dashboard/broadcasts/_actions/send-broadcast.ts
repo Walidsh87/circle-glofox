@@ -7,7 +7,8 @@ import { env } from '@/env'
 import { validateBroadcast } from '../_lib/broadcast-validation'
 import { loadCandidates } from '../_lib/load-candidates'
 import { selectRecipients, type Segment } from '@/lib/broadcast-audience'
-import { renderBroadcastBody, firstNameOf } from '@/lib/broadcast-render'
+import { renderEmail, firstNameOf } from '@/lib/broadcast-render'
+import { validateBlocks, flattenBlocks, type Block } from '@/lib/email-blocks'
 import { sendBroadcastEmails, type BroadcastMessage } from '@/lib/email'
 
 type Result = { error: string | null; broadcastId?: string; sent?: number; failed?: number; skipped?: number }
@@ -18,7 +19,8 @@ export async function sendBroadcast(
   subject: string,
   body: string,
   audienceStatus: string,
-  tag: string | null
+  tag: string | null,
+  bodyBlocks?: Block[] | null
 ): Promise<Result> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -26,13 +28,18 @@ export async function sendBroadcast(
   const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
   if (!caller || caller.role !== 'owner') return { error: 'Only owners can send broadcasts.' }
 
-  const vErr = validateBroadcast(subject, body, audienceStatus)
+  // Blocks (if any) flatten to the NOT-NULL body column; subject + audience always validated.
+  const effectiveBody = bodyBlocks ? (flattenBlocks(bodyBlocks) || subject.trim()) : body.trim()
+  const vErr = validateBroadcast(subject, effectiveBody, audienceStatus)
   if (vErr) return { error: vErr }
+  if (bodyBlocks) {
+    const bErr = validateBlocks(bodyBlocks)
+    if (bErr) return { error: bErr }
+  }
 
   const service = createServiceClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
   const today = new Date().toISOString().slice(0, 10)
   const subjectClean = subject.trim()
-  const bodyClean = body.trim()
 
   const candidates = await loadCandidates(service, caller.box_id, today)
   const { included, skippedOptedOut, skippedNoEmail } = selectRecipients(candidates, { status: audienceStatus as Segment, tag })
@@ -43,7 +50,8 @@ export async function sendBroadcast(
     .insert({
       box_id: caller.box_id,
       subject: subjectClean,
-      body: bodyClean,
+      body: effectiveBody,
+      body_blocks: bodyBlocks ?? null,
       audience_status: audienceStatus,
       audience_tag: tag,
       created_by: user.id,
@@ -77,20 +85,29 @@ export async function sendBroadcast(
     const messages: BroadcastMessage[] = chunk.map((c) => ({
       to: c.email as string,
       subject: subjectClean,
-      html: renderBroadcastBody(bodyClean, {
-        firstName: firstNameOf(c.full_name),
-        gymName,
-        unsubscribeUrl: `${env.NEXT_PUBLIC_APP_URL}/unsubscribe/${tokenByAthlete.get(c.athlete_id) ?? ''}`,
+      html: renderEmail({
+        blocks: bodyBlocks ?? null,
+        plainBody: effectiveBody,
+        ctx: {
+          firstName: firstNameOf(c.full_name),
+          gymName,
+          unsubscribeUrl: `${env.NEXT_PUBLIC_APP_URL}/unsubscribe/${tokenByAthlete.get(c.athlete_id) ?? ''}`,
+        },
       }),
     }))
-    const ids = chunk.map((c) => c.athlete_id)
-    const { ok, error } = await sendBroadcastEmails(messages)
-    if (ok) {
+    const result = await sendBroadcastEmails(messages)
+    const ids = result.ids ?? []
+    if (result.ok) {
       sent += chunk.length
-      await service.from('broadcast_recipients').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('broadcast_id', broadcastId).in('athlete_id', ids)
+      const now = new Date().toISOString()
+      // Per-recipient update so each row gets its own resend_id (for the analytics webhook).
+      for (let j = 0; j < chunk.length; j++) {
+        await service.from('broadcast_recipients').update({ status: 'sent', sent_at: now, resend_id: ids[j] ?? null }).eq('broadcast_id', broadcastId).eq('athlete_id', chunk[j].athlete_id)
+      }
     } else {
       failed += chunk.length
-      await service.from('broadcast_recipients').update({ status: 'failed', error: error ?? 'send failed' }).eq('broadcast_id', broadcastId).in('athlete_id', ids)
+      const failIds = chunk.map((c) => c.athlete_id)
+      await service.from('broadcast_recipients').update({ status: 'failed', error: result.error ?? 'send failed' }).eq('broadcast_id', broadcastId).in('athlete_id', failIds)
     }
   }
 

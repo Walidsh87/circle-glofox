@@ -11,6 +11,8 @@ const schema = z.object({
   PORTAL_SIGN_SECRET: z.string().min(32),
   // Optional: enables the AI workout parser (#16). Absent → feature reports "not configured".
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  // Optional: Resend webhook signing secret. Enables email open/click analytics (#41).
+  RESEND_WEBHOOK_SECRET: z.string().min(1).optional(),
   // Optional: when both are set, per-IP rate limiting activates (src/lib/rate-limit.ts).
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
@@ -26,6 +28,7 @@ export const env = schema.parse({
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
   PORTAL_SIGN_SECRET: process.env.PORTAL_SIGN_SECRET,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 })

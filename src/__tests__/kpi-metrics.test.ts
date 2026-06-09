@@ -80,3 +80,15 @@ describe('computeKpis', () => {
     expect(k.snapshot).toEqual({ activeMembers: 0, mrr: 0, arm: 0, leg: 0, ltv: 0, churnPct: 0 })
   })
 })
+
+describe('frozen membership exclusion', () => {
+  const frozen: MembershipRow[] = [{ athlete_id: 'f', monthly_price_aed: 300, start_date: '2025-01-01', end_date: null, frozen_from: '2026-03-01', frozen_until: '2026-05-01' }]
+  test('excluded from MRR/active inside the freeze window', () => {
+    expect(mrrAt(frozen, '2026-04-01')).toBe(0)
+    expect(activeAt(frozen, '2026-04-01')).toBe(0)
+  })
+  test('included again after auto-resume', () => {
+    expect(mrrAt(frozen, '2026-06-01')).toBe(300)
+    expect(activeAt(frozen, '2026-06-01')).toBe(1)
+  })
+})

@@ -36,7 +36,7 @@ export default async function KpiPage() {
   const today = todayInTimezone(timezone)
 
   const [{ data: memberships }, { data: creditRows }] = await Promise.all([
-    supabase.from('memberships').select('athlete_id, monthly_price_aed, start_date, end_date').eq('box_id', profile.box_id),
+    supabase.from('memberships').select('athlete_id, monthly_price_aed, start_date, end_date, frozen_from, frozen_until').eq('box_id', profile.box_id),
     supabase.from('package_credits').select('created_at, packages(price_aed)').eq('box_id', profile.box_id),
   ])
 

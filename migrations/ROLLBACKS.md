@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`032` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`033` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,13 @@ Reverse procedures for migrations `008`–`032` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 033_membership_freeze
+```sql
+ALTER TABLE memberships DROP COLUMN IF EXISTS frozen_from;
+ALTER TABLE memberships DROP COLUMN IF EXISTS frozen_until;
+-- (Re-run migration 010's original cron_eligible_memberships body to drop the frozen filter.)
+```
 
 ### 032_member_achievements
 ```sql

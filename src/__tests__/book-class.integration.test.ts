@@ -85,6 +85,32 @@ test('no membership + a credit → consumes one and books linked to it', async (
   )
 })
 
+test('a dependent books free via the primary’s paid membership', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'dep1' },
+    results: {
+      class_instances: { data: { capacity: 10, box_id: 'b1' }, error: null },
+      profiles: { data: { box_id: 'b1', household_id: 'hh1' }, error: null },
+      households: { data: { primary_athlete_id: 'primary1' }, error: null },
+      bookings: { data: null, error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const svc = makeSupabaseMock({
+    results: {
+      memberships: { data: [{ payment_status: 'paid', end_date: null }], error: null },
+      package_credits: { data: [], error: null },
+      bookings: { data: null, error: null },
+    },
+  })
+  serviceCreate.mockReturnValue(svc)
+
+  const res = await bookClass('class-1')
+  expect(res.error).toBeNull()
+  expect(svc.builder('memberships').eq).toHaveBeenCalledWith('athlete_id', 'primary1') // membership resolved to the primary
+  expect(rls.builder('bookings').insert).toHaveBeenCalledWith(expect.objectContaining({ athlete_id: 'dep1' })) // booked for self
+})
+
 test('credit consumed but booking insert fails → refunds the credit', async () => {
   serverCreate.mockResolvedValue(rlsClient())
   const svc = makeSupabaseMock({

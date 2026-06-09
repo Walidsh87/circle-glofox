@@ -32,10 +32,18 @@ export async function checkIn(
     return { error: 'Only staff can check in athletes.' }
   }
 
+  // Family: a member's entitlement resolves through their household's primary.
+  let billingAthleteId = athleteId
+  const { data: athleteProfile } = await supabase.from('profiles').select('household_id').eq('id', athleteId).single()
+  if (athleteProfile?.household_id) {
+    const { data: hh } = await supabase.from('households').select('primary_athlete_id').eq('id', athleteProfile.household_id).single()
+    if (hh?.primary_athlete_id) billingAthleteId = hh.primary_athlete_id
+  }
+
   const { data: memberships } = await supabase
     .from('memberships')
     .select('payment_status, end_date, last_paid_date, frozen_from, frozen_until')
-    .eq('athlete_id', athleteId)
+    .eq('athlete_id', billingAthleteId)
     .eq('box_id', profile.box_id)
 
   const today = new Date().toISOString().slice(0, 10)

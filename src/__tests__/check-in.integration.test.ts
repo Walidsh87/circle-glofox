@@ -65,6 +65,39 @@ test('blocks a frozen athlete with no credit-backed booking', async () => {
   expect(res.blocked?.reason).toBe('frozen')
 })
 
+test('a dependent checks in via the household primary’s paid membership', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach', household_id: 'hh1' }, error: null },
+      households: { data: { primary_athlete_id: 'primary1' }, error: null },
+      memberships: { data: [{ payment_status: 'paid', end_date: null }], error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  serviceCreate.mockReturnValue(makeSupabaseMock({ results: { bookings: { data: { credit_id: null }, error: null } } }))
+
+  const res = await checkIn('class-1', 'dependent1')
+  expect(res.error).toBeNull()
+  expect(rls.builder('memberships').eq).toHaveBeenCalledWith('athlete_id', 'primary1') // resolved to the primary
+})
+
+test('a dependent is blocked when the primary is unpaid and there is no credit', async () => {
+  serverCreate.mockResolvedValue(makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach', household_id: 'hh1' }, error: null },
+      households: { data: { primary_athlete_id: 'primary1' }, error: null },
+      memberships: { data: [{ payment_status: 'unpaid', end_date: null }], error: null },
+    },
+  }))
+  serviceCreate.mockReturnValue(makeSupabaseMock({ results: { bookings: { data: { credit_id: null }, error: null } } }))
+
+  const res = await checkIn('class-1', 'dependent1')
+  expect(res.error).toBe('BLOCKED')
+  expect(res.blocked?.reason).toBe('unpaid')
+})
+
 test('allows an athlete with an active-but-unpaid membership when the booking is credit-backed', async () => {
   // 'unpaid' (active row, not paid) and 'no_membership' share the credit fall-through path.
   serverCreate.mockResolvedValue(makeSupabaseMock({

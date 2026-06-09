@@ -22,11 +22,18 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('box_id')
+    .select('box_id, household_id')
     .eq('id', user.id)
     .single()
   if (!profile) return { error: 'Profile not found.' }
   if (instance.box_id !== profile.box_id) return { error: 'Class not found.' }
+
+  // Family: membership entitlement resolves through the household's primary (credits stay per-person).
+  let billingAthleteId = user.id
+  if (profile.household_id) {
+    const { data: hh } = await supabase.from('households').select('primary_athlete_id').eq('id', profile.household_id).single()
+    if (hh?.primary_athlete_id) billingAthleteId = hh.primary_athlete_id
+  }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: 'Server configuration error.' }
   const service = createServiceClient(
@@ -49,7 +56,7 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   const { data: memberships } = await service
     .from('memberships')
     .select('payment_status, end_date, frozen_from, frozen_until')
-    .eq('athlete_id', user.id)
+    .eq('athlete_id', billingAthleteId)
     .eq('box_id', profile.box_id)
   const membershipPaid = getMembershipStatus(memberships ?? [], today) === 'paid'
 

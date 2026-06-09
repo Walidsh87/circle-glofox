@@ -12,6 +12,7 @@ export async function saveMembership(prevState: State, formData: FormData): Prom
   const monthlyPrice = parseFloat(formData.get('monthlyPrice') as string) || null
   const startDate = formData.get('startDate') as string
   const stripePriceId = (formData.get('stripePriceId') as string)?.trim() || null
+  const planId = (formData.get('planId') as string)?.trim() || null
 
   const validationError = validateMembershipInput(athleteId, planName, startDate)
   if (validationError) return { error: validationError }
@@ -36,6 +37,7 @@ export async function saveMembership(prevState: State, formData: FormData): Prom
     start_date: startDate,
     payment_status: 'unpaid',
     ...(stripePriceId ? { provider_plan_ref: stripePriceId } : {}),
+    ...(planId ? { plan_id: planId } : {}),
   })
 
   if (error) {

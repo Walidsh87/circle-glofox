@@ -28,8 +28,8 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
 | **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
 | **v2 Tier 2–13 (~95 items)** | 13 ✅ (Tier 2: #11 WOD programming + batch import, #12 auto-PR, #13 coach prep, #14 whiteboard/TV, #16 AI parser, #17 scaling · Tier 3: #18 at-risk scoring, **#19 KPI dashboard**, **#20 Committed Club**, **#24 workout timer**, **#26 waitlist**, #23 1RM charts, #25 feed) · #21 mobile API ⬜ (deferred) · rest ⬜. **Tier 2 done bar #15. Tier 3 COMPLETE.** |
-| **Migrations** | 008–033 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028`–`033`** (028 TV; 029 WOD scaling; 030 retention outreach; 031 class waitlist; 032 Committed Club achievements; 033 membership freeze cols + cron-fn frozen-skip). |
-| **Next session priority** | Run migrations 028–033 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. **Tier 3 complete; Tier 4 started (#28+#29 done).** Continue Tier 4 (#27 plan catalog · #33 tags · #34 custom fields · #35 booking policies · #36 belt progression) or #15 (programming marketplace). |
+| **Migrations** | 008–034 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028`–`034`** (028 TV; 029 WOD scaling; 030 retention outreach; 031 class waitlist; 032 Committed Club; 033 membership freeze + cron-fn frozen-skip; 034 member safety/medical cols). |
+| **Next session priority** | Run migrations 028–034 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. **Tier 3 complete; Tier 4 in progress (#28+#29+#34 done).** Continue Tier 4 (#27 plan catalog · #33 tags · #35 booking policies · #36 belt progression · #30 family · #31 prorations · #32 trials) or #15 (programming marketplace). |
 
 ---
 
@@ -175,7 +175,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 31. ⬜ `[G-gap]` Prorations on mid-cycle plan changes
 32. ⬜ `[G-gap]` Trial passes / intro offers *(partially addressed by 🆕 Packages umbrella)*
 33. ⬜ `[G-gap]` Member tags + segmentation (manual + dynamic)
-34. ⬜ `[G-gap]` Custom member fields (emergency contact, Emirates ID, blood type, allergies)
+34. ✅ `[G-gap]` **Custom member fields** — fixed typed columns on `profiles` (mig 034): emergency contact name/phone, blood type, allergies, date of birth (**Emirates ID deselected**; no field-builder — YAGNI). Pure `validateMemberFields` (blood-type enum, no-future/valid DOB, length caps) gates the staff-only `updateMember` before write; new inputs in `EditMemberForm`; "Personal & medical" card on the member page (staff + self; **allergies highlighted ⚠️**, age derived from DOB); fields added to the PDPL export. Spec `…custom-member-fields-design.md`.
 35. ⬜ `[G-gap]` Booking-rule policies (booking window, late-cancel window, no-show fee, credit refund cutoff)
 36. ⬜ `[Wedge]` **Skills / level / belt progression tracking** — CrossFit Level Method
 

@@ -8,6 +8,7 @@ import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } fr
 import { MembershipLifecycle } from './_components/membership-lifecycle'
 import { ChangePlan } from './_components/change-plan'
 import { MemberTags } from './_components/member-tags'
+import { HouseholdCard } from './_components/household-card'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -91,7 +92,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, email, phone, role, created_at, emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth')
+      .select('id, full_name, email, phone, role, created_at, emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth, household_id')
       .eq('id', params.memberId)
       .eq('box_id', viewer.box_id)
       .single(),
@@ -164,6 +165,17 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     : { data: [] as { tag: string; athlete_id: string }[] }
   const memberTags = (tagRows ?? []).filter((r) => r.athlete_id === params.memberId).map((r) => r.tag).sort()
   const tagSuggestions = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
+
+  // Household (#30): owner-managed. Members of this member's household + the box's households (to add to one).
+  const { data: household } = isOwner && member.household_id
+    ? await supabase.from('households').select('id, name, primary_athlete_id').eq('id', member.household_id).single()
+    : { data: null }
+  const { data: householdMembers } = isOwner && member.household_id
+    ? await supabase.from('profiles').select('id, full_name').eq('household_id', member.household_id)
+    : { data: [] as { id: string; full_name: string }[] }
+  const { data: allHouseholds } = isOwner
+    ? await supabase.from('households').select('id, name').eq('box_id', viewer.box_id).order('name')
+    : { data: [] as { id: string; name: string }[] }
 
   // A membership with a *future* end_date (scheduled to cancel) is still the active one.
   const activeMembership = memberships?.find((m) => !m.end_date || m.end_date >= today) ?? null
@@ -326,6 +338,18 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
                 <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Tags</div>
                 <MemberTags athleteId={member.id} tags={memberTags} suggestions={tagSuggestions} />
+              </div>
+            )}
+
+            {isOwner && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Household</div>
+                <HouseholdCard
+                  memberId={member.id}
+                  household={household ? { id: household.id, name: household.name, primaryAthleteId: household.primary_athlete_id } : null}
+                  members={householdMembers ?? []}
+                  allHouseholds={(allHouseholds ?? []).filter((h) => h.id !== member.household_id)}
+                />
               </div>
             )}
 

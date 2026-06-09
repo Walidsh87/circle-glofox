@@ -30,3 +30,37 @@ test('stores plan_id when a plan is picked', async () => {
     expect.objectContaining({ plan_id: 'plan-1', plan_name: 'Unlimited', monthly_price_aed: 300 }),
   )
 })
+
+test('a free trial plan sets end_date, is_trial, and paid', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'o1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'owner' }, error: null },
+      memberships: { data: null, error: null },
+      membership_plans: { data: { monthly_price_aed: 0, is_trial: true, trial_days: 7 }, error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await saveMembership({ error: null }, form({ athleteId: 'a1', planName: '7-Day Trial', monthlyPrice: '0', startDate: '2026-06-01', planId: 'trial-1' }))
+  expect(res.error).toBeNull()
+  expect(rls.builder('memberships').insert).toHaveBeenCalledWith(expect.objectContaining({
+    is_trial: true, end_date: '2026-06-08', payment_status: 'paid', plan_id: 'trial-1',
+  }))
+})
+
+test('a priced intro trial stays unpaid', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'o1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'owner' }, error: null },
+      memberships: { data: null, error: null },
+      membership_plans: { data: { monthly_price_aed: 50, is_trial: true, trial_days: 14 }, error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await saveMembership({ error: null }, form({ athleteId: 'a1', planName: 'Intro', monthlyPrice: '50', startDate: '2026-06-01', planId: 'trial-2' }))
+  expect(res.error).toBeNull()
+  expect(rls.builder('memberships').insert).toHaveBeenCalledWith(expect.objectContaining({
+    is_trial: true, end_date: '2026-06-15', payment_status: 'unpaid',
+  }))
+})

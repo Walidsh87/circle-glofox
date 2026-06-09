@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { validateMemberFields } from '../_lib/member-fields-validation'
 
 type State = { error: string | null }
 
@@ -11,6 +12,11 @@ export async function updateMember(prevState: State, formData: FormData): Promis
   const fullName = (formData.get('fullName') as string)?.trim()
   const phone = (formData.get('phone') as string)?.trim() || null
   const role = formData.get('role') as string | null
+  const emergencyContactName = (formData.get('emergencyContactName') as string)?.trim() || null
+  const emergencyContactPhone = (formData.get('emergencyContactPhone') as string)?.trim() || null
+  const bloodType = (formData.get('bloodType') as string)?.trim() || null
+  const allergies = (formData.get('allergies') as string)?.trim() || null
+  const dateOfBirth = (formData.get('dateOfBirth') as string)?.trim() || null
 
   if (!memberId || !fullName) return { error: 'Name is required.' }
 
@@ -28,7 +34,21 @@ export async function updateMember(prevState: State, formData: FormData): Promis
     return { error: 'Access denied.' }
   }
 
-  const update: Record<string, string | null> = { full_name: fullName, phone }
+  const fieldsError = validateMemberFields(
+    { emergencyContactName, emergencyContactPhone, bloodType, allergies, dateOfBirth },
+    new Date().toISOString().slice(0, 10),
+  )
+  if (fieldsError) return { error: fieldsError }
+
+  const update: Record<string, string | null> = {
+    full_name: fullName,
+    phone,
+    emergency_contact_name: emergencyContactName,
+    emergency_contact_phone: emergencyContactPhone,
+    blood_type: bloodType,
+    allergies,
+    date_of_birth: dateOfBirth,
+  }
 
   // Only owners can change roles; never allow promoting to owner
   if (role && viewer.role === 'owner' && ['athlete', 'coach'].includes(role)) {

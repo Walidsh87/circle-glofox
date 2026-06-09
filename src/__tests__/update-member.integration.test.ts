@@ -88,4 +88,36 @@ describe('updateMember — authz orchestration', () => {
     const payload = svc.builder('profiles').update.mock.calls[0][0]
     expect(payload).not.toHaveProperty('role') // 'owner' is rejected by the escalation guard
   })
+
+  test('owner writes the new member fields', async () => {
+    serverCreate.mockResolvedValue(
+      makeSupabaseMock({ user: { id: 'owner1' }, results: { profiles: { data: { box_id: 'b1', role: 'owner' }, error: null } } }),
+    )
+    const svc = makeSupabaseMock({ results: { profiles: { data: null, error: null } } })
+    serviceCreate.mockReturnValue(svc)
+
+    const res = await updateMember({ error: null }, form({
+      memberId: 'm1', fullName: 'Bob', bloodType: 'O+', allergies: 'Peanuts',
+      dateOfBirth: '1990-05-01', emergencyContactName: 'Mum', emergencyContactPhone: '+971500000000',
+    }))
+
+    expect(res.error).toBeNull()
+    expect(svc.builder('profiles').update).toHaveBeenCalledWith(expect.objectContaining({
+      blood_type: 'O+', allergies: 'Peanuts', date_of_birth: '1990-05-01',
+      emergency_contact_name: 'Mum', emergency_contact_phone: '+971500000000',
+    }))
+  })
+
+  test('rejects an invalid blood type before writing', async () => {
+    serverCreate.mockResolvedValue(
+      makeSupabaseMock({ user: { id: 'owner1' }, results: { profiles: { data: { box_id: 'b1', role: 'owner' }, error: null } } }),
+    )
+    const svc = makeSupabaseMock({ results: { profiles: { data: null, error: null } } })
+    serviceCreate.mockReturnValue(svc)
+
+    const res = await updateMember({ error: null }, form({ memberId: 'm1', fullName: 'Bob', bloodType: 'ZZ' }))
+
+    expect(res.error).toMatch(/blood type/i)
+    expect(svc.builder('profiles')).toBeUndefined() // never reached the write
+  })
 })

@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom'
 import { useState } from 'react'
 import { updateMember } from '../_actions/update-member'
+import { BLOOD_TYPES } from '../_lib/member-fields-validation'
 
 const inputStyle: React.CSSProperties = {
   height: 36, padding: '0 12px',
@@ -37,9 +38,14 @@ type Props = {
   phone: string | null
   role: string
   viewerRole: string
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
+  bloodType: string | null
+  allergies: string | null
+  dateOfBirth: string | null
 }
 
-export function EditMemberForm({ memberId, fullName, phone, role, viewerRole }: Props) {
+export function EditMemberForm({ memberId, fullName, phone, role, viewerRole, emergencyContactName, emergencyContactPhone, bloodType, allergies, dateOfBirth }: Props) {
   const [editing, setEditing] = useState(false)
   const [state, formAction] = useFormState(async (prev: { error: string | null }, fd: FormData) => {
     const result = await updateMember(prev, fd)
@@ -87,6 +93,14 @@ export function EditMemberForm({ memberId, fullName, phone, role, viewerRole }: 
           <option value="coach">Coach</option>
         </select>
       )}
+      <input name="emergencyContactName" type="text" defaultValue={emergencyContactName ?? ''} placeholder="Emergency contact" style={{ ...inputStyle, width: 160 }} />
+      <input name="emergencyContactPhone" type="tel" defaultValue={emergencyContactPhone ?? ''} placeholder="Emergency phone" style={{ ...inputStyle, width: 150 }} />
+      <select name="bloodType" defaultValue={bloodType ?? ''} style={{ ...inputStyle, width: 96 }}>
+        <option value="">Blood —</option>
+        {BLOOD_TYPES.map((b) => <option key={b} value={b}>{b}</option>)}
+      </select>
+      <input name="dateOfBirth" type="date" defaultValue={dateOfBirth ?? ''} style={{ ...inputStyle, width: 150 }} />
+      <textarea name="allergies" defaultValue={allergies ?? ''} placeholder="Allergies / medical notes" rows={2} style={{ ...inputStyle, height: 'auto', padding: '8px 12px', width: '100%', resize: 'vertical' }} />
       <SaveButton />
       <button
         type="button"

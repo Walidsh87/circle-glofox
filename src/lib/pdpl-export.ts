@@ -6,6 +6,11 @@ export type ProfileRow = {
   role: 'owner' | 'coach' | 'athlete'
   created_at: string
   box_id: string
+  emergency_contact_name?: string | null
+  emergency_contact_phone?: string | null
+  blood_type?: string | null
+  allergies?: string | null
+  date_of_birth?: string | null
 }
 
 export type MembershipRow = {

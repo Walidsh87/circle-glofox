@@ -45,6 +45,21 @@ function formatDate(iso: string): string {
     .format(new Date(iso))
 }
 
+function ageFromDob(dob: string, today: string): number | null {
+  const b = Date.parse(dob + 'T00:00:00Z'), t = Date.parse(today + 'T00:00:00Z')
+  if (Number.isNaN(b) || Number.isNaN(t) || b > t) return null
+  return Math.floor((t - b) / (365.25 * 86400000))
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="mono" style={{ fontSize: 10, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div style={{ fontSize: 13.5, color: 'var(--c-ink)', marginTop: 2 }}>{value}</div>
+    </div>
+  )
+}
+
 export default async function MemberProfilePage(ctx: { params: Promise<{ memberId: string }> }) {
   const params = await ctx.params
   const supabase = await createClient()
@@ -74,7 +89,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, email, phone, role, created_at')
+      .select('id, full_name, email, phone, role, created_at, emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth')
       .eq('id', params.memberId)
       .eq('box_id', viewer.box_id)
       .single(),
@@ -186,6 +201,11 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               phone={member.phone}
               role={member.role}
               viewerRole={viewer.role}
+              emergencyContactName={member.emergency_contact_name ?? null}
+              emergencyContactPhone={member.emergency_contact_phone ?? null}
+              bloodType={member.blood_type ?? null}
+              allergies={member.allergies ?? null}
+              dateOfBirth={member.date_of_birth ?? null}
             />
           )}
         </header>
@@ -270,6 +290,22 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               {consistencyNext && (
                 <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 8 }}>{consistencyNext.remaining} to the {consistencyNext.threshold} Club</div>
               )}
+            </div>
+
+            {/* Personal & medical */}
+            <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+              <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Personal &amp; medical</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+                <Field label="Date of birth" value={member.date_of_birth ? `${member.date_of_birth}${ageFromDob(member.date_of_birth, today) !== null ? ` · ${ageFromDob(member.date_of_birth, today)}y` : ''}` : '—'} />
+                <Field label="Blood type" value={member.blood_type ?? '—'} />
+                <Field label="Emergency contact" value={member.emergency_contact_name ? `${member.emergency_contact_name}${member.emergency_contact_phone ? ` · ${member.emergency_contact_phone}` : ''}` : '—'} />
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <div className="mono" style={{ fontSize: 10, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Allergies / medical notes</div>
+                {member.allergies
+                  ? <div style={{ fontSize: 13, color: 'var(--c-warn-ink)', background: 'var(--c-warn-soft)', borderRadius: 8, padding: '8px 12px', fontWeight: 600 }}>⚠️ {member.allergies}</div>
+                  : <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>—</div>}
+              </div>
             </div>
 
             {/* 1RMs + Recent Scores */}

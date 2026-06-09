@@ -5,6 +5,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { getMembershipStatus } from '@/lib/membership-status'
 import { selectBestBatch, decideEntitlement } from '@/lib/credits'
+import { bookingClosed } from '@/lib/booking-policy'
 
 type BookResult = { error: string | null; needsCredits?: boolean }
 
@@ -15,10 +16,15 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
 
   const { data: instance } = await supabase
     .from('class_instances')
-    .select('capacity, box_id')
+    .select('capacity, box_id, starts_at, boxes(booking_close_minutes)')
     .eq('id', instanceId)
     .single()
   if (!instance) return { error: 'Class not found.' }
+
+  const policyBox = Array.isArray(instance.boxes) ? instance.boxes[0] : instance.boxes
+  if (bookingClosed(instance.starts_at, new Date().toISOString(), policyBox?.booking_close_minutes ?? 0)) {
+    return { error: 'Booking has closed for this class.' }
+  }
 
   const { data: profile } = await supabase
     .from('profiles')

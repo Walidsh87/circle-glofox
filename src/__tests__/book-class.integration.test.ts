@@ -129,3 +129,17 @@ test('credit consumed but booking insert fails → refunds the credit', async ()
   // exactly one consume + one refund — guards against a double-refund regression
   expect(svc.rpc).toHaveBeenCalledTimes(2)
 })
+
+test('refuses a booking inside the close window', async () => {
+  const startsAt = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 min away
+  serverCreate.mockResolvedValue(makeSupabaseMock({
+    user: { id: 'u1' },
+    results: {
+      class_instances: { data: { capacity: 10, box_id: 'b1', starts_at: startsAt, boxes: { booking_close_minutes: 30 } }, error: null },
+      profiles: { data: { box_id: 'b1' }, error: null },
+    },
+  }))
+  serviceCreate.mockReturnValue(makeSupabaseMock({}))
+  const res = await bookClass('class-1')
+  expect(res.error).toMatch(/closed/i)
+})

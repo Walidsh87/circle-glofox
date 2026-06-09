@@ -28,8 +28,8 @@ Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in
 | **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
 | **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
 | **v2 Tier 2–13 (~95 items)** | 13 ✅ (Tier 2: #11 WOD programming + batch import, #12 auto-PR, #13 coach prep, #14 whiteboard/TV, #16 AI parser, #17 scaling · Tier 3: #18 at-risk scoring, **#19 KPI dashboard**, **#20 Committed Club**, **#24 workout timer**, **#26 waitlist**, #23 1RM charts, #25 feed) · #21 mobile API ⬜ (deferred) · rest ⬜. **Tier 2 done bar #15. Tier 3 COMPLETE.** |
-| **Migrations** | 008–040 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028`–`040`** (028 TV; 029 WOD scaling; 030 retention outreach; 031 class waitlist; 032 Committed Club; 033 membership freeze + cron-fn frozen-skip; 034 member safety/medical cols; 035 membership_plans catalog + plan_id; 036 trial cols; 037 member_tags; 038 households + profiles.household_id; 039 booking-policy cols; 040 skill_levels). |
-| **Next session priority** | Run migrations 028–040 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. **Tiers 3 + 4 COMPLETE** (Tier 4 all 10: #27–#36 done bar #21-deferred mobile). Next: #15 (programming marketplace) or Tier 5 (comms/CRM/automation). |
+| **Migrations** | 008–041 ✅ in repo. 023–027 applied to prod ✅. ⚠️ **Pending in Supabase: `028`–`041`** (028 TV; 029 WOD scaling; 030 retention outreach; 031 class waitlist; 032 Committed Club; 033 membership freeze + cron-fn frozen-skip; 034 member safety/medical cols; 035 membership_plans catalog + plan_id; 036 trial cols; 037 member_tags; 038 households + profiles.household_id; 039 booking-policy cols; 040 skill_levels; 041 broadcasts + recipients + profiles.marketing_opt_out/unsubscribe_token). |
+| **Next session priority** | Run migrations 028–041 in Supabase. ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. **Tiers 3 + 4 COMPLETE; Tier 5 started — #43 broadcast messaging done (1/13).** Next in Tier 5: #41 email campaigns (builds on #43) or #37 automation builder; or #15 programming marketplace. |
 
 ---
 
@@ -186,7 +186,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 40. ⬜ `[Wedge]` **Unified omni-channel staff inbox** — SMS + email + in-app chat + WhatsApp
 41. ⬜ `[G-gap]` Email campaigns with drag-and-drop builder
 42. ⬜ `[G-gap]` SMS campaigns (Twilio + UAE local sender ID)
-43. ⬜ `[Kept]` Broadcast messaging to all members
+43. ✅ `[Kept]` **Broadcast messaging to members** — owner sends a one-off email to a segment (status `all`/`paid`/`unpaid`/`trial`/`frozen` + optional member-tag filter; trial split from paid). Pure `selectRecipients` (`src/lib/broadcast-audience.ts`) + `{{first_name}}` render (`broadcast-render.ts`). `sendBroadcast` resolves audience via shared `loadCandidates`, writes `broadcasts` + per-recipient rows, sends through **Resend batch** (chunks of 100), rolls up sent/failed/skipped. Per-recipient delivery status + **Retry failed** on `/dashboard/broadcasts/[id]`; live recipient-count preview on compose. **Opt-out**: `profiles.marketing_opt_out` + stable `unsubscribe_token` → public `/unsubscribe/[token]` (mig 041). Owner-only RLS. First Tier-5 sub-project; foundation for #41 campaigns + #44 sequences. Spec `…broadcast-messaging-design.md`.
 44. ⬜ `[G-gap]` Automated sequences (welcome, trial-to-member, win-back, birthday)
 45. ⬜ `[G-gap]` Embeddable lead-capture widget
 46. ⬜ `[Kept]` Embeddable schedule widget

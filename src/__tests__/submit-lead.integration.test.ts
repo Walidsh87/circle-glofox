@@ -48,3 +48,21 @@ test('valid → inserts a widget lead with resolved box_id', async () => {
   const ins = s.builder('leads').insert.mock.calls[0][0]
   expect(ins).toEqual(expect.objectContaining({ box_id: 'b1', full_name: 'Sarah Lee', email: 'sarah@example.com', notes: 'Interested in a trial', source: 'widget' }))
 })
+
+test('a valid ref attributes the lead to the referring member', async () => {
+  const s = makeSupabaseMock({ results: { boxes: { data: { id: 'b1' }, error: null }, profiles: { data: { id: 'ref1' }, error: null }, leads: { data: null, error: null } } })
+  serviceCreate.mockReturnValue(s)
+  const res = await submitLead('crossfitx', { ...okInput, ref: 'ABC2345' })
+  expect(res.ok).toBe(true)
+  const ins = s.builder('leads').insert.mock.calls[0][0]
+  expect(ins).toEqual(expect.objectContaining({ referred_by: 'ref1', source: 'widget' }))
+})
+
+test('an unknown ref still creates the lead with no referrer', async () => {
+  const s = makeSupabaseMock({ results: { boxes: { data: { id: 'b1' }, error: null }, profiles: { data: null, error: null }, leads: { data: null, error: null } } })
+  serviceCreate.mockReturnValue(s)
+  const res = await submitLead('crossfitx', { ...okInput, ref: 'NOPE999' })
+  expect(res.ok).toBe(true)
+  const ins = s.builder('leads').insert.mock.calls[0][0]
+  expect(ins.referred_by).toBeNull()
+})

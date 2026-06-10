@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { submitLead } from '../_actions/submit-lead'
 
-export function LeadForm({ gymSlug }: { gymSlug: string }) {
+export function LeadForm({ gymSlug, refCode }: { gymSlug: string; refCode?: string }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -16,7 +16,7 @@ export function LeadForm({ gymSlug }: { gymSlug: string }) {
   function onSubmit() {
     setError(null)
     start(async () => {
-      const res = await submitLead(gymSlug, { name, email, phone, message, company })
+      const res = await submitLead(gymSlug, { name, email, phone, message, company, ref: refCode })
       if (!res.ok) { setError(res.error ?? 'Something went wrong.'); return }
       setDone(true)
     })

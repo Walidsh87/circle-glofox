@@ -3,8 +3,9 @@ import { notFound } from 'next/navigation'
 import { env } from '@/env'
 import { LeadForm } from './_components/lead-form'
 
-export default async function LeadEmbedPage(ctx: { params: Promise<{ gymSlug: string }> }) {
+export default async function LeadEmbedPage(ctx: { params: Promise<{ gymSlug: string }>; searchParams: Promise<{ ref?: string }> }) {
   const { gymSlug } = await ctx.params
+  const { ref } = await ctx.searchParams
   const service = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
   const { data: box } = await service.from('boxes').select('name, logo_url').eq('slug', gymSlug).single()
   if (!box) notFound()
@@ -20,7 +21,7 @@ export default async function LeadEmbedPage(ctx: { params: Promise<{ gymSlug: st
             <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>Get started — leave your details below.</div>
           </div>
         </div>
-        <LeadForm gymSlug={gymSlug} />
+        <LeadForm gymSlug={gymSlug} refCode={ref} />
       </div>
     </div>
   )

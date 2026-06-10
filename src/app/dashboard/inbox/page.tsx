@@ -16,8 +16,8 @@ export default async function InboxPage() {
   const boxes = profile.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
-  const { data: convRows } = await supabase.from('conversations').select('id, member_id, last_preview, last_message_at, last_sender_role, staff_unread').eq('box_id', profile.box_id).order('last_message_at', { ascending: false, nullsFirst: false })
-  const convs = (convRows ?? []) as { id: string; member_id: string; last_preview: string | null; last_message_at: string | null; last_sender_role: string | null; staff_unread: boolean }[]
+  const { data: convRows } = await supabase.from('conversations').select('id, member_id, last_preview, last_message_at, last_sender_role, staff_unread, last_wa_inbound_at').eq('box_id', profile.box_id).order('last_message_at', { ascending: false, nullsFirst: false })
+  const convs = (convRows ?? []) as { id: string; member_id: string; last_preview: string | null; last_message_at: string | null; last_sender_role: string | null; staff_unread: boolean; last_wa_inbound_at: string | null }[]
 
   const { data: athleteRows } = await supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).eq('role', 'athlete')
   const athletes = (athleteRows ?? []) as { id: string; full_name: string | null }[]
@@ -44,7 +44,7 @@ export default async function InboxPage() {
                   <Link key={c.id} href={`/dashboard/inbox/${c.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)', textDecoration: 'none', color: 'var(--c-ink)' }}>
                     {c.staff_unread && <span style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--circle-lime-ink)', flexShrink: 0 }} />}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: c.staff_unread ? 700 : 600 }}>{nameById.get(c.member_id) ?? 'Member'}</div>
+                      <div style={{ fontSize: 14, fontWeight: c.staff_unread ? 700 : 600 }}>{nameById.get(c.member_id) ?? 'Member'}{c.last_wa_inbound_at && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>WhatsApp</span>}</div>
                       <div style={{ fontSize: 12.5, color: 'var(--c-ink-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.last_sender_role === 'staff' ? 'You: ' : ''}{c.last_preview ?? ''}</div>
                     </div>
                     {c.last_message_at && <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)' }}>{new Date(c.last_message_at).toLocaleDateString('en-GB')}</span>}

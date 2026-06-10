@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { sendMessage } from '../_actions/send-message'
 
-export function Composer({ memberId, navigateToThread = false }: { memberId: string; navigateToThread?: boolean }) {
+export function Composer({ memberId, navigateToThread = false, waHint }: { memberId: string; navigateToThread?: boolean; waHint?: string }) {
   const router = useRouter()
   const [body, setBody] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -25,6 +25,7 @@ export function Composer({ memberId, navigateToThread = false }: { memberId: str
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {error && <p style={{ color: 'var(--c-danger)', fontSize: 12.5 }}>{error}</p>}
+      {waHint && <p style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>{waHint}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
         <input
           style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)' }}

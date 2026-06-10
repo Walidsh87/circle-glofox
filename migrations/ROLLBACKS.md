@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`048` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`049` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,15 @@ Reverse procedures for migrations `008`–`048` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 049_referrals
+```sql
+ALTER TABLE leads DROP COLUMN IF EXISTS referred_by;
+DROP INDEX IF EXISTS idx_profiles_referral_code;
+ALTER TABLE profiles DROP COLUMN IF EXISTS referral_rewarded_at;
+ALTER TABLE profiles DROP COLUMN IF EXISTS referred_by;
+ALTER TABLE profiles DROP COLUMN IF EXISTS referral_code;
+```
 
 ### 048_follow_up_tasks
 ```sql

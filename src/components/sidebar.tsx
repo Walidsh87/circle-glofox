@@ -42,6 +42,7 @@ function getNavGroups(role: string): NavGroup[] {
   if (isStaff) runTheGym.push({ key: 'inbox', label: 'Inbox', href: '/dashboard/inbox', icon: 'chat' })
   if (isStaff) runTheGym.push({ key: 'tasks', label: 'Follow-ups', href: '/dashboard/tasks', icon: 'checklist' })
   if (isOwner) runTheGym.push({ key: 'referrals', label: 'Referrals', href: '/dashboard/referrals', icon: 'gift' })
+  if (isOwner) runTheGym.push({ key: 'attribution', label: 'Attribution', href: '/dashboard/attribution', icon: 'chart' })
   if (isOwner) runTheGym.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
   groups.push({ section: 'Run the gym', items: runTheGym })
 

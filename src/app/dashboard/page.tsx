@@ -42,6 +42,7 @@ export default async function DashboardPage() {
     { data: todayClasses },
     { data: wod },
     { count: activeLeadCount },
+    { count: tasksDueCount },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -73,6 +74,14 @@ export default async function DashboardPage() {
           .select('id', { count: 'exact', head: true })
           .eq('box_id', profile.box_id)
           .in('status', ['new', 'contacted', 'scheduled'])
+      : { count: null },
+    isOwner
+      ? supabase
+          .from('follow_up_tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('box_id', profile.box_id)
+          .eq('done', false)
+          .lte('due_date', today)
       : { count: null },
   ])
 
@@ -135,6 +144,7 @@ export default async function DashboardPage() {
               <StatCard label="MRR · AED" value={mrrAed > 0 ? mrrAed.toLocaleString() : '—'} href="/dashboard/payments" />
               <StatCard label="Unpaid" value={String(unpaidCount)} variant={unpaidCount > 0 ? 'warn' : undefined} href="/dashboard/payments" />
               <StatCard label="Active Leads" value={String(activeLeadCount ?? 0)} href="/dashboard/members?tab=leads" variant={activeLeadCount && activeLeadCount > 0 ? 'lime' : undefined} />
+              <StatCard label="Follow-ups due" value={String(tasksDueCount ?? 0)} href="/dashboard/tasks" variant={tasksDueCount && tasksDueCount > 0 ? 'lime' : undefined} />
             </div>
           )}
 

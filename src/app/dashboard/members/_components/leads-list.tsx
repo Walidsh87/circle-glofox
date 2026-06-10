@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { updateLeadStatus } from '../_actions/update-lead'
 import { deleteLead } from '../_actions/delete-lead'
 import { convertLead } from '../_actions/convert-lead'
+import { QuickAdd } from '@/app/dashboard/tasks/_components/quick-add'
 
 export type Lead = {
   id: string
@@ -48,6 +49,7 @@ function daysAgo(dateStr: string) {
 function LeadCard({ lead }: { lead: Lead }) {
   const router = useRouter()
   const [status, setStatus] = useState(lead.status)
+  const [showFollowup, setShowFollowup] = useState(false)
   const [isPending, startTransition] = useTransition()
   const src = SOURCE_STYLES[lead.source] ?? SOURCE_STYLES.other
   const stStyle = STATUS_STYLES[status] ?? STATUS_STYLES.new
@@ -132,6 +134,11 @@ function LeadCard({ lead }: { lead: Lead }) {
         ))}
         <div style={{ flex: 1 }} />
         <button
+          onClick={() => setShowFollowup((v) => !v)}
+          disabled={isPending}
+          style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11.5, background: 'none', color: 'var(--c-ink-muted)', border: '1px solid var(--c-border)', cursor: isPending ? 'default' : 'pointer' }}
+        >+ Follow-up</button>
+        <button
           onClick={handleConvert}
           disabled={isPending}
           style={{
@@ -150,6 +157,11 @@ function LeadCard({ lead }: { lead: Lead }) {
           }}
         >×</button>
       </div>
+      {showFollowup && (
+        <div style={{ marginTop: 10 }}>
+          <QuickAdd leadId={lead.id} placeholder={`Follow-up for ${lead.full_name}…`} />
+        </div>
+      )}
     </div>
   )
 }

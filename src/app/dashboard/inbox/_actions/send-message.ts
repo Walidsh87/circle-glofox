@@ -2,7 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { validateMessage, messagePreview } from '@/lib/inbox'
+import { validateMessage, messagePreview, withinSessionWindow } from '@/lib/inbox'
+import { normalizeUaePhone } from '@/lib/sms'
+import { sendWhatsAppText } from '@/lib/twilio'
 
 export async function sendMessage(memberId: string, body: string): Promise<{ error: string | null; conversationId?: string }> {
   const supabase = await createClient()
@@ -22,6 +24,20 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
   const text = body.trim()
   const nowIso = new Date().toISOString()
 
+  // Channel-aware reply: a staff reply rides WhatsApp while the 24h session window is open.
+  let messageChannel: 'in_app' | 'whatsapp' = 'in_app'
+  if (isStaff) {
+    const { data: conv0 } = await supabase.from('conversations').select('last_wa_inbound_at').eq('box_id', caller.box_id).eq('member_id', targetMemberId).maybeSingle()
+    if (withinSessionWindow((conv0?.last_wa_inbound_at as string | null) ?? null, nowIso)) {
+      const { data: m } = await supabase.from('profiles').select('phone').eq('id', targetMemberId).single()
+      const phone = normalizeUaePhone((m?.phone as string | null) ?? null)
+      if (phone) {
+        await sendWhatsAppText({ to: phone, body: text })
+        messageChannel = 'whatsapp'
+      }
+    }
+  }
+
   const { data: conv, error: cErr } = await supabase.from('conversations').upsert({
     box_id: caller.box_id,
     member_id: targetMemberId,
@@ -39,6 +55,7 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
     box_id: caller.box_id,
     sender_id: user.id,
     sender_role: side,
+    channel: messageChannel,
     body: text,
   })
   if (mErr) return { error: mErr.message }

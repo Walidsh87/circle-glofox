@@ -27,7 +27,7 @@ export const SEGMENT_LABELS: Record<Segment, string> = {
 // 'all' reaches everyone (incl. trial). 'trial' reaches trial members only.
 // paid/unpaid/frozen match the derived membership status and EXCLUDE trial
 // members (a trial member is reachable only via 'trial'), mirroring KPI semantics.
-function matchesSegment(c: Candidate, status: Segment): boolean {
+export function matchesSegment(c: Candidate, status: Segment): boolean {
   if (status === 'all') return true
   if (status === 'trial') return c.isTrial
   if (c.isTrial) return false

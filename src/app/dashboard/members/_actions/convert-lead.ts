@@ -18,7 +18,7 @@ export async function convertLead(
 
   const { data: lead } = await supabase
     .from('leads')
-    .select('full_name, phone, email, referred_by')
+    .select('full_name, phone, email, referred_by, source')
     .eq('id', leadId)
     .eq('box_id', caller.box_id)
     .single()
@@ -52,6 +52,7 @@ export async function convertLead(
     email: lead.email,
     phone: lead.phone,
     referred_by: lead.referred_by ?? null,
+    source: lead.source ?? null,
   })
 
   if (profileError) {

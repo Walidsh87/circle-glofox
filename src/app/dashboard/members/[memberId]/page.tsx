@@ -10,6 +10,8 @@ import { ChangePlan } from './_components/change-plan'
 import { MemberTags } from './_components/member-tags'
 import { HouseholdCard } from './_components/household-card'
 import { SkillsEditor } from './_components/skills-editor'
+import { MemberFollowups } from './_components/member-followups'
+import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_components/task-item'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -172,6 +174,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     ? await supabase.from('skill_levels').select('skill_key, belt').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id)
     : { data: [] as { skill_key: string; belt: string }[] }
   const skillLevels: Record<string, string> = Object.fromEntries((skillRows ?? []).map((r) => [r.skill_key, r.belt]))
+
+  // Follow-up tasks (#47): this member's open tasks, staff-only.
+  const { data: followupRows } = isStaff
+    ? await supabase.from('follow_up_tasks').select('id, title, due_date, done').eq('box_id', viewer.box_id).eq('member_id', params.memberId).eq('done', false).order('due_date', { ascending: true })
+    : { data: [] as { id: string; title: string; due_date: string; done: boolean }[] }
+  const followups: FollowupTaskRow[] = ((followupRows ?? []) as { id: string; title: string; due_date: string; done: boolean }[])
+    .map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel: null, linkHref: null }))
 
   // Household (#30): owner-managed. Members of this member's household + the box's households (to add to one).
   const { data: household } = isOwner && member.household_id
@@ -364,6 +373,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                   members={householdMembers ?? []}
                   allHouseholds={(allHouseholds ?? []).filter((h) => h.id !== member.household_id)}
                 />
+              </div>
+            )}
+
+            {isStaff && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Follow-ups</div>
+                <MemberFollowups memberId={member.id} tasks={followups} />
               </div>
             )}
 

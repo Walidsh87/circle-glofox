@@ -7,6 +7,7 @@ import { TvDisplayCard } from './_components/tv-display-card'
 import { BookingPolicyCard } from './_components/booking-policy-card'
 import { LeadWidgetCard } from './_components/lead-widget-card'
 import { ScheduleWidgetCard } from './_components/schedule-widget-card'
+import { ChecklistEditor, type EditorItem } from './_components/checklist-editor'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -49,6 +50,9 @@ export default async function SettingsPage() {
     ? `<iframe src="${env.NEXT_PUBLIC_APP_URL}/embed/schedule/${boxes.slug}" width="100%" height="640" style="border:0" title="${boxes.name} — class schedule"></iframe>`
     : null
 
+  const { data: checklistRows } = await supabase.from('checklist_items').select('id, label, kind').eq('box_id', profile.box_id).order('position', { ascending: true })
+  const checklistItems = (checklistRows ?? []) as EditorItem[]
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
       <Sidebar active="settings" userName={profile.full_name} userRole={profile.role} boxName={boxes?.name ?? ''} />
@@ -79,6 +83,7 @@ export default async function SettingsPage() {
             <BookingPolicyCard closeMinutes={box?.booking_close_minutes ?? 0} lateCancelHours={box?.late_cancel_hours ?? 0} />
             <LeadWidgetCard snippet={leadSnippet} />
             <ScheduleWidgetCard snippet={scheduleSnippet} />
+            <ChecklistEditor items={checklistItems} />
           </div>
         </div>
       </div>

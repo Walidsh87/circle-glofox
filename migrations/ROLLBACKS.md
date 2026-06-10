@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`045` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`046` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,16 @@ Reverse procedures for migrations `008`–`045` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 046_whatsapp
+```sql
+ALTER TABLE automations DROP COLUMN IF EXISTS wa_var_values;
+ALTER TABLE automations DROP COLUMN IF EXISTS wa_template_id;
+ALTER TABLE automations DROP COLUMN IF EXISTS channel;
+DROP TABLE IF EXISTS wa_recipients;
+DROP TABLE IF EXISTS wa_campaigns;
+DROP TABLE IF EXISTS wa_templates;
+```
 
 ### 045_sms_campaigns
 ```sql

@@ -10,7 +10,7 @@ export async function loadAutoMembers(
   today: string
 ): Promise<{ members: AutoMember[]; tokenByAthlete: Map<string, string> }> {
   const [{ data: profiles }, { data: memberships }, { data: bookings }] = await Promise.all([
-    service.from('profiles').select('id, full_name, email, marketing_opt_out, created_at, date_of_birth, unsubscribe_token').eq('box_id', boxId).eq('role', 'athlete'),
+    service.from('profiles').select('id, full_name, email, phone, marketing_opt_out, created_at, date_of_birth, unsubscribe_token').eq('box_id', boxId).eq('role', 'athlete'),
     service.from('memberships').select('athlete_id, payment_status, end_date, frozen_from, frozen_until, is_trial').eq('box_id', boxId),
     service.from('bookings').select('athlete_id, class_instances(starts_at)').eq('box_id', boxId).eq('checked_in', true),
   ])
@@ -33,7 +33,7 @@ export async function loadAutoMembers(
   }
 
   const tokenByAthlete = new Map<string, string>()
-  const members: AutoMember[] = ((profiles ?? []) as { id: string; full_name: string | null; email: string | null; marketing_opt_out: boolean | null; created_at: string; date_of_birth: string | null; unsubscribe_token: string }[]).map((p) => {
+  const members: AutoMember[] = ((profiles ?? []) as { id: string; full_name: string | null; email: string | null; phone: string | null; marketing_opt_out: boolean | null; created_at: string; date_of_birth: string | null; unsubscribe_token: string }[]).map((p) => {
     tokenByAthlete.set(p.id, p.unsubscribe_token)
     const rows = mByAthlete.get(p.id) ?? []
     const trialEnds = rows
@@ -44,6 +44,7 @@ export async function loadAutoMembers(
       athlete_id: p.id,
       email: p.email ?? null,
       full_name: p.full_name ?? '',
+      phone: p.phone ?? null,
       marketing_opt_out: p.marketing_opt_out === true,
       created_at: p.created_at,
       date_of_birth: p.date_of_birth,

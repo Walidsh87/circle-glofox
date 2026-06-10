@@ -13,6 +13,7 @@ export type AutoMember = {
   athlete_id: string
   email: string | null
   full_name: string
+  phone: string | null
   marketing_opt_out: boolean
   created_at: string            // ISO date or timestamp
   date_of_birth: string | null  // 'YYYY-MM-DD'

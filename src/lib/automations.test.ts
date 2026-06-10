@@ -8,6 +8,7 @@ function member(over: Partial<AutoMember> = {}): AutoMember {
     athlete_id: 'a1',
     email: 'a@x.com',
     full_name: 'Sarah Lee',
+    phone: null,
     marketing_opt_out: false,
     created_at: '2026-01-01',
     date_of_birth: null,

@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
+import { countIncompleteOnboarding } from '@/lib/checklists'
+import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 
 const TIMEZONE_OFFSETS: Record<string, number> = {
   'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
@@ -90,6 +92,36 @@ export default async function DashboardPage() {
 
   const firstName = profile.full_name.split(' ')[0]
 
+  let onboardingTodo = 0
+  if (isOwner) {
+    const [{ data: ob }, { data: profs }, { data: mems }, { data: prog }] = await Promise.all([
+      supabase.from('checklist_items').select('id').eq('box_id', profile.box_id).eq('kind', 'onboarding'),
+      supabase.from('profiles').select('id').eq('box_id', profile.box_id).eq('role', 'athlete'),
+      supabase.from('memberships').select('athlete_id, payment_status, end_date, frozen_from, frozen_until').eq('box_id', profile.box_id),
+      supabase.from('member_checklist_progress').select('member_id, item_id').eq('box_id', profile.box_id),
+    ])
+    const obIds = new Set(((ob ?? []) as { id: string }[]).map((r) => r.id))
+    const total = obIds.size
+    if (total > 0) {
+      const memsByAthlete = new Map<string, MembershipRow[]>()
+      for (const m of (mems ?? []) as (MembershipRow & { athlete_id: string })[]) {
+        const arr = memsByAthlete.get(m.athlete_id) ?? []; arr.push(m); memsByAthlete.set(m.athlete_id, arr)
+      }
+      const doneByMember = new Map<string, number>()
+      for (const p of (prog ?? []) as { member_id: string; item_id: string }[]) {
+        if (obIds.has(p.item_id)) doneByMember.set(p.member_id, (doneByMember.get(p.member_id) ?? 0) + 1)
+      }
+      const counts: number[] = []
+      for (const a of (profs ?? []) as { id: string }[]) {
+        const rows = memsByAthlete.get(a.id) ?? []
+        const status = getMembershipStatus(rows, today)
+        const cancelled = status === 'no_membership' && rows.length > 0
+        if (!cancelled) counts.push(doneByMember.get(a.id) ?? 0)
+      }
+      onboardingTodo = countIncompleteOnboarding(counts, total)
+    }
+  }
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-hanken, var(--font-geist-sans))' }}>
       <Sidebar active="dashboard" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
@@ -145,6 +177,7 @@ export default async function DashboardPage() {
               <StatCard label="Unpaid" value={String(unpaidCount)} variant={unpaidCount > 0 ? 'warn' : undefined} href="/dashboard/payments" />
               <StatCard label="Active Leads" value={String(activeLeadCount ?? 0)} href="/dashboard/members?tab=leads" variant={activeLeadCount && activeLeadCount > 0 ? 'lime' : undefined} />
               <StatCard label="Follow-ups due" value={String(tasksDueCount ?? 0)} href="/dashboard/tasks" variant={tasksDueCount && tasksDueCount > 0 ? 'lime' : undefined} />
+              <StatCard label="Onboarding to-do" value={String(onboardingTodo)} href="/dashboard/members?tab=members" variant={onboardingTodo > 0 ? 'lime' : undefined} />
             </div>
           )}
 

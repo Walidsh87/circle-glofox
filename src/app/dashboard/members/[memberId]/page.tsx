@@ -16,6 +16,9 @@ import { ReferCard } from './_components/refer-card'
 import { ensureReferralCode } from '@/app/dashboard/referrals/_actions/ensure-referral-code'
 import { referralLink } from '@/lib/referrals'
 import { env } from '@/env'
+import { ChecklistCard } from './_components/checklist-card'
+import { mergeChecklist, type ChecklistKind } from '@/lib/checklists'
+import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -201,6 +204,20 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     ])
     referredCount = rc ?? 0
     joinedCount = jc ?? 0
+  }
+
+  // Onboarding/offboarding checklist (#38): stage-driven, staff-only.
+  const memberStatus = getMembershipStatus((memberships ?? []) as MembershipRow[], today)
+  const isCancelled = memberStatus === 'no_membership' && (memberships?.length ?? 0) > 0
+  const checklistKind: ChecklistKind = isCancelled ? 'offboarding' : 'onboarding'
+  let checklist = mergeChecklist([], new Set<string>())
+  if (isStaff) {
+    const [{ data: ciRows }, { data: progRows }] = await Promise.all([
+      supabase.from('checklist_items').select('id, label').eq('box_id', viewer.box_id).eq('kind', checklistKind).order('position', { ascending: true }),
+      supabase.from('member_checklist_progress').select('item_id').eq('box_id', viewer.box_id).eq('member_id', params.memberId),
+    ])
+    const doneIds = new Set(((progRows ?? []) as { item_id: string }[]).map((p) => p.item_id))
+    checklist = mergeChecklist((ciRows ?? []) as { id: string; label: string }[], doneIds)
   }
 
   // Household (#30): owner-managed. Members of this member's household + the box's households (to add to one).
@@ -401,6 +418,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
                 <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Refer a friend</div>
                 <ReferCard link={referLink} referred={referredCount} joined={joinedCount} />
+              </div>
+            )}
+
+            {isStaff && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>{checklistKind === 'offboarding' ? 'Offboarding' : 'Onboarding'}</div>
+                <ChecklistCard memberId={member.id} steps={checklist.steps} total={checklist.total} done={checklist.done} />
               </div>
             )}
 

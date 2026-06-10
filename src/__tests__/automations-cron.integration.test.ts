@@ -1,14 +1,18 @@
 import { vi, test, expect, beforeEach } from 'vitest'
 import { makeSupabaseMock } from './helpers/supabase-mock'
 
-const { serviceCreate, emailMock } = vi.hoisted(() => ({
+const { serviceCreate, emailMock, sendWaMock } = vi.hoisted(() => ({
   serviceCreate: vi.fn(),
   emailMock: vi.fn<(messages: { to: string; subject: string; html: string }[]) => Promise<{ ok: boolean; error: string | null; ids: (string | null)[] }>>(
     () => Promise.resolve({ ok: true, error: null, ids: ['re_1'] })
   ),
+  sendWaMock: vi.fn<(i: { to: string; contentSid: string; contentVariables: Record<string, string>; statusCallback?: string }) => Promise<{ sid: string | null; status: string | null; error: string | null }>>(
+    () => Promise.resolve({ sid: 'WA1', status: 'queued', error: null })
+  ),
 }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: serviceCreate }))
 vi.mock('@/lib/email', () => ({ sendBroadcastEmails: emailMock }))
+vi.mock('@/lib/twilio', () => ({ sendWhatsApp: sendWaMock }))
 vi.mock('@/env', () => ({ env: { CRON_SECRET: 'secret', NEXT_PUBLIC_SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k', NEXT_PUBLIC_APP_URL: 'https://app', RESEND_FROM_EMAIL: 'a@x.com' } }))
 
 import { GET } from '@/app/api/cron/automations/route'
@@ -58,4 +62,30 @@ test('skips a member already in automation_runs for that fire_key', async () => 
   const res = await GET(req('Bearer secret') as never)
   expect(res.status).toBe(200)
   expect(emailMock).not.toHaveBeenCalled()
+})
+
+function waBoxData(runsExisting: unknown[] = []) {
+  return makeSupabaseMock({
+    results: {
+      automations: { data: [{ id: 'wa1', box_id: 'b1', name: 'WA Welcome', trigger_type: 'joined', trigger_days: 7, subject: '', body_blocks: [], channel: 'whatsapp', wa_template_id: 'wt1', wa_var_values: { '1': '{{first_name}}' } }], error: null },
+      boxes: { data: { name: 'CrossFit X' }, error: null },
+      wa_templates: { data: [{ id: 'wt1', content_sid: 'HX' + 'a'.repeat(32) }], error: null },
+      profiles: { data: [{ id: 'a1', full_name: 'Sarah Lee', email: 's@x.com', phone: '0501234567', marketing_opt_out: false, created_at: sevenAgo, date_of_birth: null, unsubscribe_token: 'tok1' }], error: null },
+      memberships: { data: [{ athlete_id: 'a1', payment_status: 'paid', end_date: null, frozen_from: null, frozen_until: null, is_trial: false }], error: null },
+      bookings: { data: [], error: null },
+      automation_runs: { data: runsExisting, error: null },
+    },
+  })
+}
+
+test('sends a matching whatsapp automation via template and logs the run', async () => {
+  const svc = waBoxData()
+  serviceCreate.mockReturnValue(svc)
+  const res = await GET(req('Bearer secret') as never)
+  expect(res.status).toBe(200)
+  expect(emailMock).not.toHaveBeenCalled()
+  expect(sendWaMock).toHaveBeenCalledTimes(1)
+  expect(sendWaMock.mock.calls[0][0]).toEqual(expect.objectContaining({ to: '+971501234567', contentSid: 'HX' + 'a'.repeat(32), contentVariables: { '1': 'Sarah' } }))
+  const runInsert = svc.builder('automation_runs').insert.mock.calls[0][0]
+  expect(runInsert).toEqual(expect.arrayContaining([expect.objectContaining({ automation_id: 'wa1', athlete_id: 'a1', fire_key: 'joined', resend_id: null })]))
 })

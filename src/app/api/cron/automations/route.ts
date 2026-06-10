@@ -6,12 +6,15 @@ import { loadAutoMembers } from '@/lib/auto-members'
 import { renderEmail, firstNameOf } from '@/lib/broadcast-render'
 import { type Block } from '@/lib/email-blocks'
 import { sendBroadcastEmails, type BroadcastMessage } from '@/lib/email'
+import { renderWaVars } from '@/lib/whatsapp'
+import { normalizeUaePhone } from '@/lib/sms'
+import { sendWhatsApp } from '@/lib/twilio'
 
 export const dynamic = 'force-dynamic'
 
 const CHUNK = 100
 
-type AutomationRow = AutomationRule & { box_id: string; name: string; subject: string; body_blocks: Block[] }
+type AutomationRow = AutomationRule & { box_id: string; name: string; subject: string; body_blocks: Block[]; channel: string; wa_template_id: string | null; wa_var_values: Record<string, string> | null }
 
 export async function GET(request: NextRequest) {
   if (request.headers.get('authorization') !== `Bearer ${env.CRON_SECRET}`) {
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
     global: { fetch: (i: RequestInfo | URL, init?: RequestInit) => fetch(i, { ...init, cache: 'no-store' }) },
   })
 
-  const { data: automations } = await service.from('automations').select('id, box_id, name, trigger_type, trigger_days, subject, body_blocks').eq('enabled', true)
+  const { data: automations } = await service.from('automations').select('id, box_id, name, trigger_type, trigger_days, subject, body_blocks, channel, wa_template_id, wa_var_values').eq('enabled', true)
   const rules = (automations ?? []) as AutomationRow[]
 
   const byBox = new Map<string, AutomationRow[]>()
@@ -39,6 +42,8 @@ export async function GET(request: NextRequest) {
     const { data: box } = await service.from('boxes').select('name').eq('id', boxId).single()
     const gymName = (box as { name: string } | null)?.name ?? 'your gym'
     const { members, tokenByAthlete } = await loadAutoMembers(service, boxId, today)
+    const { data: waTpls } = await service.from('wa_templates').select('id, content_sid').eq('box_id', boxId)
+    const waSidById = new Map((((waTpls ?? []) as { id: string; content_sid: string }[]).map((t) => [t.id, t.content_sid])))
 
     for (const rule of boxRules) {
       processed++
@@ -51,6 +56,28 @@ export async function GET(request: NextRequest) {
       if (fresh.length === 0) { skipped += matches.length; continue }
 
       const byAthlete = new Map(members.map((m) => [m.athlete_id, m]))
+
+      if (rule.channel === 'whatsapp') {
+        const contentSid = rule.wa_template_id ? waSidById.get(rule.wa_template_id) : undefined
+        if (!contentSid) { errors.push(`wa template missing ${rule.id}`); continue }
+        const runRows: { box_id: string; automation_id: string; athlete_id: string; fire_key: string; resend_id: null }[] = []
+        for (const f of fresh) {
+          const m = byAthlete.get(f.athlete_id)!
+          const phone = normalizeUaePhone(m.phone)
+          if (!phone) { skipped++; continue }
+          const contentVariables = renderWaVars(rule.wa_var_values ?? {}, firstNameOf(m.full_name))
+          const r = await sendWhatsApp({ to: phone, contentSid, contentVariables, statusCallback: `${env.NEXT_PUBLIC_APP_URL}/api/webhooks/twilio-wa` })
+          if (r.error || !r.sid) { errors.push(`wa send ${rule.id}: ${r.error ?? 'failed'}`); continue }
+          sent++
+          runRows.push({ box_id: boxId, automation_id: rule.id, athlete_id: f.athlete_id, fire_key: f.fire_key, resend_id: null })
+        }
+        if (runRows.length > 0) {
+          const { error: insErr } = await service.from('automation_runs').insert(runRows)
+          if (insErr) errors.push(`log ${rule.id}: ${insErr.message}`)
+        }
+        continue
+      }
+
       for (let i = 0; i < fresh.length; i += CHUNK) {
         const chunk = fresh.slice(i, i + CHUNK)
         const messages: BroadcastMessage[] = chunk.map((f) => {

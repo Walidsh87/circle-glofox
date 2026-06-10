@@ -15,7 +15,7 @@ export default async function AutomationsPage() {
   const boxes = profile.boxes as { name: string }[] | { name: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
-  const { data: autos } = await supabase.from('automations').select('id, name, trigger_type, trigger_days, enabled').eq('box_id', profile.box_id).order('created_at', { ascending: false })
+  const { data: autos } = await supabase.from('automations').select('id, name, trigger_type, trigger_days, enabled, channel').eq('box_id', profile.box_id).order('created_at', { ascending: false })
   const { data: runs } = await supabase.from('automation_runs').select('automation_id').eq('box_id', profile.box_id)
   const counts = new Map<string, number>()
   for (const r of (runs ?? []) as { automation_id: string }[]) counts.set(r.automation_id, (counts.get(r.automation_id) ?? 0) + 1)

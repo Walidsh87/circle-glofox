@@ -13,6 +13,7 @@ export type AutomationRow = {
   trigger_type: TriggerType
   trigger_days: number | null
   enabled: boolean
+  channel: string
   sent_count: number
 }
 
@@ -38,7 +39,7 @@ export function AutomationsList({ rows }: { rows: AutomationRow[] }) {
         <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>{a.name}</div>
-            <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{triggerLabel(a.trigger_type, a.trigger_days)} · {a.sent_count} sent</div>
+            <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{triggerLabel(a.trigger_type, a.trigger_days)} · {a.channel === 'whatsapp' ? 'WhatsApp' : 'Email'} · {a.sent_count} sent</div>
           </div>
           <button onClick={() => onToggle(a.id, !a.enabled)} disabled={pending} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', background: a.enabled ? 'var(--circle-lime-soft)' : 'transparent', color: a.enabled ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{a.enabled ? 'On' : 'Off'}</button>
           <a href={`/dashboard/automations/${a.id}`} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', color: 'var(--c-ink)', textDecoration: 'none', fontSize: 12.5 }}>Edit</a>

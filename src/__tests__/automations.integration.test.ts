@@ -65,3 +65,27 @@ test('toggleAutomation flips enabled, box-scoped', async () => {
   expect(rls.builder('automations').update).toHaveBeenCalledWith({ enabled: false })
   expect(rls.builder('automations').eq).toHaveBeenCalledWith('box_id', 'b1')
 })
+
+test('saveAutomation (whatsapp) requires a template', async () => {
+  serverCreate.mockResolvedValue(ownerRls())
+  const res = await saveAutomation({ id: null, name: 'Win-back', triggerType: 'joined', triggerDays: 7, subject: '', bodyBlocks: [], channel: 'whatsapp', waTemplateId: null, waVarValues: {} })
+  expect(res.error).toMatch(/template/i)
+})
+
+test('saveAutomation (whatsapp) inserts channel + template + vars, no block check', async () => {
+  const rls = ownerRls()
+  serverCreate.mockResolvedValue(rls)
+  const res = await saveAutomation({ id: null, name: 'Win-back', triggerType: 'joined', triggerDays: 7, subject: '', bodyBlocks: [], channel: 'whatsapp', waTemplateId: 'wt1', waVarValues: { '1': '{{first_name}}' } })
+  expect(res.error).toBeNull()
+  const ins = rls.builder('automations').insert.mock.calls[0][0]
+  expect(ins).toEqual(expect.objectContaining({ channel: 'whatsapp', wa_template_id: 'wt1', wa_var_values: { '1': '{{first_name}}' }, subject: '', body_blocks: [] }))
+})
+
+test('saveAutomation (email) still defaults channel to email', async () => {
+  const rls = ownerRls()
+  serverCreate.mockResolvedValue(rls)
+  const res = await saveAutomation({ id: null, name: 'Welcome', triggerType: 'joined', triggerDays: 7, subject: 'Hi', bodyBlocks: heading, channel: 'email', waTemplateId: null, waVarValues: {} })
+  expect(res.error).toBeNull()
+  const ins = rls.builder('automations').insert.mock.calls[0][0]
+  expect(ins).toEqual(expect.objectContaining({ channel: 'email', subject: 'Hi' }))
+})

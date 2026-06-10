@@ -6,6 +6,8 @@ import { validateBlocks, type Block } from '@/lib/email-blocks'
 import type { TriggerType } from '@/lib/automations'
 import { validateAutomation } from '../_lib/automation-validation'
 
+export type AutomationChannel = 'email' | 'whatsapp'
+
 export type SaveAutomationInput = {
   id: string | null
   name: string
@@ -13,6 +15,9 @@ export type SaveAutomationInput = {
   triggerDays: number | null
   subject: string
   bodyBlocks: Block[]
+  channel?: AutomationChannel
+  waTemplateId?: string | null
+  waVarValues?: Record<string, string>
 }
 
 export async function saveAutomation(input: SaveAutomationInput): Promise<{ error: string | null }> {
@@ -24,17 +29,37 @@ export async function saveAutomation(input: SaveAutomationInput): Promise<{ erro
 
   const vErr = validateAutomation(input.name, input.triggerType, input.triggerDays)
   if (vErr) return { error: vErr }
-  const subject = input.subject.trim()
-  if (!subject || subject.length > 150) return { error: 'Subject must be 1–150 characters.' }
-  const bErr = validateBlocks(input.bodyBlocks)
-  if (bErr) return { error: bErr }
 
-  const row = {
-    name: input.name.trim(),
-    trigger_type: input.triggerType,
-    trigger_days: input.triggerType === 'birthday' ? null : input.triggerDays,
-    subject,
-    body_blocks: input.bodyBlocks,
+  const channel: AutomationChannel = input.channel ?? 'email'
+  let row: Record<string, unknown>
+
+  if (channel === 'whatsapp') {
+    if (!input.waTemplateId) return { error: 'Choose a WhatsApp template.' }
+    row = {
+      name: input.name.trim(),
+      trigger_type: input.triggerType,
+      trigger_days: input.triggerType === 'birthday' ? null : input.triggerDays,
+      channel: 'whatsapp',
+      wa_template_id: input.waTemplateId,
+      wa_var_values: input.waVarValues ?? {},
+      subject: '',
+      body_blocks: [],
+    }
+  } else {
+    const subject = input.subject.trim()
+    if (!subject || subject.length > 150) return { error: 'Subject must be 1–150 characters.' }
+    const bErr = validateBlocks(input.bodyBlocks)
+    if (bErr) return { error: bErr }
+    row = {
+      name: input.name.trim(),
+      trigger_type: input.triggerType,
+      trigger_days: input.triggerType === 'birthday' ? null : input.triggerDays,
+      channel: 'email',
+      wa_template_id: null,
+      wa_var_values: null,
+      subject,
+      body_blocks: input.bodyBlocks,
+    }
   }
 
   if (input.id) {

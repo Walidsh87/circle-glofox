@@ -17,6 +17,8 @@ const schema = z.object({
   TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
   TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
   TWILIO_SMS_FROM: z.string().min(1).optional(),
+  // Optional: E.164 number of the approved WhatsApp sender (#39). Enables WhatsApp campaigns.
+  TWILIO_WHATSAPP_FROM: z.string().min(1).optional(),
   // Optional: when both are set, per-IP rate limiting activates (src/lib/rate-limit.ts).
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
@@ -36,6 +38,7 @@ export const env = schema.parse({
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
   TWILIO_SMS_FROM: process.env.TWILIO_SMS_FROM,
+  TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM,
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 })

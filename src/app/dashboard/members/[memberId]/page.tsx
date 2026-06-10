@@ -12,6 +12,10 @@ import { HouseholdCard } from './_components/household-card'
 import { SkillsEditor } from './_components/skills-editor'
 import { MemberFollowups } from './_components/member-followups'
 import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_components/task-item'
+import { ReferCard } from './_components/refer-card'
+import { ensureReferralCode } from '@/app/dashboard/referrals/_actions/ensure-referral-code'
+import { referralLink } from '@/lib/referrals'
+import { env } from '@/env'
 
 const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
   owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
@@ -74,15 +78,17 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
 
   const { data: viewer } = await supabase
     .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
+    .select('full_name, role, box_id, boxes(name, slug)')
     .eq('id', user.id)
     .single()
 
   if (!viewer) redirect('/onboarding')
   if (!['owner', 'coach'].includes(viewer.role) && user.id !== params.memberId) redirect('/dashboard')
 
-  const boxes = viewer.boxes as { name: string }[] | { name: string } | null
+  const boxes = viewer.boxes as { name: string; slug?: string }[] | { name: string; slug?: string } | null
   const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const boxSlug = Array.isArray(boxes) ? (boxes[0]?.slug ?? null) : (boxes?.slug ?? null)
+  const isSelf = user.id === params.memberId
 
   const [
     { data: member },
@@ -181,6 +187,21 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     : { data: [] as { id: string; title: string; due_date: string; done: boolean }[] }
   const followups: FollowupTaskRow[] = ((followupRows ?? []) as { id: string; title: string; due_date: string; done: boolean }[])
     .map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel: null, linkHref: null }))
+
+  // Refer-a-friend (#49/#88): only on the member's own athlete profile.
+  let referLink: string | null = null
+  let referredCount = 0
+  let joinedCount = 0
+  if (isSelf && viewer.role === 'athlete' && boxSlug) {
+    const { code } = await ensureReferralCode()
+    if (code) referLink = referralLink(env.NEXT_PUBLIC_APP_URL, boxSlug, code)
+    const [{ count: rc }, { count: jc }] = await Promise.all([
+      supabase.from('leads').select('id', { count: 'exact', head: true }).eq('box_id', viewer.box_id).eq('referred_by', user.id),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', viewer.box_id).eq('referred_by', user.id),
+    ])
+    referredCount = rc ?? 0
+    joinedCount = jc ?? 0
+  }
 
   // Household (#30): owner-managed. Members of this member's household + the box's households (to add to one).
   const { data: household } = isOwner && member.household_id
@@ -373,6 +394,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                   members={householdMembers ?? []}
                   allHouseholds={(allHouseholds ?? []).filter((h) => h.id !== member.household_id)}
                 />
+              </div>
+            )}
+
+            {isSelf && viewer.role === 'athlete' && referLink && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Refer a friend</div>
+                <ReferCard link={referLink} referred={referredCount} joined={joinedCount} />
               </div>
             )}
 

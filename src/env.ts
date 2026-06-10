@@ -13,6 +13,10 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   // Optional: Resend webhook signing secret. Enables email open/click analytics (#41).
   RESEND_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Optional: when all three are set, SMS campaigns (#42) activate (src/lib/twilio.ts).
+  TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
+  TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
+  TWILIO_SMS_FROM: z.string().min(1).optional(),
   // Optional: when both are set, per-IP rate limiting activates (src/lib/rate-limit.ts).
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
@@ -29,6 +33,9 @@ export const env = schema.parse({
   PORTAL_SIGN_SECRET: process.env.PORTAL_SIGN_SECRET,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_SMS_FROM: process.env.TWILIO_SMS_FROM,
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 })

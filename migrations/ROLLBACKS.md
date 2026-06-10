@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`043` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`044` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,13 @@ Reverse procedures for migrations `008`–`043` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 044_sequences
+```sql
+DROP TABLE IF EXISTS sequence_sends;
+DROP TABLE IF EXISTS sequence_enrollments;
+DROP TABLE IF EXISTS sequences;
+```
 
 ### 043_automations
 ```sql

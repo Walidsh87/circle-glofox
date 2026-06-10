@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`051` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`052` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,12 @@ Reverse procedures for migrations `008`–`051` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 052_wa_inbound
+```sql
+ALTER TABLE conversations DROP COLUMN IF EXISTS last_wa_inbound_at;
+ALTER TABLE messages DROP COLUMN IF EXISTS channel;
+```
 
 ### 051_checklists
 ```sql

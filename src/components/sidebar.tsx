@@ -41,6 +41,7 @@ function getNavGroups(role: string): NavGroup[] {
   if (isOwner) runTheGym.push({ key: 'whatsapp', label: 'WhatsApp', href: '/dashboard/whatsapp', icon: 'wa' })
   if (isStaff) runTheGym.push({ key: 'inbox', label: 'Inbox', href: '/dashboard/inbox', icon: 'chat' })
   if (isStaff) runTheGym.push({ key: 'tasks', label: 'Follow-ups', href: '/dashboard/tasks', icon: 'checklist' })
+  if (isOwner) runTheGym.push({ key: 'referrals', label: 'Referrals', href: '/dashboard/referrals', icon: 'gift' })
   if (isOwner) runTheGym.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
   groups.push({ section: 'Run the gym', items: runTheGym })
 
@@ -103,6 +104,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   wa: <><path d="M3 21l1.6-4.5A8 8 0 1 1 8 19.4z" /><path d="M8.5 9c.3 2 2.5 4.2 4.5 4.5l1-1.4 2 .8v1.6c-2.4.4-5.6-.8-7-3-1-1.6-1.3-3-1-3.8z" /></>,
   chat: <><path d="M4 5h16v11H8l-4 4z" /><path d="M8 9h8M8 12h5" /></>,
   checklist: <><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17" /></>,
+  gift: <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M5 12v9h14v-9M12 8v13" /><path d="M12 8S10 3 7.5 4.5 9.5 8 12 8zM12 8s2-5 4.5-3.5S14.5 8 12 8z" /></>,
 }
 
 function CIcon({ name, size = 15 }: { name: string; size?: number }) {

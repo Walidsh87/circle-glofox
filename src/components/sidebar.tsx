@@ -39,6 +39,7 @@ function getNavGroups(role: string): NavGroup[] {
   if (isOwner) runTheGym.push({ key: 'sequences', label: 'Sequences', href: '/dashboard/sequences', icon: 'layers' })
   if (isOwner) runTheGym.push({ key: 'sms', label: 'SMS', href: '/dashboard/sms', icon: 'phone' })
   if (isOwner) runTheGym.push({ key: 'whatsapp', label: 'WhatsApp', href: '/dashboard/whatsapp', icon: 'wa' })
+  if (isStaff) runTheGym.push({ key: 'inbox', label: 'Inbox', href: '/dashboard/inbox', icon: 'chat' })
   if (isOwner) runTheGym.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
   groups.push({ section: 'Run the gym', items: runTheGym })
 
@@ -64,6 +65,7 @@ function getNavGroups(role: string): NavGroup[] {
   athleteItems.push({ key: 'skills', label: 'Skills', href: '/dashboard/skills', icon: 'medal' })
   athleteItems.push({ key: 'feed', label: 'Activity Feed', href: '/dashboard/feed', icon: 'activity' })
   athleteItems.push({ key: 'committed-club', label: 'Committed Club', href: '/dashboard/committed-club', icon: 'trophy' })
+  athleteItems.push({ key: 'messages', label: 'Messages', href: '/dashboard/messages', icon: 'chat' })
   athleteItems.push({ key: 'profile', label: 'My Profile', href: '/dashboard/profile', icon: 'person' })
   groups.push({ section: 'Athletes', items: athleteItems })
 
@@ -98,6 +100,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   layers: <><path d="M12 3 3 8l9 5 9-5-9-5z" /><path d="M3 13l9 5 9-5" /></>,
   phone: <><path d="M5 4h4l2 5-3 2a11 11 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" /></>,
   wa: <><path d="M3 21l1.6-4.5A8 8 0 1 1 8 19.4z" /><path d="M8.5 9c.3 2 2.5 4.2 4.5 4.5l1-1.4 2 .8v1.6c-2.4.4-5.6-.8-7-3-1-1.6-1.3-3-1-3.8z" /></>,
+  chat: <><path d="M4 5h16v11H8l-4 4z" /><path d="M8 9h8M8 12h5" /></>,
 }
 
 function CIcon({ name, size = 15 }: { name: string; size?: number }) {

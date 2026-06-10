@@ -19,19 +19,32 @@ const cspDirectives = [
   "object-src 'none'",
 ].join('; ')
 
+const baseHeaders = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+]
+// Embed pages may be framed by any gym website; everywhere else stays DENY.
+const embedCsp = cspDirectives.replace("frame-ancestors 'none'", 'frame-ancestors *')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: '/((?!embed).*)',
         headers: [
           { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          ...baseHeaders,
           { key: 'Content-Security-Policy', value: cspDirectives },
-          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+        ],
+      },
+      {
+        source: '/embed/:path*',
+        headers: [
+          ...baseHeaders,
+          { key: 'Content-Security-Policy', value: embedCsp },
         ],
       },
     ]

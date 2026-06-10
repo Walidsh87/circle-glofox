@@ -38,6 +38,7 @@ function getNavGroups(role: string): NavGroup[] {
   if (isOwner) runTheGym.push({ key: 'automations', label: 'Automations', href: '/dashboard/automations', icon: 'zap' })
   if (isOwner) runTheGym.push({ key: 'sequences', label: 'Sequences', href: '/dashboard/sequences', icon: 'layers' })
   if (isOwner) runTheGym.push({ key: 'sms', label: 'SMS', href: '/dashboard/sms', icon: 'phone' })
+  if (isOwner) runTheGym.push({ key: 'whatsapp', label: 'WhatsApp', href: '/dashboard/whatsapp', icon: 'wa' })
   if (isOwner) runTheGym.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
   groups.push({ section: 'Run the gym', items: runTheGym })
 
@@ -96,6 +97,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   funnel: <><path d="M3 5h18l-7 8v6l-4 2v-8z" /></>,
   layers: <><path d="M12 3 3 8l9 5 9-5-9-5z" /><path d="M3 13l9 5 9-5" /></>,
   phone: <><path d="M5 4h4l2 5-3 2a11 11 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" /></>,
+  wa: <><path d="M3 21l1.6-4.5A8 8 0 1 1 8 19.4z" /><path d="M8.5 9c.3 2 2.5 4.2 4.5 4.5l1-1.4 2 .8v1.6c-2.4.4-5.6-.8-7-3-1-1.6-1.3-3-1-3.8z" /></>,
 }
 
 function CIcon({ name, size = 15 }: { name: string; size?: number }) {

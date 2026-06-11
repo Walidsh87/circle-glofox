@@ -200,7 +200,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 52. ✅ `[G-gap]` Lead conversion funnel by source — *done 2026-06-11: `/dashboard/reports/lead-funnel` — new→engaged→converted by source, CSV. Known limit: convert-to-member deletes the lead row, so status-based conversion undercounts*
 53. ✅ `[G-gap]` Instructor / class performance — *done 2026-06-11: `/dashboard/reports/classes` — per-coach + per-template fill % / no-show %, CSV*
 54. ✅ `[G-gap]` CSV export everywhere — *done 2026-06-11: shared `toCsv` + `DownloadCsvButton`; wired on People (per-tab), Payments, Retention + all report pages*
-55. ⬜ `[G-gap]` Payroll report (per-coach pay rates × classes taught)
+55. ✅ `[G-gap]` Payroll report — *done 2026-06-11: `/dashboard/reports/payroll` (mig 054, applied to prod) — per-coach base (per-class rate or monthly salary) + PT add-on; PT sessions attributed at redeem time via required coach picker; month picker, inline rate editing, CSV. PT counting starts 2026-06-11; substitutions untracked*
 56. ⬜ `[Wedge]` **Per-location P&L** for multi-branch operators
 
 ### Tier 7 — Staff, access, multi-location

@@ -18,6 +18,11 @@ describe('shouldRateLimit', () => {
     expect(shouldRateLimit('/tv/9f3a-secret')).toBe(true)
   })
 
+  test('limits the embeddable widgets (unauthenticated lead form + schedule)', () => {
+    expect(shouldRateLimit('/embed/lead/demo')).toBe(true)
+    expect(shouldRateLimit('/embed/schedule/demo')).toBe(true)
+  })
+
   test('does NOT limit the Stripe webhook (signature-verified, high volume)', () => {
     expect(shouldRateLimit('/api/webhooks/stripe')).toBe(false)
   })

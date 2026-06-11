@@ -1,6 +1,6 @@
 'use server'
 
-import { requireStaffAction } from '@/lib/auth/action-guards'
+import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateStrengthPrescription, validateScaling, type StrengthSet, type ScalingTier } from '../_lib/validation'
 
@@ -32,7 +32,7 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
   const scalingError = validateScaling(scaling)
   if (scalingError) return { error: scalingError }
 
-  const auth = await requireStaffAction('Only owners and coaches can post WODs.')
+  const auth = await requireProgrammingAction('Only owners and coaches can post WODs.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile } = auth
 

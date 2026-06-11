@@ -1,12 +1,12 @@
 'use server'
 
-import { requireStaffAction } from '@/lib/auth/action-guards'
+import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteTemplate(templateId: string): Promise<{ error: string | null }> {
   if (!templateId?.trim()) return { error: 'Missing template.' }
 
-  const auth = await requireStaffAction('Only owners and coaches can manage the library.')
+  const auth = await requireProgrammingAction('Only owners and coaches can manage the library.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, profile } = auth
 

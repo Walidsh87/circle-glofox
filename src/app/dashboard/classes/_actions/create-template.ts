@@ -1,6 +1,6 @@
 'use server'
 
-import { requireStaffAction } from '@/lib/auth/action-guards'
+import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -15,7 +15,7 @@ export async function createTemplate(prevState: State, formData: FormData): Prom
 
   if (!name || !startTime || isNaN(weekday)) return { error: 'Name, weekday, and start time are required.' }
 
-  const auth = await requireStaffAction('Only owners and coaches can manage class templates.')
+  const auth = await requireProgrammingAction('Only owners and coaches can manage class templates.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, profile } = auth
 

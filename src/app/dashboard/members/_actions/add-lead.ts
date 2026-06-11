@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -15,7 +15,7 @@ export async function addLead(prevState: State, formData: FormData): Promise<Sta
 
   if (!fullName) return { error: 'Name is required.' }
 
-  const auth = await requireOwnerAction('Only owners can manage leads.')
+  const auth = await requireStaffAction('Only staff can manage leads.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, profile: caller } = auth
 

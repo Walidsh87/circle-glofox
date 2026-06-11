@@ -1,13 +1,13 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 
 export async function convertLead(
   leadId: string,
 ): Promise<{ error: string | null; memberId: string | null }> {
-  const auth = await requireOwnerAction('Only owners can manage leads.')
+  const auth = await requireStaffAction('Only staff can manage leads.')
   if ('error' in auth) return { error: auth.error, memberId: null }
   const { supabase, profile: caller } = auth
 

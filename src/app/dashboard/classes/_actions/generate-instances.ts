@@ -1,6 +1,6 @@
 'use server'
 
-import { requireStaffAction } from '@/lib/auth/action-guards'
+import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 // GCC timezones have no DST — fixed offsets are safe
@@ -32,7 +32,7 @@ function buildStartsAt(dateStr: string, timeStr: string, offsetHours: number): s
 type Result = { created: number; skipped: number; error: string | null }
 
 export async function generateInstances(startDate: string): Promise<Result> {
-  const auth = await requireStaffAction('Only owners and coaches can generate instances.')
+  const auth = await requireProgrammingAction('Only owners and coaches can generate instances.')
   if ('error' in auth) return { created: 0, skipped: 0, error: auth.error }
   const { supabase, profile } = auth
 

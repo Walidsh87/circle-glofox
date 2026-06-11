@@ -1,6 +1,6 @@
 'use server'
 
-import { requireStaffAction } from '@/lib/auth/action-guards'
+import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateTemplateInput } from '../_lib/validation'
 import { validateStrengthPrescription, type StrengthSet } from '@/app/dashboard/wod/_lib/validation'
@@ -25,7 +25,7 @@ export async function saveTemplate(prevState: State, formData: FormData): Promis
   const prescriptionError = validateStrengthPrescription(strengthLift, strengthSets)
   if (prescriptionError) return { error: prescriptionError }
 
-  const auth = await requireStaffAction('Only owners and coaches can manage the library.')
+  const auth = await requireProgrammingAction('Only owners and coaches can manage the library.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile } = auth
 

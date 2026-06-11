@@ -1,6 +1,6 @@
 'use server'
 
-import { requireStaffAction } from '@/lib/auth/action-guards'
+import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { BELTS, SKILL_KEYS } from '@/lib/skills'
 
@@ -8,7 +8,7 @@ export async function setSkillLevel(athleteId: string, skillKey: string, belt: s
   if (!SKILL_KEYS.has(skillKey)) return { error: 'Unknown skill.' }
   if (belt !== '' && !(BELTS as readonly string[]).includes(belt)) return { error: 'Unknown belt.' }
 
-  const auth = await requireStaffAction('Only staff can set skill levels.')
+  const auth = await requireProgrammingAction('Only staff can set skill levels.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, profile } = auth
 

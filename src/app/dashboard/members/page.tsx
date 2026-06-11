@@ -5,6 +5,7 @@ import { AddMemberForm } from './_components/add-member-form'
 import { RemoveMemberButton } from './_components/remove-member-button'
 import { AddLeadForm } from './_components/add-lead-form'
 import { LeadsList, type Lead } from './_components/leads-list'
+import { DownloadCsvButton } from '@/components/download-csv-button'
 
 type Tab = 'members' | 'coaches' | 'leads'
 
@@ -58,6 +59,19 @@ export default async function MembersPage({
   const allTags = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
   const shownPeople = (people ?? []).filter((p) => !tagFilter || (tagsByAthlete.get(p.id) ?? []).includes(tagFilter))
 
+  // CSV export for the active tab's table (#54)
+  const csvExport = tab === 'leads'
+    ? {
+        filename: 'leads.csv',
+        headers: ['Name', 'Phone', 'Email', 'Source', 'Status', 'Notes', 'Drop-in date', 'Created'],
+        rows: (leads ?? []).map((l) => [l.full_name, l.phone, l.email, l.source, l.status, l.notes, l.drop_in_date, l.created_at?.slice(0, 10)]),
+      }
+    : {
+        filename: tab === 'coaches' ? 'coaches.csv' : 'members.csv',
+        headers: ['Name', 'Email', 'Phone', 'Role'],
+        rows: shownPeople.map((p) => [p.full_name, p.email, p.phone, p.role]),
+      }
+
   const TABS = [
     { key: 'members' as Tab, label: 'Members',  count: memberCount ?? 0 },
     { key: 'coaches' as Tab, label: 'Coaches',  count: coachCount ?? 0 },
@@ -73,11 +87,12 @@ export default async function MembersPage({
         <header style={{
           height: 60, borderBottom: '1px solid var(--c-border)',
           display: 'flex', alignItems: 'center', padding: '0 32px',
-          background: 'var(--c-surface)', flexShrink: 0,
+          background: 'var(--c-surface)', flexShrink: 0, gap: 12,
         }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
             People
           </h1>
+          <DownloadCsvButton filename={csvExport.filename} headers={csvExport.headers} rows={csvExport.rows} />
         </header>
 
         {/* Tab bar */}

@@ -8,6 +8,7 @@ import { CreateStripePlanForm } from './_components/create-stripe-plan-form'
 import { AddMembershipPlanForm } from './_components/add-membership-plan-form'
 import { MembershipPlanRow } from './_components/membership-plan-row'
 import { RemindersToggle } from './_components/reminders-toggle'
+import { DownloadCsvButton } from '@/components/download-csv-button'
 import { isFrozenOn } from '@/lib/membership-status'
 
 const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
@@ -88,6 +89,12 @@ export default async function PaymentsPage() {
   const collected = active.filter((m) => m.payment_status === 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
   const outstanding = active.filter((m) => m.payment_status !== 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
 
+  // CSV export of the memberships table (#54)
+  const membershipCsvRows = (memberships ?? []).map((m) => {
+    const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+    return [p?.full_name ?? '', m.plan_name, m.monthly_price_aed, m.start_date, m.last_paid_date, m.payment_status]
+  })
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
       <Sidebar active="payments" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
@@ -111,6 +118,11 @@ export default async function PaymentsPage() {
               {unpaidCount} unpaid
             </span>
           )}
+          <DownloadCsvButton
+            filename="memberships.csv"
+            headers={['Athlete', 'Plan', 'Price (AED)', 'Start', 'Last paid', 'Status']}
+            rows={membershipCsvRows}
+          />
         </header>
 
         <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>

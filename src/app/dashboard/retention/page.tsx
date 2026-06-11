@@ -5,6 +5,7 @@ import { getMembershipStatus } from '@/lib/membership-status'
 import { scoreMember } from './_lib/risk'
 import { lastCheckInByAthlete, daysBetween } from './_lib/aggregate'
 import { MarkContacted } from './_components/mark-contacted'
+import { DownloadCsvButton } from '@/components/download-csv-button'
 
 const TIMEZONE_OFFSETS: Record<string, number> = {
   'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
@@ -85,6 +86,9 @@ export default async function RetentionPage() {
   }
   cards.sort((a, b) => b.score - a.score || (b.lastInDays ?? 9999) - (a.lastInDays ?? 9999))
 
+  // CSV export of the at-risk list (#54)
+  const atRiskCsvRows = cards.map((c) => [c.name, c.tier, c.reasons.join('; ')])
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
       <Sidebar active="retention" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
@@ -93,6 +97,7 @@ export default async function RetentionPage() {
         <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0, gap: 12 }}>
           <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Retention</h1>
           <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{cards.length} to reach out</span>
+          <DownloadCsvButton filename="at-risk.csv" headers={['Name', 'Tier', 'Reasons']} rows={atRiskCsvRows} />
         </header>
 
         <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>

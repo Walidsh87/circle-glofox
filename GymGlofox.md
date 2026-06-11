@@ -207,7 +207,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 57. ⬜ `[G-gap]` Granular staff roles — Owner / Admin / Coach / Receptionist
 58. ⬜ `[Wedge]` **Role + location permissions**
 59. ⬜ `[Wedge]` **Coach payroll + timecards native** — pay rates per class type, base + bonus, clock-in/out
-60. ⬜ `[G-gap]` Staff task management (assignable, lead-linked)
+60. ✅ `[G-gap]` **Staff task management (assignable)** — optional `assigned_to` on `follow_up_tasks` (mig 055, FK profiles ON DELETE SET NULL; null = shared pool; no RLS change). `createTask` validates the assignee is box staff; "Assign to" picker (default Anyone) on all three QuickAdd surfaces (tasks hub, lead rows, member profile); `→ name` chip on task rows; Mine/All pill filter on `/dashboard/tasks` (`?filter=mine`, default All). Existing tasks untouched; dashboard "Follow-ups due" stat stays box-wide. Notifications/reassignment deferred; #57 roles will widen the staff-list queries + action role check. Spec `…staff-tasks-design.md`.
 61. ⬜ `[G-gap]` QR / barcode self check-in
 62. ⬜ `[G-gap]` Door access integration (Kisi or UAE-local) — deferred until requested
 63. ⬜ `[Kept]` Multi-location / branch management

@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`056` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`058` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,26 @@ Reverse procedures for migrations `008`–`056` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 058_staff_roles_policies
+```sql
+DROP FUNCTION IF EXISTS auth_is_staff();
+DROP FUNCTION IF EXISTS auth_is_manager();
+DROP FUNCTION IF EXISTS auth_is_programming();
+-- then re-apply the original policy blocks from their source migrations:
+-- 019 (classes/workouts/leads/coach reads), 020/022 (packages), 026 (coach notes),
+-- 030 (outreach), 035 (plans), 037 (tags), 038 (households), 040 (skills),
+-- 041–046 (campaigns), 047 (inbox), 048 (tasks), 051 (checklists),
+-- and the base-schema leads policies captured in the 2026-06-11 pg_dump.
+-- NOTE: drop the swept policies first (they reference the helpers).
+```
+
+### 057_staff_roles
+```sql
+-- Postgres cannot drop enum values. 'admin'/'receptionist' remain in the type,
+-- harmless once 058 is rolled back and no profiles row uses them:
+-- UPDATE profiles SET role='coach' WHERE role IN ('admin','receptionist');
+```
 
 ### 056_checkin_token
 ```sql

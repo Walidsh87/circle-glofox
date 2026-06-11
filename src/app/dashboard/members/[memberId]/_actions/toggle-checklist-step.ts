@@ -1,14 +1,12 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 export async function toggleChecklistStep(memberId: string, itemId: string, done: boolean): Promise<{ error: string | null }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!caller || (caller.role !== 'owner' && caller.role !== 'coach')) return { error: 'Only staff can update checklists.' }
+  const auth = await requireStaffAction('Only staff can update checklists.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, user, profile: caller } = auth
 
   if (done) {
     const { error } = await supabase.from('member_checklist_progress').upsert(

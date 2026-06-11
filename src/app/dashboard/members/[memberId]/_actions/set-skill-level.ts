@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { BELTS, SKILL_KEYS } from '@/lib/skills'
 
@@ -8,11 +8,9 @@ export async function setSkillLevel(athleteId: string, skillKey: string, belt: s
   if (!SKILL_KEYS.has(skillKey)) return { error: 'Unknown skill.' }
   if (belt !== '' && !(BELTS as readonly string[]).includes(belt)) return { error: 'Unknown belt.' }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: profile } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!profile || !['owner', 'coach'].includes(profile.role)) return { error: 'Only staff can set skill levels.' }
+  const auth = await requireStaffAction('Only staff can set skill levels.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
 
   if (belt === '') {
     const { error } = await supabase.from('skill_levels').delete().eq('athlete_id', athleteId).eq('skill_key', skillKey).eq('box_id', profile.box_id)

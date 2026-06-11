@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requirePage } from '@/lib/auth/page-guards'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
@@ -75,22 +75,10 @@ function Field({ label, value }: { label: string; value: string }) {
 
 export default async function MemberProfilePage(ctx: { params: Promise<{ memberId: string }> }) {
   const params = await ctx.params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: viewer } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name, slug)')
-    .eq('id', user.id)
-    .single()
-
-  if (!viewer) redirect('/onboarding')
+  const { supabase, user, profile: viewer, boxName, box } = await requirePage()
   if (!['owner', 'coach'].includes(viewer.role) && user.id !== params.memberId) redirect('/dashboard')
 
-  const boxes = viewer.boxes as { name: string; slug?: string }[] | { name: string; slug?: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
-  const boxSlug = Array.isArray(boxes) ? (boxes[0]?.slug ?? null) : (boxes?.slug ?? null)
+  const boxSlug = box.slug
   const isSelf = user.id === params.memberId
 
   const [
@@ -256,7 +244,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="members" userName={viewer.full_name} userRole={viewer.role} boxName={boxName} />
+      <Sidebar active="members" userName={viewer.full_name!} userRole={viewer.role} boxName={boxName} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{

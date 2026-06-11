@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateMembershipInput } from '../_lib/validation'
 import { addDays } from '@/lib/date-utils'
@@ -18,17 +18,9 @@ export async function saveMembership(prevState: State, formData: FormData): Prom
   const validationError = validateMembershipInput(athleteId, planName, startDate)
   if (validationError) return { error: validationError }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || profile.role !== 'owner') return { error: 'Only owners can manage memberships.' }
+  const auth = await requireOwnerAction('Only owners can manage memberships.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
 
   // A trial plan creates a time-limited membership; fields derived server-side from the
   // authoritative plan (the form can't forge a trial length).

@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { validateStripePlanInput } from '../_lib/validation'
 import { getProviderForBox } from '@/lib/psp'
 
@@ -13,17 +13,9 @@ export async function createStripePlan(prevState: State, formData: FormData): Pr
   const validationError = validateStripePlanInput(planName, priceAed)
   if (validationError) return { error: validationError, priceId: null }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.', priceId: null }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, box_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || profile.role !== 'owner') return { error: 'Only owners can create plans.', priceId: null }
+  const auth = await requireOwnerAction('Only owners can create plans.')
+  if ('error' in auth) return { error: auth.error, priceId: null }
+  const { profile } = auth
 
   try {
     const provider = await getProviderForBox(profile.box_id)

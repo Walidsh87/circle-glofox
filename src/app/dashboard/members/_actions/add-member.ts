@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -17,22 +17,11 @@ export async function addMember(prevState: State, formData: FormData): Promise<S
   if (!['athlete', 'coach'].includes(role)) return { error: 'Invalid role.' }
 
   // Verify caller is an owner
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
+  const auth = await requireOwnerAction('Only owners can add members.')
+  if ('error' in auth) return { error: auth.error }
+  const { profile: callerProfile } = auth
 
-  const { data: callerProfile } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!callerProfile || callerProfile.role !== 'owner') return { error: 'Only owners can add members.' }
-
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const service = createServiceClient()
 
   // Create auth user without sending an email
   const { data: newUser, error: authError } = await service.auth.admin.createUser({

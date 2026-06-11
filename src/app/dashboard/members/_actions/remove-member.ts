@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 
 export async function removeMember(memberId: string): Promise<{ error: string | null }> {
@@ -19,10 +19,7 @@ export async function removeMember(memberId: string): Promise<{ error: string | 
 
   if (!callerProfile || callerProfile.role !== 'owner') return { error: 'Only owners can remove members.' }
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const service = createServiceClient()
 
   // Verify the member belongs to the same box
   const { data: memberProfile } = await service

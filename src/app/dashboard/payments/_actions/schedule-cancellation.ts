@@ -1,16 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateEndDate } from '../_lib/lifecycle-validation'
 
 async function ownerBox(): Promise<{ boxId: string } | { error: string }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: profile } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!profile || profile.role !== 'owner') return { error: 'Only owners can manage memberships.' }
-  return { boxId: profile.box_id }
+  const auth = await requireOwnerAction('Only owners can manage memberships.')
+  if ('error' in auth) return { error: auth.error }
+  return { boxId: auth.profile.box_id }
 }
 
 export async function scheduleCancellation(membershipId: string, endDate: string): Promise<{ error: string | null }> {

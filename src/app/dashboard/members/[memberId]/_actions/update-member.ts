@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { requireStaffAction } from '@/lib/auth/action-guards'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { validateMemberFields } from '../_lib/member-fields-validation'
 
@@ -20,19 +20,9 @@ export async function updateMember(prevState: State, formData: FormData): Promis
 
   if (!memberId || !fullName) return { error: 'Name is required.' }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-
-  const { data: viewer } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!viewer || !['owner', 'coach'].includes(viewer.role)) {
-    return { error: 'Access denied.' }
-  }
+  const auth = await requireStaffAction('Access denied.')
+  if ('error' in auth) return { error: auth.error }
+  const { profile: viewer } = auth
 
   const fieldsError = validateMemberFields(
     { emergencyContactName, emergencyContactPhone, bloodType, allergies, dateOfBirth },
@@ -58,10 +48,7 @@ export async function updateMember(prevState: State, formData: FormData): Promis
   // profiles has no UPDATE RLS policy, so the RLS client silently no-ops here.
   // Writes are already owner/coach-gated above and scoped to the caller's box
   // (.eq box_id) for tenant isolation — apply via the service role.
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const service = createServiceClient()
   const { error } = await service
     .from('profiles')
     .update(update)

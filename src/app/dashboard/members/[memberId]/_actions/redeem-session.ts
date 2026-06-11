@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { validateRedeemInput } from '../_lib/validation'
 
@@ -9,21 +9,11 @@ export async function redeemSession(creditId: string): Promise<{ error: string |
   const validationError = validateRedeemInput(creditId)
   if (validationError) return { error: validationError }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
+  const auth = await requireOwnerAction('Only owners can redeem sessions.')
+  if ('error' in auth) return { error: auth.error }
+  const { profile } = auth
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, box_id')
-    .eq('id', user.id)
-    .single()
-  if (!profile || profile.role !== 'owner') return { error: 'Only owners can redeem sessions.' }
-
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  const service = createServiceClient()
 
   // The batch must be a PT-session batch in the owner's box (tenant scope).
   const { data: batch } = await service

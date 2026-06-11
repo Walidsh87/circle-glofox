@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validatePlan } from '../_lib/plan-validation'
 
@@ -15,11 +15,9 @@ export async function editMembershipPlan(
   const err = validatePlan(name, monthlyPriceAed, providerPlanRef, isTrial, trialDays)
   if (err) return { error: err }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: profile } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!profile || profile.role !== 'owner') return { error: 'Only owners can manage plans.' }
+  const auth = await requireOwnerAction('Only owners can manage plans.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
 
   const { error } = await supabase
     .from('membership_plans')

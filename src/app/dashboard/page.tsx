@@ -1,6 +1,7 @@
 import { requirePage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
+import { PasswordNudge } from './_components/password-nudge'
 import { countIncompleteOnboarding } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 
@@ -15,8 +16,9 @@ function todayInTimezone(timezone: string) {
 }
 
 export default async function DashboardPage() {
-  const { supabase, profile, boxName } = await requirePage()
+  const { supabase, profile, boxName, user } = await requirePage()
 
+  const hasPassword = user.user_metadata?.has_password === true
   const isOwner = profile.role === 'owner'
   const isStaff = ['owner', 'coach'].includes(profile.role)
 
@@ -138,6 +140,7 @@ export default async function DashboardPage() {
 
         {/* Body */}
         <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <PasswordNudge show={!hasPassword} />
           {/* Greeting */}
           <div>
             <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>

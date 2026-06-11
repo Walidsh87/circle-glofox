@@ -196,7 +196,7 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 
 ### Tier 6 — Reporting & analytics
 50. ✅ `[G-gap]` Attendance + no-show report — *done 2026-06-11: `/dashboard/reports/attendance` — summary cards, per-template fill/no-show, busiest top-5, CSV*
-51. ⬜ `[Kept]` Retention / churn / "members at risk" report *(largely covered by #18 `/dashboard/retention`; remaining gap = historical churn trend)*
+51. ✅ `[Kept]` **Retention / churn report** — at-risk half shipped as #18 `/dashboard/retention`; historical half now `/dashboard/reports/churn` (manager tier): last 12 months of active-at-start / joined / churned / net / churn %, lapse-based (`buildChurnTrend` — coverage ends with nothing after; back-to-back renewals not churn; rejoins don't double-count joins; trials excluded), partial current month labeled, CSV. No migration. Spec `…churn-trend-design.md`.
 52. ✅ `[G-gap]` Lead conversion funnel by source — *done 2026-06-11: `/dashboard/reports/lead-funnel` — new→engaged→converted by source, CSV. Known limit: convert-to-member deletes the lead row, so status-based conversion undercounts*
 53. ✅ `[G-gap]` Instructor / class performance — *done 2026-06-11: `/dashboard/reports/classes` — per-coach + per-template fill % / no-show %, CSV*
 54. ✅ `[G-gap]` CSV export everywhere — *done 2026-06-11: shared `toCsv` + `DownloadCsvButton`; wired on People (per-tab), Payments, Retention + all report pages*

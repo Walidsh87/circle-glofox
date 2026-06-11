@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { sendWaitlistEmail } from '@/lib/email'
 import { env } from '@/env'
@@ -53,10 +53,7 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
       // surface that the credit couldn't be refunded (safe to retry; SQL caps it).
       console.error('SUPABASE_SERVICE_ROLE_KEY missing; cannot refund credit:', booking.credit_id)
     } else {
-      const service = createServiceClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-      )
+      const service = createServiceClient()
       // Best-effort refund; log if it fails so a stranded credit isn't silent.
       const { error: refundErr } = await service.rpc('refund_credit', { p_credit_id: booking.credit_id })
       if (refundErr) console.error('refund_credit failed on cancel; credit stranded:', booking.credit_id, refundErr)
@@ -66,7 +63,7 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
   // A spot just freed → email the next person in line. Best-effort; never fails the cancel.
   try {
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const svc = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY)
+      const svc = createServiceClient()
       const { data: next } = await svc
         .from('class_waitlist')
         .select('athlete_id')

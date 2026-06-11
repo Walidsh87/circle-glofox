@@ -1,25 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { requirePage } from '@/lib/auth/page-guards'
 import { redirect } from 'next/navigation'
 import { SignWaiverForm } from './_components/sign-waiver-form'
 
 export default async function SignWaiverPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/onboarding')
+  const { supabase, user, profile, boxName } = await requirePage()
   if (profile.role !== 'athlete') redirect('/dashboard')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes)
-    ? (boxes[0]?.name ?? '')
-    : (boxes as { name: string } | null)?.name ?? ''
 
   const [{ data: waiver }, { data: terms }, { data: waiverSig }] = await Promise.all([
     supabase.from('gym_waivers').select('content').eq('box_id', profile.box_id).single(),
@@ -83,7 +68,7 @@ export default async function SignWaiverPage() {
         )}
 
         <SignWaiverForm
-          profileName={profile.full_name}
+          profileName={profile.full_name!}
           waiverSigned={waiverSigned}
           termsSigned={termsSigned}
           termsVersion={currentTermsVersion}

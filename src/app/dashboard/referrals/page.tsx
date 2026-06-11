@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { RewardButton } from './_components/reward-button'
@@ -7,14 +6,7 @@ import { RewardButton } from './_components/reward-button'
 type ReferralItem = { kind: 'lead' | 'member'; id: string; name: string; rewardedAt: string | null }
 
 export default async function ReferralsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-  const { data: profile } = await supabase.from('profiles').select('full_name, role, box_id, boxes(name)').eq('id', user.id).single()
-  if (!profile) redirect('/onboarding')
-  if (profile.role !== 'owner') redirect('/dashboard')
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireOwnerPage()
 
   const [{ data: leadRows }, { data: memberRows }] = await Promise.all([
     supabase.from('leads').select('id, full_name, referred_by').eq('box_id', profile.box_id).not('referred_by', 'is', null),
@@ -44,7 +36,7 @@ export default async function ReferralsPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="referrals" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="referrals" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
           <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Referrals</h1>

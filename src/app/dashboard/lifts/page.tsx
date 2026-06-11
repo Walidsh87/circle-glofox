@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requirePage } from '@/lib/auth/page-guards'
 import { Fragment } from 'react'
 import { Sidebar } from '@/components/sidebar'
 import { LiftForm } from './_components/lift-form'
@@ -8,20 +7,7 @@ import { Calculator } from './_components/calculator'
 import { LiftChart } from './_components/lift-chart'
 
 export default async function LiftsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/onboarding')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, user, profile, boxName } = await requirePage()
 
   const { data: lifts } = await supabase
     .from('athlete_lifts')
@@ -46,7 +32,7 @@ export default async function LiftsPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="lifts" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="lifts" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{

@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requirePage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { BookingButton } from './_components/booking-button'
 import { waitlistPosition } from './_lib/waitlist'
@@ -20,20 +19,7 @@ function dateKey(startsAt: string, timezone: string) {
 }
 
 export default async function SchedulePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/onboarding')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, user, profile, boxName } = await requirePage()
 
   const now = new Date().toISOString()
 
@@ -70,7 +56,7 @@ export default async function SchedulePage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="schedule" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="schedule" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{

@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { Sparkline } from './_components/sparkline'
 import { computeKpis, type MembershipRow } from './_lib/metrics'
@@ -16,20 +15,7 @@ function todayInTimezone(timezone: string) {
 const fmtAed = (n: number) => `${Math.round(n).toLocaleString()} AED`
 
 export default async function KpiPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-  if (!profile) redirect('/onboarding')
-  if (profile.role !== 'owner') redirect('/dashboard')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireOwnerPage()
 
   const { data: box } = await supabase.from('boxes').select('timezone').eq('id', profile.box_id).single()
   const timezone = box?.timezone ?? 'Asia/Dubai'
@@ -61,7 +47,7 @@ export default async function KpiPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="kpi" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="kpi" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>

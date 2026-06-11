@@ -1,19 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requirePage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { InboxPoller } from '../inbox/_components/inbox-poller'
 import { Composer } from '../inbox/_components/composer'
 import { markRead } from '../inbox/_actions/mark-read'
 
 export default async function MessagesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase.from('profiles').select('full_name, role, box_id, boxes(name)').eq('id', user.id).single()
-  if (!profile) redirect('/onboarding')
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, user, profile, boxName } = await requirePage()
   const gymName = boxName || 'the gym'
 
   const { data: conv } = await supabase.from('conversations').select('id').eq('member_id', user.id).maybeSingle()
@@ -26,7 +18,7 @@ export default async function MessagesPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="messages" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="messages" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
           <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Messages</h1>

@@ -75,8 +75,8 @@ function getNavGroups(role: string): NavGroup[] {
   return groups
 }
 
-function initials(name: string) {
-  return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+function initials(name: string | null) {
+  return (name ?? '').split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
 }
 
 const ICON_PATHS: Record<string, React.ReactNode> = {
@@ -124,7 +124,7 @@ export function Sidebar({
   boxName,
 }: {
   active: string
-  userName: string
+  userName: string | null
   userRole: string
   boxName: string
 }) {

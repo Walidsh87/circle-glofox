@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { validateTrn } from '@/lib/invoices'
 
@@ -19,22 +19,11 @@ export async function updateSettings(prevState: State, formData: FormData): Prom
   if (!/^[a-z0-9-]{3,40}$/.test(slug)) return { error: 'URL must be 3–40 characters: lowercase letters, numbers, and dashes only.' }
   if (RESERVED_SLUGS.includes(slug)) return { error: 'That URL is reserved. Please choose another.' }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
+  const auth = await requireOwnerAction('Only owners can update settings.')
+  if ('error' in auth) return { error: auth.error }
+  const { profile } = auth
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || profile.role !== 'owner') return { error: 'Only owners can update settings.' }
-
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const service = createServiceClient()
 
   const stripeSecretKey = (formData.get('stripeSecretKey') as string)?.trim() || undefined
   const stripeWebhookSecret = (formData.get('stripeWebhookSecret') as string)?.trim() || undefined

@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { SettingsForm } from './_components/settings-form'
 import { env } from '@/env'
@@ -10,21 +9,7 @@ import { ScheduleWidgetCard } from './_components/schedule-widget-card'
 import { ChecklistEditor, type EditorItem } from './_components/checklist-editor'
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name, timezone, slug)')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/onboarding')
-  if (profile.role !== 'owner') redirect('/dashboard')
-
-  const boxesRaw = profile.boxes
-  const boxes = (Array.isArray(boxesRaw) ? boxesRaw[0] : boxesRaw) as { name: string; timezone: string; slug: string | null } | null
+  const { supabase, profile, box: boxes } = await requireOwnerPage()
 
   // Don't fetch the raw secret key — query a count of rows where it's set instead.
   // The boolean is all the UI needs; the secret never leaves the database.
@@ -55,7 +40,7 @@ export default async function SettingsPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="settings" userName={profile.full_name} userRole={profile.role} boxName={boxes?.name ?? ''} />
+      <Sidebar active="settings" userName={profile.full_name!} userRole={profile.role} boxName={boxes?.name ?? ''} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{

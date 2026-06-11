@@ -1,14 +1,12 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 export async function moveChecklistItem(id: string, direction: 'up' | 'down'): Promise<{ error: string | null }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!caller || caller.role !== 'owner') return { error: 'Only owners can manage checklists.' }
+  const auth = await requireOwnerAction('Only owners can manage checklists.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile: caller } = auth
 
   const { data: allRows } = await supabase.from('checklist_items').select('id, kind, position').eq('box_id', caller.box_id)
   const rows = (allRows ?? []) as { id: string; kind: string; position: number }[]

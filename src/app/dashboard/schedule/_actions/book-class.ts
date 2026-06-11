@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { getMembershipStatus } from '@/lib/membership-status'
 import { selectBestBatch, decideEntitlement } from '@/lib/credits'
@@ -42,10 +42,7 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: 'Server configuration error.' }
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-  )
+  const service = createServiceClient()
 
   // Capacity (service role bypasses athlete RLS to count everyone's bookings).
   const { count } = await service

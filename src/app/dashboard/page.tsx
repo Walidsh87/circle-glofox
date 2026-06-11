@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requirePage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { countIncompleteOnboarding } from '@/lib/checklists'
@@ -16,20 +15,7 @@ function todayInTimezone(timezone: string) {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/onboarding')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requirePage()
 
   const isOwner = profile.role === 'owner'
   const isStaff = ['owner', 'coach'].includes(profile.role)
@@ -90,7 +76,7 @@ export default async function DashboardPage() {
   const unpaidCount = memberships?.filter((m) => m.payment_status !== 'paid').length ?? 0
   const mrrAed = memberships?.filter((m) => m.payment_status === 'paid').reduce((s, m) => s + (m.monthly_price_aed ?? 0), 0) ?? 0
 
-  const firstName = profile.full_name.split(' ')[0]
+  const firstName = profile.full_name!.split(' ')[0]
 
   let onboardingTodo = 0
   if (isOwner) {
@@ -124,7 +110,7 @@ export default async function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-hanken, var(--font-geist-sans))' }}>
-      <Sidebar active="dashboard" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="dashboard" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Topbar */}

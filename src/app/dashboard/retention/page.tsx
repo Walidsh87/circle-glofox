@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { getMembershipStatus } from '@/lib/membership-status'
@@ -26,22 +25,8 @@ type MembershipRowFull = {
 }
 
 export default async function RetentionPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name, timezone)')
-    .eq('id', user.id)
-    .single()
-  if (!profile) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
-
-  const box = profile.boxes as { name: string; timezone: string | null }[] | { name: string; timezone: string | null } | null
-  const boxObj = Array.isArray(box) ? box[0] : box
-  const boxName = boxObj?.name ?? ''
-  const timezone = boxObj?.timezone ?? 'Asia/Dubai'
+  const { supabase, profile, boxName, box } = await requireStaffPage()
+  const timezone = box.timezone ?? 'Asia/Dubai'
   const todayIso = todayLocalDate(timezone)
   const nowIso = new Date().toISOString()
 
@@ -102,7 +87,7 @@ export default async function RetentionPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="retention" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="retention" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0, gap: 12 }}>

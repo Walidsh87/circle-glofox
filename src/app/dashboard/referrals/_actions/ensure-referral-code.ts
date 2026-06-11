@@ -1,8 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { env } from '@/env'
+import { createServiceClient } from '@/lib/supabase/service'
 import { generateReferralCode } from '@/lib/referrals'
 
 export async function ensureReferralCode(): Promise<{ code: string | null; error: string | null }> {
@@ -10,7 +9,7 @@ export async function ensureReferralCode(): Promise<{ code: string | null; error
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { code: null, error: 'Not authenticated.' }
 
-  const service = createServiceClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const service = createServiceClient()
   const { data: me } = await service.from('profiles').select('referral_code, box_id').eq('id', user.id).single()
   if (!me) return { code: null, error: 'Profile not found.' }
   if (me.referral_code) return { code: me.referral_code as string, error: null }

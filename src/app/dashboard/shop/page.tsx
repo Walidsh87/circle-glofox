@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { requirePage } from '@/lib/auth/page-guards'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { BuyButton } from './_components/buy-button'
@@ -21,21 +21,9 @@ function creditPkgName(c: CreditRow): string {
 
 export default async function ShopPage(ctx: { searchParams: Promise<{ purchase?: string }> }) {
   const justPurchased = (await ctx.searchParams).purchase === 'success'
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-  if (!profile) redirect('/onboarding')
+  const { supabase, user, profile, boxName } = await requirePage()
   // Self-serve storefront is for members; staff manage/sell via the member profile.
   if (profile.role !== 'athlete') redirect('/dashboard')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
 
   const [{ data: packages }, { data: credits }] = await Promise.all([
     supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', profile.box_id).eq('active', true).order('price_aed'),
@@ -46,7 +34,7 @@ export default async function ShopPage(ctx: { searchParams: Promise<{ purchase?:
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="shop" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="shop" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{

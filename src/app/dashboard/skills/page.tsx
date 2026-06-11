@@ -1,18 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requirePage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { SKILLS, overallBelt, beltRank, type Belt } from '@/lib/skills'
 import { BeltChip } from '@/components/belt-chip'
 
 export default async function SkillsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase.from('profiles').select('full_name, role, box_id, boxes(name)').eq('id', user.id).single()
-  if (!profile) redirect('/onboarding')
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, user, profile, boxName } = await requirePage()
 
   const { data: rows } = await supabase.from('skill_levels').select('skill_key, belt').eq('athlete_id', user.id)
   const levels: Record<string, string> = Object.fromEntries((rows ?? []).map((r) => [r.skill_key, r.belt]))
@@ -22,7 +14,7 @@ export default async function SkillsPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="skills" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+      <Sidebar active="skills" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
           <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Skills</h1>

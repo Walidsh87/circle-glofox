@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 
 export async function joinWaitlist(instanceId: string): Promise<{ error: string | null }> {
@@ -25,10 +25,7 @@ export async function joinWaitlist(instanceId: string): Promise<{ error: string 
   if (instance.box_id !== profile.box_id) return { error: 'Class not found.' }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: 'Server configuration error.' }
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-  )
+  const service = createServiceClient()
 
   // Waitlist only makes sense once the class is full (service role counts everyone).
   const { count } = await service

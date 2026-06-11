@@ -51,6 +51,45 @@ test('createTask inserts a lead-linked task', async () => {
   expect(ins).toEqual(expect.objectContaining({ lead_id: 'l1', member_id: null }))
 })
 
+test('createTask validates the assignee is box staff and inserts assigned_to', async () => {
+  const rls = makeSupabaseMock({ user: { id: 's1' }, results: {
+    profiles: [
+      { data: { box_id: 'b1', role: 'coach' }, error: null }, // caller guard
+      { data: { id: 'c2' }, error: null },                    // assignee lookup
+    ],
+    follow_up_tasks: { data: null, error: null },
+  } })
+  serverCreate.mockResolvedValue(rls)
+  const res = await createTask({ title: 'Call', dueDate: '2026-06-15', assignedTo: 'c2' })
+  expect(res.error).toBeNull()
+  expect(rls.builder('profiles').in).toHaveBeenCalledWith('role', ['owner', 'coach'])
+  const ins = rls.builder('follow_up_tasks').insert.mock.calls[0][0]
+  expect(ins).toEqual(expect.objectContaining({ assigned_to: 'c2' }))
+})
+
+test('createTask rejects an assignee outside box staff and never inserts', async () => {
+  const rls = makeSupabaseMock({ user: { id: 's1' }, results: {
+    profiles: [
+      { data: { box_id: 'b1', role: 'coach' }, error: null },
+      { data: null, error: null }, // assignee not found (athlete / other box)
+    ],
+  } })
+  serverCreate.mockResolvedValue(rls)
+  const res = await createTask({ title: 'Call', dueDate: '2026-06-15', assignedTo: 'x9' })
+  expect(res.error).toBe('Assignee must be a staff member of your gym.')
+  expect(rls.builder('follow_up_tasks')).toBeUndefined()
+})
+
+test('createTask without assignee inserts null and skips the assignee lookup', async () => {
+  const rls = staff()
+  serverCreate.mockResolvedValue(rls)
+  const res = await createTask({ title: 'Call', dueDate: '2026-06-15' })
+  expect(res.error).toBeNull()
+  const ins = rls.builder('follow_up_tasks').insert.mock.calls[0][0]
+  expect(ins).toEqual(expect.objectContaining({ assigned_to: null }))
+  expect(rls.builder('profiles').in).not.toHaveBeenCalled()
+})
+
 test('toggleTask done sets completed fields, box-scoped', async () => {
   const rls = staff()
   serverCreate.mockResolvedValue(rls)

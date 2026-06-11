@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateBlocks, type Block } from '@/lib/email-blocks'
 import type { TriggerType } from '@/lib/automations'
@@ -21,7 +21,7 @@ export type SaveAutomationInput = {
 }
 
 export async function saveAutomation(input: SaveAutomationInput): Promise<{ error: string | null }> {
-  const auth = await requireOwnerAction('Only owners can manage automations.')
+  const auth = await requireManagerAction('Only owners or admins can manage automations.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile: caller } = auth
 

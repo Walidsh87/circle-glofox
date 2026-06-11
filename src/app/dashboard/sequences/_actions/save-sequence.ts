@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import type { TriggerType } from '@/lib/automations'
 import type { SequenceStep } from '@/lib/sequences'
@@ -15,7 +15,7 @@ export type SaveSequenceInput = {
 }
 
 export async function saveSequence(input: SaveSequenceInput): Promise<{ error: string | null }> {
-  const auth = await requireOwnerAction('Only owners can manage sequences.')
+  const auth = await requireManagerAction('Only owners or admins can manage sequences.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile: caller } = auth
 

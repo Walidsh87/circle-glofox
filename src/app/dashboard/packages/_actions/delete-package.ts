@@ -1,10 +1,10 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 export async function deletePackage(packageId: string): Promise<{ error: string | null }> {
-  const auth = await requireOwnerAction('Only owners can manage packages.')
+  const auth = await requireManagerAction('Only owners or admins can manage packages.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, profile } = auth
 

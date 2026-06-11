@@ -1,13 +1,13 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateWaTemplate } from '../_lib/wa-validation'
 
 export type SaveWaTemplateInput = { name: string; contentSid: string; bodyPreview: string; varCount: number }
 
 export async function saveWaTemplate(input: SaveWaTemplateInput): Promise<{ error: string | null }> {
-  const auth = await requireOwnerAction('Only owners can manage WhatsApp templates.')
+  const auth = await requireManagerAction('Only owners or admins can manage WhatsApp templates.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile: caller } = auth
 

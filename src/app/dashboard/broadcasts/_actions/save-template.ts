@@ -1,11 +1,11 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateBlocks, type Block } from '@/lib/email-blocks'
 
 export async function saveTemplate(name: string, subject: string, bodyBlocks: Block[]): Promise<{ error: string | null }> {
-  const auth = await requireOwnerAction('Only owners can manage templates.')
+  const auth = await requireManagerAction('Only owners or admins can manage templates.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile: caller } = auth
 

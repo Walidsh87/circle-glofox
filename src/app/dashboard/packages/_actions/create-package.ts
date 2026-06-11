@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validatePackageInput } from '../_lib/validation'
 
@@ -17,7 +17,7 @@ export async function createPackage(prevState: State, formData: FormData): Promi
   const validationError = validatePackageInput(name, type, creditCount, priceAed, expiryDays)
   if (validationError) return { error: validationError }
 
-  const auth = await requireOwnerAction('Only owners can manage packages.')
+  const auth = await requireManagerAction('Only owners or admins can manage packages.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, profile } = auth
 

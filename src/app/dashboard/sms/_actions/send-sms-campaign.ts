@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { env } from '@/env'
@@ -14,7 +14,7 @@ import type { Segment } from '@/lib/broadcast-audience'
 type Result = { error: string | null; campaignId?: string; sent?: number; failed?: number; skipped?: number }
 
 export async function sendSmsCampaign(body: string, audienceStatus: string, tag: string | null): Promise<Result> {
-  const auth = await requireOwnerAction('Only owners can send SMS.')
+  const auth = await requireManagerAction('Only owners or admins can send SMS.')
   if ('error' in auth) return { error: auth.error }
   const { user, profile: caller } = auth
 

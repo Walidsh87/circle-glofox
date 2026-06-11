@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { env } from '@/env'
@@ -15,7 +15,7 @@ import type { Segment } from '@/lib/broadcast-audience'
 type Result = { error: string | null; campaignId?: string; sent?: number; failed?: number; skipped?: number }
 
 export async function sendWaCampaign(templateId: string, varValues: WaVarValues, audienceStatus: string, tag: string | null): Promise<Result> {
-  const auth = await requireOwnerAction('Only owners can send WhatsApp campaigns.')
+  const auth = await requireManagerAction('Only owners or admins can send WhatsApp campaigns.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile: caller } = auth
 

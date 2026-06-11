@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { env } from '@/env'
@@ -22,7 +22,7 @@ export async function sendBroadcast(
   tag: string | null,
   bodyBlocks?: Block[] | null
 ): Promise<Result> {
-  const auth = await requireOwnerAction('Only owners can send broadcasts.')
+  const auth = await requireManagerAction('Only owners or admins can send broadcasts.')
   if ('error' in auth) return { error: auth.error }
   const { user, profile: caller } = auth
 

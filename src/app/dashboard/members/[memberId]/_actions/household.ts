@@ -1,12 +1,12 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { validateHouseholdName } from '../_lib/household-validation'
 
 async function ownerBox(): Promise<{ boxId: string } | { error: string }> {
-  const auth = await requireOwnerAction('Only owners can manage households.')
+  const auth = await requireManagerAction('Only owners or admins can manage households.')
   if ('error' in auth) return { error: auth.error }
   return { boxId: auth.profile.box_id }
 }

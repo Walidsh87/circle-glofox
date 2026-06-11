@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireManagerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { env } from '@/env'
@@ -13,7 +13,7 @@ type Result = { error: string | null; sent?: number; failed?: number }
 const CHUNK = 100
 
 export async function retryFailedBroadcast(broadcastId: string): Promise<Result> {
-  const auth = await requireOwnerAction('Only owners can send broadcasts.')
+  const auth = await requireManagerAction('Only owners or admins can send broadcasts.')
   if ('error' in auth) return { error: auth.error }
   const { profile: caller } = auth
 

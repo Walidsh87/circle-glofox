@@ -1,4 +1,4 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { notFound } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { AutomationForm } from '../_components/automation-form'
@@ -7,7 +7,7 @@ import type { TriggerType } from '@/lib/automations'
 
 export default async function EditAutomationPage(ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const { data: a } = await supabase.from('automations').select('id, name, trigger_type, trigger_days, subject, body_blocks, channel, wa_template_id, wa_var_values').eq('id', id).eq('box_id', profile.box_id).single()
   if (!a) notFound()

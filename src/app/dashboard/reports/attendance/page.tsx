@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { DownloadCsvButton } from '@/components/download-csv-button'
 import { buildAttendanceReport, type AttendanceBooking, type AttendanceInstance } from '@/lib/reports/attendance'
 
@@ -12,7 +12,7 @@ function one<T>(v: Embedded<T>): T | null {
 }
 
 export default async function AttendanceReportPage(ctx: { searchParams: Promise<{ days?: string }> }) {
-  const { supabase, profile, boxName, box } = await requireOwnerPage()
+  const { supabase, profile, boxName, box } = await requireManagerPage()
   const sp = await ctx.searchParams
   const parsed = Number(sp.days)
   const days = RANGES.includes(parsed) ? parsed : 30

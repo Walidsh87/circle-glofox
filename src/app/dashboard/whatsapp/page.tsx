@@ -1,4 +1,4 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { WaTemplatesManager, type WaTemplate } from './_components/wa-templates-manager'
 import { WaComposeForm } from './_components/wa-compose-form'
@@ -6,7 +6,7 @@ import { WaList, type WaRow } from './_components/wa-list'
 import { waConfigured } from '@/lib/twilio'
 
 export default async function WhatsAppPage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const [{ data: tplRows }, { data: tagRows }, { data: campaignRows }] = await Promise.all([
     supabase.from('wa_templates').select('id, name, content_sid, body_preview, var_count').eq('box_id', profile.box_id).order('created_at', { ascending: false }),

@@ -1,4 +1,4 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { notFound } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { SEGMENT_LABELS, type Segment } from '@/lib/broadcast-audience'
@@ -14,7 +14,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default async function BroadcastDetailPage(ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const { data: b } = await supabase.from('broadcasts').select('id, subject, body, body_blocks, audience_status, audience_tag, created_at, status, recipient_count, sent_count, failed_count, skipped_count').eq('id', id).eq('box_id', profile.box_id).single()
   if (!b) notFound()

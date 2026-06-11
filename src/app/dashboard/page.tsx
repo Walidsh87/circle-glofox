@@ -273,7 +273,7 @@ export default async function DashboardPage() {
             {isStaff && <NavCard href="/dashboard/whiteboard" label="Whiteboard" description="Live check-in board" accent />}
             {isStaff && <NavCard href="/dashboard/wod" label="Daily WOD" description="Workout + leaderboard" />}
             <NavCard href="/dashboard/lifts" label="My 1RMs" description="Log & calculate lifts" />
-            {isOwner && <NavCard href="/dashboard/members" label="Members" description="Directory & management" />}
+            {['owner', 'admin', 'coach', 'receptionist'].includes(profile.role) && <NavCard href="/dashboard/members" label="Members" description="Directory & management" />}
             {isOwner && <NavCard href="/dashboard/payments" label="Payments" description="Membership billing" />}
           </div>
         </div>

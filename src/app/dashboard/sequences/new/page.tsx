@@ -1,9 +1,9 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { SequenceForm } from '../_components/sequence-form'
 
 export default async function NewSequencePage() {
-  const { profile, boxName } = await requireOwnerPage()
+  const { profile, boxName } = await requireManagerPage()
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>

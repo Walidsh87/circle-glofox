@@ -1,10 +1,10 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { AutomationsList, type AutomationRow } from './_components/automations-list'
 
 export default async function AutomationsPage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const { data: autos } = await supabase.from('automations').select('id, name, trigger_type, trigger_days, enabled, channel').eq('box_id', profile.box_id).order('created_at', { ascending: false })
   const { data: runs } = await supabase.from('automation_runs').select('automation_id').eq('box_id', profile.box_id)

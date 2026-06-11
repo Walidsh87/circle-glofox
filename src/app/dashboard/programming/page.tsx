@@ -1,4 +1,4 @@
-import { requireStaffPage } from '@/lib/auth/page-guards'
+import { requireProgrammingPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { monthGridDays, prevMonth, nextMonth, monthRange, formatMonth } from './_lib/calendar'
@@ -18,7 +18,7 @@ function todayInTimezone(timezone: string): string {
 
 export default async function ProgrammingPage(ctx: { searchParams: Promise<{ month?: string }> }) {
   const searchParams = await ctx.searchParams
-  const { supabase, profile, boxName, box } = await requireStaffPage()
+  const { supabase, profile, boxName, box } = await requireProgrammingPage()
 
   const today = todayInTimezone(box.timezone ?? 'Asia/Dubai')
   const month = MONTH_RE.test(searchParams.month ?? '') ? searchParams.month! : today.slice(0, 7)

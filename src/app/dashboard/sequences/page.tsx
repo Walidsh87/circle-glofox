@@ -1,10 +1,10 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { SequencesList, type SequenceRow } from './_components/sequences-list'
 
 export default async function SequencesPage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const { data: seqs } = await supabase.from('sequences').select('id, name, trigger_type, trigger_days, steps, enabled').eq('box_id', profile.box_id).order('created_at', { ascending: false })
   const { data: enrollments } = await supabase.from('sequence_enrollments').select('sequence_id, status').eq('box_id', profile.box_id)

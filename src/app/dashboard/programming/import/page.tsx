@@ -1,10 +1,10 @@
-import { requireStaffPage } from '@/lib/auth/page-guards'
+import { requireProgrammingPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { ImportForm } from '../_components/import-form'
 
 export default async function ImportPage() {
-  const { profile, boxName } = await requireStaffPage()
+  const { profile, boxName } = await requireProgrammingPage()
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>

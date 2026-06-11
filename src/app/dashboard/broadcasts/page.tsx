@@ -1,11 +1,11 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { ComposeForm, type TemplateOption } from './_components/compose-form'
 import { TemplatesManager } from './_components/templates-manager'
 import { BroadcastsList, type BroadcastRow } from './_components/broadcasts-list'
 
 export default async function BroadcastsPage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const [{ data: tagRows }, { data: broadcastRows }, { data: templateRows }] = await Promise.all([
     supabase.from('member_tags').select('tag').eq('box_id', profile.box_id),

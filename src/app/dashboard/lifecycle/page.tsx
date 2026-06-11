@@ -1,4 +1,4 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { scoreMember } from '@/app/dashboard/retention/_lib/risk'
@@ -9,7 +9,7 @@ import { Board } from './_components/board'
 type MRow = MembershipRow & { athlete_id: string; start_date: string; is_trial: boolean | null }
 
 export default async function LifecyclePage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const today = new Date().toISOString().slice(0, 10)
   const nowIso = new Date().toISOString()

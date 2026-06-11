@@ -1,8 +1,8 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 
 export default async function WaiversPage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const [
     { data: athletes },

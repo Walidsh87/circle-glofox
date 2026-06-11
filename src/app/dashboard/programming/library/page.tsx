@@ -1,11 +1,11 @@
-import { requireStaffPage } from '@/lib/auth/page-guards'
+import { requireProgrammingPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { LibraryList } from '../_components/library-list'
 import type { TemplateExisting } from '../_components/template-form'
 
 export default async function LibraryPage() {
-  const { supabase, profile, boxName } = await requireStaffPage()
+  const { supabase, profile, boxName } = await requireProgrammingPage()
 
   const { data: templates } = await supabase
     .from('workout_templates')

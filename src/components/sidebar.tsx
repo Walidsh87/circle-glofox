@@ -20,7 +20,9 @@ type NavGroup = {
 
 function getNavGroups(role: string): NavGroup[] {
   const isOwner = role === 'owner'
-  const isStaff = role === 'owner' || role === 'coach'
+  const isManager = role === 'owner' || role === 'admin'
+  const isProgramming = isManager || role === 'coach'
+  const isStaff = isProgramming || role === 'receptionist'
 
   const groups: NavGroup[] = []
 
@@ -28,36 +30,34 @@ function getNavGroups(role: string): NavGroup[] {
     { key: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'home' },
   ]
   if (isOwner) runTheGym.push({ key: 'kpi', label: 'Metrics', href: '/dashboard/kpi', icon: 'chart' })
-  if (isOwner) runTheGym.push({ key: 'reports', label: 'Reports', href: '/dashboard/reports', icon: 'chart' })
+  if (isManager) runTheGym.push({ key: 'reports', label: 'Reports', href: '/dashboard/reports', icon: 'chart' })
   if (isStaff) runTheGym.push({ key: 'retention', label: 'Retention', href: '/dashboard/retention', icon: 'activity' })
-  if (isOwner) runTheGym.push({ key: 'lifecycle', label: 'Lifecycle', href: '/dashboard/lifecycle', icon: 'funnel' })
-  if (isOwner) runTheGym.push({ key: 'members', label: 'Member directory', href: '/dashboard/members', icon: 'users' })
-  if (isOwner) runTheGym.push({ key: 'waivers', label: 'Waivers', href: '/dashboard/waivers', icon: 'shield' })
+  if (isManager) runTheGym.push({ key: 'lifecycle', label: 'Lifecycle', href: '/dashboard/lifecycle', icon: 'funnel' })
+  if (isStaff) runTheGym.push({ key: 'members', label: 'Member directory', href: '/dashboard/members', icon: 'users' })
+  if (isManager) runTheGym.push({ key: 'waivers', label: 'Waivers', href: '/dashboard/waivers', icon: 'shield' })
   if (isOwner) runTheGym.push({ key: 'payments', label: 'Payments', href: '/dashboard/payments', icon: 'card' })
-  if (isOwner) runTheGym.push({ key: 'packages', label: 'Packages', href: '/dashboard/packages', icon: 'tag' })
-  if (isOwner) runTheGym.push({ key: 'broadcasts', label: 'Broadcasts', href: '/dashboard/broadcasts', icon: 'megaphone' })
-  if (isOwner) runTheGym.push({ key: 'automations', label: 'Automations', href: '/dashboard/automations', icon: 'zap' })
-  if (isOwner) runTheGym.push({ key: 'sequences', label: 'Sequences', href: '/dashboard/sequences', icon: 'layers' })
-  if (isOwner) runTheGym.push({ key: 'sms', label: 'SMS', href: '/dashboard/sms', icon: 'phone' })
-  if (isOwner) runTheGym.push({ key: 'whatsapp', label: 'WhatsApp', href: '/dashboard/whatsapp', icon: 'wa' })
+  if (isManager) runTheGym.push({ key: 'packages', label: 'Packages', href: '/dashboard/packages', icon: 'tag' })
+  if (isManager) runTheGym.push({ key: 'broadcasts', label: 'Broadcasts', href: '/dashboard/broadcasts', icon: 'megaphone' })
+  if (isManager) runTheGym.push({ key: 'automations', label: 'Automations', href: '/dashboard/automations', icon: 'zap' })
+  if (isManager) runTheGym.push({ key: 'sequences', label: 'Sequences', href: '/dashboard/sequences', icon: 'layers' })
+  if (isManager) runTheGym.push({ key: 'sms', label: 'SMS', href: '/dashboard/sms', icon: 'phone' })
+  if (isManager) runTheGym.push({ key: 'whatsapp', label: 'WhatsApp', href: '/dashboard/whatsapp', icon: 'wa' })
   if (isStaff) runTheGym.push({ key: 'inbox', label: 'Inbox', href: '/dashboard/inbox', icon: 'chat' })
   if (isStaff) runTheGym.push({ key: 'tasks', label: 'Follow-ups', href: '/dashboard/tasks', icon: 'checklist' })
-  if (isOwner) runTheGym.push({ key: 'referrals', label: 'Referrals', href: '/dashboard/referrals', icon: 'gift' })
+  if (isManager) runTheGym.push({ key: 'referrals', label: 'Referrals', href: '/dashboard/referrals', icon: 'gift' })
   if (isOwner) runTheGym.push({ key: 'attribution', label: 'Attribution', href: '/dashboard/attribution', icon: 'chart' })
   if (isOwner) runTheGym.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
   groups.push({ section: 'Run the gym', items: runTheGym })
 
   if (isStaff) {
-    groups.push({
-      section: 'Programming',
-      items: [
-        { key: 'prep', label: 'Class prep', href: '/dashboard/prep', icon: 'users' },
-        { key: 'classes', label: 'Class schedule', href: '/dashboard/classes', icon: 'calendar' },
-        { key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' },
-        { key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' },
-        { key: 'whiteboard', label: 'Whiteboard', href: '/dashboard/whiteboard', icon: 'monitor', badge: 'live', badgeVariant: 'lime' },
-      ],
-    })
+    const programmingItems: NavItem[] = [
+      { key: 'prep', label: 'Class prep', href: '/dashboard/prep', icon: 'users' },
+      { key: 'classes', label: 'Class schedule', href: '/dashboard/classes', icon: 'calendar' },
+    ]
+    if (isProgramming) programmingItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
+    if (isProgramming) programmingItems.push({ key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' })
+    programmingItems.push({ key: 'whiteboard', label: 'Whiteboard', href: '/dashboard/whiteboard', icon: 'monitor', badge: 'live', badgeVariant: 'lime' })
+    groups.push({ section: 'Programming', items: programmingItems })
   }
 
   const athleteItems: NavItem[] = []

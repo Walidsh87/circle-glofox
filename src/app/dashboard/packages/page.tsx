@@ -1,4 +1,4 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { AddPackageForm } from './_components/add-package-form'
 import { PackageActions } from './_components/package-actions'
@@ -10,7 +10,7 @@ const TYPE_LABEL: Record<string, string> = {
 }
 
 export default async function PackagesPage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const { data: packages } = await supabase
     .from('packages')

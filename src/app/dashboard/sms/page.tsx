@@ -1,11 +1,11 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { SmsComposeForm } from './_components/sms-compose-form'
 import { SmsList, type SmsRow } from './_components/sms-list'
 import { smsConfigured } from '@/lib/twilio'
 
 export default async function SmsPage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const [{ data: tagRows }, { data: campaignRows }] = await Promise.all([
     supabase.from('member_tags').select('tag').eq('box_id', profile.box_id),

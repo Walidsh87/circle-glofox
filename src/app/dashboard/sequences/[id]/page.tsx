@@ -1,4 +1,4 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { notFound } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { SequenceForm } from '../_components/sequence-form'
@@ -7,7 +7,7 @@ import type { TriggerType } from '@/lib/automations'
 
 export default async function EditSequencePage(ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const { data: s } = await supabase.from('sequences').select('id, name, trigger_type, trigger_days, steps').eq('id', id).eq('box_id', profile.box_id).single()
   if (!s) notFound()

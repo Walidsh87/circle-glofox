@@ -1,4 +1,4 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { RewardButton } from './_components/reward-button'
@@ -6,7 +6,7 @@ import { RewardButton } from './_components/reward-button'
 type ReferralItem = { kind: 'lead' | 'member'; id: string; name: string; rewardedAt: string | null }
 
 export default async function ReferralsPage() {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
 
   const [{ data: leadRows }, { data: memberRows }] = await Promise.all([
     supabase.from('leads').select('id, full_name, referred_by').eq('box_id', profile.box_id).not('referred_by', 'is', null),

@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireManagerPage } from '@/lib/auth/page-guards'
 import { DownloadCsvButton } from '@/components/download-csv-button'
 import { buildLeadFunnel, type LeadFunnelLead } from '@/lib/reports/lead-funnel'
 
 const RANGES = [30, 60, 90]
 
 export default async function LeadFunnelReportPage(ctx: { searchParams: Promise<{ days?: string }> }) {
-  const { supabase, profile, boxName } = await requireOwnerPage()
+  const { supabase, profile, boxName } = await requireManagerPage()
   const sp = await ctx.searchParams
   const parsed = Number(sp.days)
   const days = RANGES.includes(parsed) ? parsed : 30

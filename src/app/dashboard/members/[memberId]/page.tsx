@@ -144,7 +144,29 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   if (!member) notFound()
 
   const isOwner = viewer.role === 'owner'
-  const [{ data: activePackages }, { data: memberCredits }, { data: planList }] = await Promise.all([
+  const isStaff = ['owner', 'coach'].includes(viewer.role)
+  const today = new Date().toISOString().slice(0, 10)
+
+  // Onboarding/offboarding checklist (#38) kind is stage-driven off the memberships above.
+  const memberStatus = getMembershipStatus((memberships ?? []) as MembershipRow[], today)
+  const isCancelled = memberStatus === 'no_membership' && (memberships?.length ?? 0) > 0
+  const checklistKind: ChecklistKind = isCancelled ? 'offboarding' : 'onboarding'
+
+  // Everything below depends only on member/memberships/viewer — one parallel round-trip.
+  const [
+    { data: activePackages },
+    { data: memberCredits },
+    { data: planList },
+    { data: tagRows },
+    { data: skillRows },
+    { data: followupRows },
+    { data: ciRows },
+    { data: progRows },
+    { data: household },
+    { data: householdMembers },
+    { data: allHouseholds },
+    { data: attendance },
+  ] = await Promise.all([
     isOwner
       ? supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', viewer.box_id).eq('active', true).order('name')
       : Promise.resolve({ data: [] as { id: string; name: string; type: string; credit_count: number; price_aed: number }[] }),
@@ -154,28 +176,41 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     isOwner
       ? supabase.from('membership_plans').select('id, name, monthly_price_aed').eq('box_id', viewer.box_id).eq('active', true).eq('is_trial', false).order('name')
       : Promise.resolve({ data: [] as { id: string; name: string; monthly_price_aed: number | null }[] }),
+    isStaff
+      ? supabase.from('member_tags').select('tag, athlete_id').eq('box_id', viewer.box_id)
+      : Promise.resolve({ data: [] as { tag: string; athlete_id: string }[] }),
+    isStaff
+      ? supabase.from('skill_levels').select('skill_key, belt').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id)
+      : Promise.resolve({ data: [] as { skill_key: string; belt: string }[] }),
+    isStaff
+      ? supabase.from('follow_up_tasks').select('id, title, due_date, done').eq('box_id', viewer.box_id).eq('member_id', params.memberId).eq('done', false).order('due_date', { ascending: true })
+      : Promise.resolve({ data: [] as { id: string; title: string; due_date: string; done: boolean }[] }),
+    isStaff
+      ? supabase.from('checklist_items').select('id, label').eq('box_id', viewer.box_id).eq('kind', checklistKind).order('position', { ascending: true })
+      : Promise.resolve({ data: [] as { id: string; label: string }[] }),
+    isStaff
+      ? supabase.from('member_checklist_progress').select('item_id').eq('box_id', viewer.box_id).eq('member_id', params.memberId)
+      : Promise.resolve({ data: [] as { item_id: string }[] }),
+    isOwner && member.household_id
+      ? supabase.from('households').select('id, name, primary_athlete_id').eq('id', member.household_id).single()
+      : Promise.resolve({ data: null }),
+    isOwner && member.household_id
+      ? supabase.from('profiles').select('id, full_name').eq('household_id', member.household_id)
+      : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+    isOwner
+      ? supabase.from('households').select('id, name').eq('box_id', viewer.box_id).order('name')
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    supabase.from('bookings').select('class_instances(starts_at)').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id).eq('checked_in', true),
   ])
 
-  const today = new Date().toISOString().slice(0, 10)
-
   // Tags (#33): staff-only metadata, box-scoped. Members never see their own tags.
-  const isStaff = ['owner', 'coach'].includes(viewer.role)
-  const { data: tagRows } = isStaff
-    ? await supabase.from('member_tags').select('tag, athlete_id').eq('box_id', viewer.box_id)
-    : { data: [] as { tag: string; athlete_id: string }[] }
   const memberTags = (tagRows ?? []).filter((r) => r.athlete_id === params.memberId).map((r) => r.tag).sort()
   const tagSuggestions = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
 
   // Skills (#36): staff assess belts per skill for this member.
-  const { data: skillRows } = isStaff
-    ? await supabase.from('skill_levels').select('skill_key, belt').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id)
-    : { data: [] as { skill_key: string; belt: string }[] }
   const skillLevels: Record<string, string> = Object.fromEntries((skillRows ?? []).map((r) => [r.skill_key, r.belt]))
 
   // Follow-up tasks (#47): this member's open tasks, staff-only.
-  const { data: followupRows } = isStaff
-    ? await supabase.from('follow_up_tasks').select('id, title, due_date, done').eq('box_id', viewer.box_id).eq('member_id', params.memberId).eq('done', false).order('due_date', { ascending: true })
-    : { data: [] as { id: string; title: string; due_date: string; done: boolean }[] }
   const followups: FollowupTaskRow[] = ((followupRows ?? []) as { id: string; title: string; due_date: string; done: boolean }[])
     .map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel: null, linkHref: null }))
 
@@ -195,41 +230,14 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   }
 
   // Onboarding/offboarding checklist (#38): stage-driven, staff-only.
-  const memberStatus = getMembershipStatus((memberships ?? []) as MembershipRow[], today)
-  const isCancelled = memberStatus === 'no_membership' && (memberships?.length ?? 0) > 0
-  const checklistKind: ChecklistKind = isCancelled ? 'offboarding' : 'onboarding'
-  let checklist = mergeChecklist([], new Set<string>())
-  if (isStaff) {
-    const [{ data: ciRows }, { data: progRows }] = await Promise.all([
-      supabase.from('checklist_items').select('id, label').eq('box_id', viewer.box_id).eq('kind', checklistKind).order('position', { ascending: true }),
-      supabase.from('member_checklist_progress').select('item_id').eq('box_id', viewer.box_id).eq('member_id', params.memberId),
-    ])
-    const doneIds = new Set(((progRows ?? []) as { item_id: string }[]).map((p) => p.item_id))
-    checklist = mergeChecklist((ciRows ?? []) as { id: string; label: string }[], doneIds)
-  }
-
-  // Household (#30): owner-managed. Members of this member's household + the box's households (to add to one).
-  const { data: household } = isOwner && member.household_id
-    ? await supabase.from('households').select('id, name, primary_athlete_id').eq('id', member.household_id).single()
-    : { data: null }
-  const { data: householdMembers } = isOwner && member.household_id
-    ? await supabase.from('profiles').select('id, full_name').eq('household_id', member.household_id)
-    : { data: [] as { id: string; full_name: string }[] }
-  const { data: allHouseholds } = isOwner
-    ? await supabase.from('households').select('id, name').eq('box_id', viewer.box_id).order('name')
-    : { data: [] as { id: string; name: string }[] }
+  const doneIds = new Set(((progRows ?? []) as { item_id: string }[]).map((p) => p.item_id))
+  const checklist = mergeChecklist((ciRows ?? []) as { id: string; label: string }[], doneIds)
 
   // A membership with a *future* end_date (scheduled to cancel) is still the active one.
   const activeMembership = memberships?.find((m) => !m.end_date || m.end_date >= today) ?? null
   const rs = activeMembership ? (STATUS_STYLES[activeMembership.payment_status] ?? STATUS_STYLES.unpaid) : null
 
   // Consistency (Committed Club): full checked-in history (the bookings list above is capped at 10).
-  const { data: attendance } = await supabase
-    .from('bookings')
-    .select('class_instances(starts_at)')
-    .eq('athlete_id', params.memberId)
-    .eq('box_id', viewer.box_id)
-    .eq('checked_in', true)
   const checkInDates = (attendance ?? [])
     .map((b) => {
       const ci = Array.isArray(b.class_instances) ? b.class_instances[0] : b.class_instances

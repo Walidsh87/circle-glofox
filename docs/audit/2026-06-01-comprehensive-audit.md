@@ -121,3 +121,14 @@ Deep-audited across this engagement; most issues already fixed. Current state:
 **⏳ Parked (in-my-control, intentionally deferred):** S1 nonce CSP — should be done against **staging** (R3) to avoid breaking Stripe checkout; P7 webhook-handler tests (heavy Stripe-signature mocking, low marginal value).
 
 **All in-my-control audit items are now complete.** Remaining work is either yours or blocked on staging.
+
+---
+
+## Architecture-enhancement pass (2026-06-11)
+
+Behavior-identical hardening sweep (726 tests green, build green):
+- **P6 ✅** Dependabot (npm + actions, weekly) + PR template.
+- **Dedup refactor:** shared `requirePage/requireStaffPage/requireOwnerPage` + `require*Action` guards and `createServiceClient()` adopted across ~140 files (~-1,100 lines of repeated auth/profile/service-client boilerplate); `Array.isArray(boxes)` unwrap now lives only in `src/lib/auth/page-guards.ts`.
+- **Perf:** WA-inbound webhook matches members via indexed `profiles.phone_e164` generated column (migration 053) instead of scanning all athletes; member-detail page collapsed ~11 awaited query rounds into 3.
+- **Sec:** `/embed/*` now rate-limited; portal route reads `PORTAL_SIGN_SECRET`/`NEXT_PUBLIC_APP_URL` via `env.ts` (dropped the `?? ''` fallback).
+- **Coverage:** thresholds now count `src/lib/**` (39 previously-uncounted modules) — passing at 86% stmts / 79% branches.

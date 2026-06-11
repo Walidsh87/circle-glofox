@@ -2,7 +2,9 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { CircleMark } from '@/components/circle-mark'
+import { cn } from '@/lib/utils'
 
 type NavItem = {
   key: string
@@ -146,154 +148,112 @@ export function Sidebar({
 
   return (
     <>
-    <aside className="c-sidebar" style={{
-      width: 248,
-      borderRight: '1px solid var(--c-border)',
-      padding: '20px 14px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 18,
-      background: 'var(--c-surface-sunk)',
-      flexShrink: 0,
-      height: '100vh',
-      overflowY: 'auto',
-    }}>
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 6px' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 9,
-          fontFamily: 'var(--font-space-grotesk)', fontWeight: 700,
-          fontSize: 15, letterSpacing: '0.04em', textTransform: 'uppercase',
-          color: 'var(--c-ink)',
-        }}>
-          <CircleMark size={20} />
-          <span>Circle</span>
+      <aside className="c-sidebar flex h-screen w-[248px] shrink-0 flex-col gap-[18px] overflow-y-auto border-r border-line bg-surface-2 px-3.5 py-5">
+        {/* Logo */}
+        <div className="flex items-center justify-between px-1.5">
+          <div className="flex items-center gap-2 font-display text-[15px] font-semibold text-ink">
+            <CircleMark size={20} />
+            <span>Circle</span>
+          </div>
+          <span className="mono rounded border border-line px-1.5 py-px text-[10px] text-ink-3">
+            v1.0
+          </span>
         </div>
-        <span className="mono" style={{
-          fontSize: 10, color: 'var(--c-ink-muted)',
-          border: '1px solid var(--c-border)', padding: '1px 6px', borderRadius: 4,
-        }}>v1.0</span>
-      </div>
 
-      {/* Gym card */}
-      <div style={{
-        background: 'var(--c-surface)',
-        border: '1px solid var(--c-border)',
-        borderRadius: 10,
-        padding: '8px 10px',
-        display: 'flex', alignItems: 'center', gap: 10,
-        boxShadow: 'var(--c-shadow-sm)',
-      }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: 'var(--circle-ink)', color: 'var(--circle-lime)',
-          display: 'grid', placeItems: 'center',
-          fontFamily: 'var(--font-space-grotesk)', fontWeight: 700, fontSize: 13,
-          flexShrink: 0,
-        }}>{boxInitial}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 13, fontWeight: 600, color: 'var(--c-ink)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{boxName || 'My Gym'}</div>
-          <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'capitalize' }}>
-            {userRole}
+        {/* Gym card */}
+        <div className="flex items-center gap-2.5 rounded-[10px] border border-line bg-surface p-2 shadow-card">
+          <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#0A0A0A] font-display text-[13px] font-bold text-[#C8F135]">
+            {boxInitial}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-semibold text-ink">
+              {boxName || 'My Gym'}
+            </div>
+            <div className="mono text-xs capitalize text-ink-3">{userRole}</div>
           </div>
         </div>
-      </div>
 
-      {/* Nav groups */}
-      {groups.map((group) => (
-        <div key={group.section} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div className="mono" style={{
-            fontSize: 10, color: 'var(--c-ink-faint)',
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-            padding: '2px 10px 6px',
-          }}>{group.section}</div>
-          {group.items.map((item) => {
-            const on = item.key === active
-            return (
-              <a key={item.key} href={item.href} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '7px 10px', borderRadius: 8,
-                color: on ? 'var(--c-ink)' : 'var(--c-ink-2)',
-                background: on ? 'var(--c-surface)' : 'transparent',
-                boxShadow: on ? 'var(--c-shadow-sm)' : 'none',
-                border: on ? '1px solid var(--c-border)' : '1px solid transparent',
-                fontSize: 13.5, fontWeight: on ? 600 : 500,
-                textDecoration: 'none',
-              }}>
-                <CIcon name={item.icon} size={15} />
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {item.badge && (
-                  <span className="mono" style={{
-                    fontSize: 10,
-                    color: item.badgeVariant === 'lime' ? 'var(--circle-lime-ink)' : 'var(--c-danger-ink)',
-                    background: item.badgeVariant === 'lime' ? 'var(--circle-lime-soft)' : 'var(--c-danger-soft)',
-                    padding: '1px 5px', borderRadius: 4, fontWeight: 600,
-                  }}>{item.badge}</span>
-                )}
-              </a>
-            )
-          })}
+        {/* Nav groups */}
+        {groups.map((group) => (
+          <div key={group.section} className="flex flex-col gap-0.5">
+            <div className="mono px-2.5 pb-1.5 pt-0.5 text-xs uppercase tracking-[0.1em] text-ink-3">
+              {group.section}
+            </div>
+            {group.items.map((item) => {
+              const on = item.key === active
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  aria-current={on ? 'page' : undefined}
+                  className={cn(
+                    'flex items-center gap-2.5 rounded-lg border px-2.5 py-[7px] text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    on
+                      ? 'border-line bg-surface font-semibold text-ink shadow-card'
+                      : 'border-transparent font-medium text-ink-2 hover:bg-surface hover:text-ink'
+                  )}
+                >
+                  <CIcon name={item.icon} size={15} />
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge && (
+                    <span
+                      className={cn(
+                        'mono rounded px-1 py-px text-[10px] font-semibold',
+                        item.badgeVariant === 'lime'
+                          ? 'bg-accent-soft text-accent-ink'
+                          : 'bg-danger-soft text-danger'
+                      )}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+        ))}
+
+        {/* User footer */}
+        <div className="mt-auto flex items-center gap-2.5 border-t border-line pt-3">
+          <div className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full bg-accent text-xs font-bold text-accent-contrast">
+            {userInitials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12.5px] font-semibold text-ink">{userName}</div>
+            <div className="mono text-xs capitalize text-ink-3">{userRole}</div>
+          </div>
+          <button
+            onClick={handleSignOut}
+            title="Sign out"
+            className="rounded-md px-1.5 py-1 text-xs text-ink-3 transition-colors hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Sign out
+          </button>
         </div>
-      ))}
+      </aside>
 
-      {/* User footer */}
-      <div style={{
-        marginTop: 'auto', borderTop: '1px solid var(--c-divider)',
-        paddingTop: 12, display: 'flex', alignItems: 'center', gap: 10,
-      }}>
-        <div style={{
-          width: 30, height: 30, borderRadius: '50%',
-          background: 'var(--circle-lime)', color: 'var(--circle-ink)',
-          display: 'grid', placeItems: 'center',
-          fontWeight: 700, fontSize: 12, flexShrink: 0,
-        }}>{userInitials}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 12.5, fontWeight: 600, color: 'var(--c-ink)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{userName}</div>
-          <div className="mono" style={{
-            fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'capitalize',
-          }}>{userRole}</div>
-        </div>
-        <button
-          onClick={handleSignOut}
-          title="Sign out"
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--c-ink-muted)', fontSize: 12, padding: '4px 6px',
-            borderRadius: 6,
-          }}
-        >
-          Sign out
-        </button>
-      </div>
-    </aside>
-
-    {/* Mobile bottom nav */}
-    <nav className="c-mobile-nav" style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-      background: 'var(--c-surface)', borderTop: '1px solid var(--c-border)',
-      padding: '8px 0 env(safe-area-inset-bottom, 8px)',
-      justifyContent: 'space-around', alignItems: 'center',
-    }}>
-      {mobileItems.map((item) => {
-        const on = item.key === active
-        return (
-          <a key={item.key} href={item.href} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-            padding: '4px 12px', borderRadius: 8, textDecoration: 'none',
-            color: on ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)',
-          }}>
-            <CIcon name={item.icon} size={22} />
-            <span style={{ fontSize: 10, fontWeight: on ? 700 : 500 }}>{item.label}</span>
-          </a>
-        )
-      })}
-    </nav>
+      {/* Mobile bottom nav */}
+      <nav className="c-mobile-nav fixed inset-x-0 bottom-0 z-50 items-center justify-around border-t border-line bg-surface pb-[env(safe-area-inset-bottom,8px)] pt-2">
+        {mobileItems.map((item) => {
+          const on = item.key === active
+          return (
+            <Link
+              key={item.key}
+              href={item.href}
+              aria-current={on ? 'page' : undefined}
+              className={cn(
+                'flex flex-col items-center gap-[3px] rounded-lg px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                on ? 'text-accent-ink' : 'text-ink-3'
+              )}
+            >
+              <CIcon name={item.icon} size={22} />
+              <span className={cn('text-[11px]', on ? 'font-bold' : 'font-medium')}>
+                {item.label}
+              </span>
+            </Link>
+          )
+        })}
+      </nav>
     </>
   )
 }

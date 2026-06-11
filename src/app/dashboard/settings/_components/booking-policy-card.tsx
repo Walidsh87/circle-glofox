@@ -6,9 +6,10 @@ import { saveBookingPolicy } from '../_actions/save-booking-policy'
 const card: React.CSSProperties = { background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '18px 20px', marginTop: 16, boxShadow: 'var(--c-shadow-sm)' }
 const inp: React.CSSProperties = { height: 34, width: 90, padding: '0 10px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 13, fontFamily: 'inherit' }
 
-export function BookingPolicyCard({ closeMinutes, lateCancelHours }: { closeMinutes: number; lateCancelHours: number }) {
+export function BookingPolicyCard({ closeMinutes, lateCancelHours, rosterPublic }: { closeMinutes: number; lateCancelHours: number; rosterPublic: boolean }) {
   const [close, setClose] = useState(String(closeMinutes))
   const [late, setLate] = useState(String(lateCancelHours))
+  const [roster, setRoster] = useState(rosterPublic)
   const [pending, start] = useTransition()
   const [saved, setSaved] = useState(false)
 
@@ -23,11 +24,14 @@ export function BookingPolicyCard({ closeMinutes, lateCancelHours }: { closeMinu
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--c-ink-2)' }}>
           <input type="number" min={0} value={late} onChange={(e) => { setLate(e.target.value); setSaved(false) }} style={inp} /> hours before start — cancel forfeits the credit
         </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--c-ink-2)' }}>
+          <input type="checkbox" checked={roster} onChange={(e) => { setRoster(e.target.checked); setSaved(false) }} style={{ width: 15, height: 15, accentColor: 'var(--circle-lime-ink)' }} /> show who&apos;s booked on the schedule (first names)
+        </label>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
         <button
           disabled={pending}
-          onClick={() => start(async () => { const r = await saveBookingPolicy(parseInt(close) || 0, parseInt(late) || 0); if (r.error) alert(r.error); else setSaved(true) })}
+          onClick={() => start(async () => { const r = await saveBookingPolicy(parseInt(close) || 0, parseInt(late) || 0, roster); if (r.error) alert(r.error); else setSaved(true) })}
           style={{ height: 34, padding: '0 16px', borderRadius: 8, border: 'none', background: 'var(--circle-lime)', color: 'var(--circle-ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
         >{pending ? 'Saving…' : 'Save'}</button>
         {saved && <span style={{ fontSize: 12.5, color: 'var(--c-ok-ink)' }}>Saved</span>}

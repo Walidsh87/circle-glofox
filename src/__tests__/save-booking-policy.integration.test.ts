@@ -12,24 +12,24 @@ beforeEach(() => vi.clearAllMocks())
 
 const owner = () => makeSupabaseMock({ user: { id: 'o1' }, results: { profiles: { data: { box_id: 'b1', role: 'owner' }, error: null } } })
 
-test('owner saves both policy columns box-scoped', async () => {
+test('owner saves both policy columns and the roster toggle, box-scoped', async () => {
   serverCreate.mockResolvedValue(owner())
   const svc = makeSupabaseMock({ results: { boxes: { data: null, error: null } } })
   serviceCreate.mockReturnValue(svc)
-  const res = await saveBookingPolicy(30, 2)
+  const res = await saveBookingPolicy(30, 2, true)
   expect(res.error).toBeNull()
-  expect(svc.builder('boxes').update).toHaveBeenCalledWith({ booking_close_minutes: 30, late_cancel_hours: 2 })
+  expect(svc.builder('boxes').update).toHaveBeenCalledWith({ booking_close_minutes: 30, late_cancel_hours: 2, roster_public: true })
   expect(svc.builder('boxes').eq).toHaveBeenCalledWith('id', 'b1')
 })
 
 test('rejects negative or non-integer values before any DB call', async () => {
   serverCreate.mockResolvedValue(owner()); serviceCreate.mockReturnValue(makeSupabaseMock({}))
-  expect((await saveBookingPolicy(-1, 2)).error).toMatch(/whole numbers/i)
-  expect((await saveBookingPolicy(30, 1.5)).error).toMatch(/whole numbers/i)
+  expect((await saveBookingPolicy(-1, 2, false)).error).toMatch(/whole numbers/i)
+  expect((await saveBookingPolicy(30, 1.5, false)).error).toMatch(/whole numbers/i)
 })
 
 test('a non-owner is rejected', async () => {
   serverCreate.mockResolvedValue(makeSupabaseMock({ user: { id: 'c1' }, results: { profiles: { data: { box_id: 'b1', role: 'coach' }, error: null } } }))
   serviceCreate.mockReturnValue(makeSupabaseMock({}))
-  expect((await saveBookingPolicy(30, 2)).error).toMatch(/owners/i)
+  expect((await saveBookingPolicy(30, 2, false)).error).toMatch(/owners/i)
 })

@@ -4,7 +4,7 @@ import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 
-export async function saveBookingPolicy(closeMinutes: number, lateCancelHours: number): Promise<{ error: string | null }> {
+export async function saveBookingPolicy(closeMinutes: number, lateCancelHours: number, rosterPublic: boolean): Promise<{ error: string | null }> {
   if (!Number.isInteger(closeMinutes) || closeMinutes < 0 || !Number.isInteger(lateCancelHours) || lateCancelHours < 0) {
     return { error: 'Policies must be whole numbers of zero or more.' }
   }
@@ -13,7 +13,7 @@ export async function saveBookingPolicy(closeMinutes: number, lateCancelHours: n
   const { profile } = auth
 
   const service = createServiceClient()
-  const { error } = await service.from('boxes').update({ booking_close_minutes: closeMinutes, late_cancel_hours: lateCancelHours }).eq('id', profile.box_id)
+  const { error } = await service.from('boxes').update({ booking_close_minutes: closeMinutes, late_cancel_hours: lateCancelHours, roster_public: rosterPublic === true }).eq('id', profile.box_id)
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/settings')

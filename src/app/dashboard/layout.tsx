@@ -2,7 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 
-export default async function DashboardLayout({
+// Pinned dark until B3 migrates dashboard content (spec §6 — coexistence).
+// display:contents keeps the wrapper out of layout; CSS vars still cascade.
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="theme-dark" style={{ display: 'contents' }}>
+      <WaiverGate>{children}</WaiverGate>
+    </div>
+  )
+}
+
+async function WaiverGate({
   children,
 }: {
   children: React.ReactNode

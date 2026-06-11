@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`058` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`059` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,13 @@ Reverse procedures for migrations `008`–`058` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 059_booking_conveniences
+```sql
+DROP INDEX IF EXISTS idx_profiles_calendar_token;
+ALTER TABLE profiles DROP COLUMN IF EXISTS calendar_token;
+ALTER TABLE boxes DROP COLUMN IF EXISTS roster_public;
+```
 
 ### 058_staff_roles_policies
 ```sql

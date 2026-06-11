@@ -167,6 +167,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     { data: householdMembers },
     { data: allHouseholds },
     { data: attendance },
+    { data: boxCoaches },
   ] = await Promise.all([
     isOwner
       ? supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', viewer.box_id).eq('active', true).order('name')
@@ -202,6 +203,9 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
       ? supabase.from('households').select('id, name').eq('box_id', viewer.box_id).order('name')
       : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     supabase.from('bookings').select('class_instances(starts_at)').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id).eq('checked_in', true),
+    isOwner
+      ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).eq('role', 'coach').order('full_name')
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
   ])
 
   // Tags (#33): staff-only metadata, box-scoped. Members never see their own tags.
@@ -636,7 +640,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
             {/* Packages & credits — owner only */}
             {isOwner && (
               <div style={{ marginTop: 20 }}>
-                <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} />
+                <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} coaches={(boxCoaches ?? []) as { id: string; full_name: string | null }[]} />
               </div>
             )}
 

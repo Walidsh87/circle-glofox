@@ -14,7 +14,7 @@ function pkgName(c: Credit): string {
   return Array.isArray(p) ? (p[0]?.name ?? 'Package') : (p?.name ?? 'Package')
 }
 
-export function SellPackage({ athleteId, packages, credits }: { athleteId: string; packages: Pkg[]; credits: Credit[] }) {
+export function SellPackage({ athleteId, packages, credits, coaches }: { athleteId: string; packages: Pkg[]; credits: Credit[]; coaches: { id: string; full_name: string | null }[] }) {
   const [packageId, setPackageId] = useState(packages[0]?.id ?? '')
   const [url, setUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -22,15 +22,19 @@ export function SellPackage({ athleteId, packages, credits }: { athleteId: strin
   // Separate transition so redeeming doesn't disable the unrelated sell button.
   const [, startRedeemTransition] = useTransition()
   const [redeeming, setRedeeming] = useState<string | null>(null)
+  // Payroll (#55): every redeemed PT session is attributed to the delivering coach.
+  const [ptCoachId, setPtCoachId] = useState(coaches[0]?.id ?? '')
 
   function onRedeem(creditId: string) {
     setRedeeming(creditId)
     startRedeemTransition(async () => {
-      const res = await redeemSession(creditId)
+      const res = await redeemSession(creditId, ptCoachId)
       if (res.error) alert(res.error)
       setRedeeming(null)
     })
   }
+
+  const hasPtCredit = credits.some((c) => c.kind === 'pt_session')
 
   function onSell() {
     setUrl(null); setError(null)
@@ -45,6 +49,21 @@ export function SellPackage({ athleteId, packages, credits }: { athleteId: strin
     <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--c-shadow-sm)' }}>
       <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Packages &amp; credits</p>
 
+      {hasPtCredit && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>PT coach</span>
+          {coaches.length === 0 ? (
+            <span style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>Add a coach to attribute PT sessions</span>
+          ) : (
+            <select value={ptCoachId} onChange={(e) => setPtCoachId(e.target.value)} aria-label="Coach who delivered the PT session" style={{ padding: '5px 8px', borderRadius: 7, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 12.5 }}>
+              {coaches.map((c) => (
+                <option key={c.id} value={c.id}>{c.full_name ?? 'Coach'}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      )}
+
       {credits.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
           {credits.map((c) => (
@@ -55,8 +74,9 @@ export function SellPackage({ athleteId, packages, credits }: { athleteId: strin
                 {c.kind === 'pt_session' && c.credits_remaining > 0 && (
                   <button
                     onClick={() => onRedeem(c.id)}
-                    disabled={redeeming === c.id}
-                    style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-ink-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: redeeming === c.id ? 0.6 : 1 }}
+                    disabled={redeeming === c.id || !ptCoachId}
+                    title={!ptCoachId ? 'Add a coach to attribute PT sessions' : undefined}
+                    style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-ink-2)', fontSize: 12, fontWeight: 600, cursor: redeeming === c.id || !ptCoachId ? 'not-allowed' : 'pointer', opacity: redeeming === c.id || !ptCoachId ? 0.6 : 1 }}
                   >
                     {redeeming === c.id ? 'Redeeming…' : 'Redeem session'}
                   </button>

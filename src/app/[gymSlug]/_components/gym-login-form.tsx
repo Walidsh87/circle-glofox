@@ -18,7 +18,9 @@ export function GymLoginForm({ gymName, gymSlug }: { gymName: string; gymSlug: s
     setLoading(true)
     setError(null)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({ email })
+    // Email link lands on the same origin the user signed in from (needs the
+    // origin in Supabase's Redirect URLs allowlist); typing the 6-digit code works regardless.
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}/auth/callback` } })
     setLoading(false)
     if (error) setError(error.message)
     else setStep('code')

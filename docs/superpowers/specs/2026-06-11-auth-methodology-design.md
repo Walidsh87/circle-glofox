@@ -33,6 +33,7 @@ Banner at the top of `/dashboard` (dashboard home only — not every page): rend
 - `src/app/dashboard/page.tsx` — read `user_metadata.has_password`, render `<PasswordNudge show={…} />`
 - `src/app/dashboard/members/[memberId]/page.tsx` — render `<ChangePasswordCard />` when `isSelf`
 - `scripts/set-password.mjs` — also stamp `user_metadata.has_password = true`
+- `src/app/[gymSlug]/page.tsx` — (added in review) authed visitors resume at `/join/<slug>` instead of `/dashboard`, so a code-created athlete who abandoned before profile creation re-enters the join flow rather than the gym-owner onboarding funnel (profiled members pass straight through to `/dashboard`)
 - New: `src/lib/auth/password.ts` (+ colocated test), `src/app/dashboard/members/[memberId]/_components/change-password-card.tsx`, `src/app/dashboard/_components/password-nudge.tsx`
 
 ## Unchanged / out of scope

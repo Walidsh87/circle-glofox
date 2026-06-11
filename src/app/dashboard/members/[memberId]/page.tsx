@@ -168,6 +168,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     { data: allHouseholds },
     { data: attendance },
     { data: boxCoaches },
+    { data: boxStaff },
   ] = await Promise.all([
     isOwner
       ? supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', viewer.box_id).eq('active', true).order('name')
@@ -185,8 +186,8 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
       ? supabase.from('skill_levels').select('skill_key, belt').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id)
       : Promise.resolve({ data: [] as { skill_key: string; belt: string }[] }),
     isStaff
-      ? supabase.from('follow_up_tasks').select('id, title, due_date, done').eq('box_id', viewer.box_id).eq('member_id', params.memberId).eq('done', false).order('due_date', { ascending: true })
-      : Promise.resolve({ data: [] as { id: string; title: string; due_date: string; done: boolean }[] }),
+      ? supabase.from('follow_up_tasks').select('id, title, due_date, done, assigned_to').eq('box_id', viewer.box_id).eq('member_id', params.memberId).eq('done', false).order('due_date', { ascending: true })
+      : Promise.resolve({ data: [] as { id: string; title: string; due_date: string; done: boolean; assigned_to: string | null }[] }),
     isStaff
       ? supabase.from('checklist_items').select('id, label').eq('box_id', viewer.box_id).eq('kind', checklistKind).order('position', { ascending: true })
       : Promise.resolve({ data: [] as { id: string; label: string }[] }),
@@ -206,6 +207,9 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     isOwner
       ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).eq('role', 'coach').order('full_name')
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+    isStaff
+      ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).in('role', ['owner', 'coach']).order('full_name')
+      : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
   ])
 
   // Tags (#33): staff-only metadata, box-scoped. Members never see their own tags.
@@ -215,9 +219,11 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   // Skills (#36): staff assess belts per skill for this member.
   const skillLevels: Record<string, string> = Object.fromEntries((skillRows ?? []).map((r) => [r.skill_key, r.belt]))
 
-  // Follow-up tasks (#47): this member's open tasks, staff-only.
-  const followups: FollowupTaskRow[] = ((followupRows ?? []) as { id: string; title: string; due_date: string; done: boolean }[])
-    .map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel: null, linkHref: null, assigneeName: null }))
+  // Follow-up tasks (#47/#60): this member's open tasks, staff-only; assignee resolved from box staff.
+  const boxStaffList = (boxStaff ?? []) as { id: string; full_name: string | null }[]
+  const staffNameById = new Map(boxStaffList.map((s) => [s.id, s.full_name ?? 'Staff']))
+  const followups: FollowupTaskRow[] = ((followupRows ?? []) as { id: string; title: string; due_date: string; done: boolean; assigned_to: string | null }[])
+    .map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel: null, linkHref: null, assigneeName: t.assigned_to ? (staffNameById.get(t.assigned_to) ?? 'Staff') : null }))
 
   // Refer-a-friend (#49/#88): only on the member's own athlete profile.
   let referLink: string | null = null
@@ -434,7 +440,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
             {isStaff && (
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
                 <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Follow-ups</div>
-                <MemberFollowups memberId={member.id} tasks={followups} />
+                <MemberFollowups memberId={member.id} tasks={followups} staff={boxStaffList} />
               </div>
             )}
 

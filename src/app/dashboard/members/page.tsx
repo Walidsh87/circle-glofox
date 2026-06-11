@@ -45,6 +45,11 @@ export default async function MembersPage({
         .order('created_at', { ascending: false })
     : { data: null }
 
+  // Staff list for the lead-row QuickAdd assignee picker (#60).
+  const { data: leadStaff } = tab === 'leads'
+    ? await supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).in('role', ['owner', 'coach']).order('full_name')
+    : { data: null }
+
   // Tags (#33): box-scoped, grouped by athlete, for the members/coaches tabs.
   const tagFilter = searchParams.tag ?? null
   const { data: tagRows } = tab !== 'leads'
@@ -139,7 +144,7 @@ export default async function MembersPage({
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Add lead</p>
                 <AddLeadForm />
               </div>
-              <LeadsList leads={(leads ?? []) as Lead[]} />
+              <LeadsList leads={(leads ?? []) as Lead[]} staff={(leadStaff ?? []) as { id: string; full_name: string | null }[]} />
             </>
           )}
 

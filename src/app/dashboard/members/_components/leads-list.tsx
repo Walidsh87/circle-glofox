@@ -19,6 +19,8 @@ export type Lead = {
   created_at: string
 }
 
+export type Staff = { id: string; full_name: string | null }
+
 const SOURCE_STYLES: Record<string, { label: string; bg: string; color: string }> = {
   instagram: { label: 'Instagram', bg: '#F3E8FF', color: '#7C3AED' },
   tiktok:    { label: 'TikTok',    bg: '#FCE7F3', color: '#BE185D' },
@@ -46,7 +48,7 @@ function daysAgo(dateStr: string) {
   return `${days} days ago`
 }
 
-function LeadCard({ lead }: { lead: Lead }) {
+function LeadCard({ lead, staff }: { lead: Lead; staff: Staff[] }) {
   const router = useRouter()
   const [status, setStatus] = useState(lead.status)
   const [showFollowup, setShowFollowup] = useState(false)
@@ -159,14 +161,14 @@ function LeadCard({ lead }: { lead: Lead }) {
       </div>
       {showFollowup && (
         <div style={{ marginTop: 10 }}>
-          <QuickAdd leadId={lead.id} placeholder={`Follow-up for ${lead.full_name}…`} />
+          <QuickAdd leadId={lead.id} placeholder={`Follow-up for ${lead.full_name}…`} staff={staff} />
         </div>
       )}
     </div>
   )
 }
 
-export function LeadsList({ leads }: { leads: Lead[] }) {
+export function LeadsList({ leads, staff }: { leads: Lead[]; staff: Staff[] }) {
   if (leads.length === 0) {
     return (
       <div style={{
@@ -180,7 +182,7 @@ export function LeadsList({ leads }: { leads: Lead[] }) {
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {leads.map(lead => <LeadCard key={lead.id} lead={lead} />)}
+      {leads.map(lead => <LeadCard key={lead.id} lead={lead} staff={staff} />)}
     </div>
   )
 }

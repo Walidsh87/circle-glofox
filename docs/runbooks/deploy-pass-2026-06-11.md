@@ -5,7 +5,11 @@ Prod is running current code (`main` auto-deploys) but the **database is missing
 **✅ Already done (no action needed):**
 - Code deployed & healthy on Vercel (200, full security headers verified)
 - Crons already registered in `vercel.json` (billing-reminders 05:00 · automations 06:00 · sequences 06:15 UTC)
-- Docker running, `postgres:17` image pulled, backup folder created at `~/circle-glofox-backups/` (outside the repo — dumps hold real member data, never commit them)
+- **Step 1 ✅ 2026-06-11** — backup taken: `~/circle-glofox-backups/prod-2026-06-11.sql` (411KB, 60 tables)
+- **Step 2 ✅** — probe baseline confirmed (26 × false)
+- **Step 3 ✅ — ALL 26 MIGRATIONS (028–053) APPLIED TO PROD** via docker psql; probe 26 × true; all four sanity checks passed (phone_e164 normalizing correctly)
+- **Step 6 (public half) ✅** — gym page `/functional-fitness` + both embed widgets 200; embeds iframable (`frame-ancestors *`)
+- 🔑 Rotate the DB password when convenient (it passed through chat): Settings → Database → Reset — the app is unaffected (uses API keys)
 
 **⛔ Blocked (skip for now, not on the critical path):**
 - WhatsApp sender setup + `TWILIO_WHATSAPP_FROM` env — Circle Fitness hasn't provided the mobile number yet. When asking: the number gets **disconnected from the regular WhatsApp app** once registered, so they should dedicate a number, not the front-desk phone's. Everything WhatsApp shows "not configured" until then — nothing breaks.
@@ -14,7 +18,7 @@ Prod is running current code (`main` auto-deploys) but the **database is missing
 
 ---
 
-## ▶︎ STEP 1 — Manual backup (you, ~3 min) ← YOU ARE HERE
+## ✅ STEP 1 — Manual backup (DONE 2026-06-11)
 
 Free tier has no automated backups, so take a one-off dump before touching the DB.
 
@@ -32,7 +36,7 @@ docker run --rm postgres:17 pg_dump --no-owner --no-privileges \
 
 ---
 
-## ▶︎ STEP 2 — State probe (you, 1 min)
+## ✅ STEP 2 — State probe (DONE — baseline was 26 × false)
 
 Supabase Dashboard → **SQL Editor** → paste & run the probe below. **Expected: all 26 rows `false`.** If any row is `true`, stop and tell Claude.
 
@@ -69,7 +73,7 @@ SELECT migration, applied FROM (
 
 ---
 
-## ▶︎ STEP 3 — Migrations, 4 chunks (you, ~15 min total)
+## ✅ STEP 3 — Migrations, 4 chunks (DONE 2026-06-11 — probe 26 × true, sanity checks green)
 
 For each chunk: open the listed files from the repo's `migrations/` folder, paste their contents **in numeric order** into one SQL Editor run, execute. Then re-run the Step-2 probe — that chunk's rows must flip to `true`. Then run the one-line sanity check. Report to Claude after each chunk.
 
@@ -90,7 +94,7 @@ For each chunk: open the listed files from the repo's `migrations/` folder, past
 
 ---
 
-## ▶︎ STEP 4 — Vercel env vars (you, ~10 min)
+## ▶︎ STEP 4 — Vercel env vars (you, ~10 min) ← YOU ARE HERE
 
 Vercel → Project → Settings → Environment Variables → add to **Production**. Then **redeploy** (env changes need it).
 

@@ -11,7 +11,7 @@
   }
 }
 
-/* ── Mobile responsive ─────────────────────────────── */
+/* ── Mobile responsive (legacy chrome classes — consumed until B3) ── */
 @media (max-width: 768px) {
   .c-sidebar          { display: none !important; }
   .c-mobile-nav       { display: flex !important; }
@@ -24,30 +24,65 @@
 }
 
 @layer base {
-  :root {
-    /* shadcn/ui tokens — dark equivalents */
-    --background: 0 0% 6%;
-    --foreground: 0 0% 94%;
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 94%;
-    --popover: 0 0% 14%;
-    --popover-foreground: 0 0% 94%;
-    --primary: 75 87% 57%;
-    --primary-foreground: 0 0% 4%;
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 94%;
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 53%;
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 94%;
-    --destructive: 0 91% 71%;
-    --destructive-foreground: 0 0% 4%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 75 87% 57%;
-    --radius: 0.5rem;
+  /* ── Ivory & Lime semantic tokens (spec: 2026-06-12-ui-redesign-design.md §3.1) ──
+     Components reference ONLY these via Tailwind utilities. Never raw hex. */
+  [data-theme='light'] {
+    --bg: #F6F4ED;
+    --surface: #FFFFFF;
+    --surface-2: #FBFAF5;
+    --line: #E3DFD2;
+    --line-strong: #D8D4C4;
+    --ink: #15150F;
+    --ink-2: #6B6757;
+    --ink-3: #8A8674;
+    --ink-faint: #B5B1A0;
+    --accent: #C8F135;
+    --accent-hover: #BBE32B;
+    --accent-ink: #5C7A00;
+    --accent-contrast: #15150F;
+    --accent-soft: rgba(200, 241, 53, 0.30);
+    --ok: #4A6300;
+    --ok-soft: rgba(92, 122, 0, 0.12);
+    --warn: #92400E;
+    --warn-soft: rgba(180, 83, 9, 0.12);
+    --danger: #B3261E;
+    --danger-soft: rgba(179, 38, 30, 0.10);
+    --shadow-sm: 0 1px 3px rgba(21, 21, 15, 0.08);
+    --shadow-md: 0 4px 14px rgba(21, 21, 15, 0.10);
+  }
 
-    /* Circle brand */
+  /* .theme-dark pins a subtree dark regardless of the html attribute —
+     used by the dashboard until B3 migrates its content. */
+  [data-theme='dark'],
+  .theme-dark {
+    --bg: #0F0F0F;
+    --surface: #1A1A1A;
+    --surface-2: #141414;
+    --line: #262626;
+    --line-strong: #333333;
+    --ink: #F0F0F0;
+    --ink-2: #B0B0B0;
+    --ink-3: #888888;
+    --ink-faint: #5A5A5A;
+    --accent: #C8F135;
+    --accent-hover: #b6dd2a;
+    --accent-ink: #C8F135;
+    --accent-contrast: #0F0F0F;
+    --accent-soft: rgba(200, 241, 53, 0.12);
+    --ok: #4ADE80;
+    --ok-soft: rgba(74, 222, 128, 0.12);
+    --warn: #FACC15;
+    --warn-soft: rgba(250, 204, 21, 0.13);
+    --danger: #FF6B61;
+    --danger-soft: rgba(255, 107, 97, 0.12);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+  }
+
+  :root {
+    /* ── LEGACY tokens — consumed by unmigrated inline-styled pages.
+       Values are frozen at today's dark theme so old pages look unchanged
+       in either mode. Removed batch-by-batch in B2–B5. ── */
     --circle-lime: #C8F135;
     --circle-lime-hover: #b6dd2a;
     --circle-lime-soft: rgba(200, 241, 53, 0.12);
@@ -55,7 +90,6 @@
     --circle-ink: #0A0A0A;
     --circle-steel: #B0B0B0;
 
-    /* surfaces */
     --c-bg: #0F0F0F;
     --c-surface: #1A1A1A;
     --c-surface-alt: #1D1D1D;
@@ -64,13 +98,11 @@
     --c-border-strong: rgba(255, 255, 255, 0.14);
     --c-divider: rgba(255, 255, 255, 0.06);
 
-    /* text */
     --c-ink: #F0F0F0;
     --c-ink-2: #C8C8C8;
     --c-ink-muted: #888888;
     --c-ink-faint: #5A5A5A;
 
-    /* status */
     --c-ok: #4ADE80;
     --c-ok-soft: rgba(74, 222, 128, 0.12);
     --c-ok-ink: #4ADE80;
@@ -81,23 +113,27 @@
     --c-danger-soft: rgba(248, 113, 113, 0.13);
     --c-danger-ink: #F87171;
 
-    /* shadows */
     --c-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
     --c-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
+
+    /* Bricolage retired — legacy inline references to the old display var
+       now render Fraunces (transitional look until pages migrate). */
+    --font-space-grotesk: var(--font-fraunces);
   }
 
   * {
-    @apply border-border;
+    border-color: var(--line);
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--bg);
+    color: var(--ink);
     font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.005em;
   }
 }
 
-/* Circle dark scope — whiteboard */
+/* Circle dark scope — whiteboard (legacy, consumed until B3) */
 .circle-dark {
   --c-bg: #0A0A0A;
   --c-surface: #141414;
@@ -117,7 +153,8 @@
   background: var(--c-bg);
 }
 
-/* Circle logo mark — lime ring with diagonal steel slash */
+/* Circle logo mark — legacy CSS version (consumed until B3; CircleMark
+   component in src/components/circle-mark.tsx is canonical) */
 .circle-mark {
   width: 22px;
   height: 22px;
@@ -173,10 +210,10 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
 }
 
-/* Live indicator — Whiteboard breathing pulse */
+/* Live indicator — Whiteboard breathing pulse (stray #C0E050 lime removed per spec §3.1) */
 @keyframes c-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 #C0E050, 0 0 12px #C0E050; opacity: 1; }
-  50%       { box-shadow: 0 0 0 6px rgba(192,224,80,0); opacity: 0.85; }
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent), 0 0 12px var(--accent); opacity: 1; }
+  50%       { box-shadow: 0 0 0 6px rgba(200, 241, 53, 0); opacity: 0.85; }
 }
 .c-pulse { animation: c-pulse 2.2s ease-in-out infinite; }
 
@@ -208,10 +245,10 @@
 }
 .c-fade-up { animation: c-fade-up 240ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* PR celebration glow */
+/* PR celebration glow (stray #C0E050 lime removed per spec §3.1) */
 @keyframes c-pr {
-  0%   { box-shadow: 0 0 0 0 #C0E050, 0 0 0 0 #C0E050; }
-  60%  { box-shadow: 0 0 0 8px rgba(192,224,80,0.35), 0 0 24px rgba(192,224,80,0.4); }
-  100% { box-shadow: 0 0 0 0 rgba(192,224,80,0), 0 0 0 0 rgba(192,224,80,0); }
+  0%   { box-shadow: 0 0 0 0 var(--accent), 0 0 0 0 var(--accent); }
+  60%  { box-shadow: 0 0 0 8px rgba(200, 241, 53, 0.35), 0 0 24px rgba(200, 241, 53, 0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(200, 241, 53, 0), 0 0 0 0 rgba(200, 241, 53, 0); }
 }
 .c-pr { animation: c-pr 1.4s ease-out; }

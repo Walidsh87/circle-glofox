@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,45 +8,35 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+      fontFamily: {
+        sans: ["var(--font-hanken)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-fraunces)", "Georgia", "serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
       },
       colors: {
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+        canvas: "var(--bg)",
+        surface: { DEFAULT: "var(--surface)", 2: "var(--surface-2)" },
+        line: { DEFAULT: "var(--line)", strong: "var(--line-strong)" },
+        ink: {
+          DEFAULT: "var(--ink)",
+          2: "var(--ink-2)",
+          3: "var(--ink-3)",
+          faint: "var(--ink-faint)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
+          ink: "var(--accent-ink)",
+          contrast: "var(--accent-contrast)",
+          soft: "var(--accent-soft)",
         },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
+        ok: { DEFAULT: "var(--ok)", soft: "var(--ok-soft)" },
+        warn: { DEFAULT: "var(--warn)", soft: "var(--warn-soft)" },
+        danger: { DEFAULT: "var(--danger)", soft: "var(--danger-soft)" },
+      },
+      boxShadow: {
+        card: "var(--shadow-sm)",
+        pop: "var(--shadow-md)",
       },
     },
   },

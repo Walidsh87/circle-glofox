@@ -19,19 +19,19 @@ Give athletes self-service over their own data on their profile: edit contact/em
 
 ### 1. #77 — "My details" card + `updateOwnProfile` action
 
-- Pure validation helper `validateOwnProfile(phone, emergencyContactName, emergencyContactPhone, bloodType, allergies): string | null` in `src/lib/own-profile.ts`:
-  - phone + emergency phone: optional; when present must match the existing UAE phone convention (reuse `normalizeUaePhone` from `src/lib/sms.ts` — non-null result required), else "Enter a valid UAE phone number."
-  - names/free text trimmed; lengths capped (name 120, blood type 10, allergies 500), else a per-field "too long" message.
+- Pure validation helper `validateOwnProfile(input): string | null` in `src/app/dashboard/members/[memberId]/_lib/own-profile-validation.ts` (co-located with its sibling `member-fields-validation.ts`), composing existing validators rather than duplicating them:
+  - own phone: optional; when present must be a UAE mobile (`normalizeUaePhone` from `src/lib/sms.ts` non-null) — it feeds SMS/WhatsApp matching — else "Enter a valid UAE phone number."
+  - emergency contact phone: free-form (international contacts allowed), length-capped — same rule as the staff form.
+  - everything else delegates to the existing `validateMemberFields` (blood-type whitelist, length caps) with `dateOfBirth: null` (not self-editable).
 - Server action `updateOwnProfile(input)` (`src/app/dashboard/members/[memberId]/_actions/update-own-profile.ts`): `requireUserAction()` → validate → **service client** `update profiles set phone, emergency_contact_name, emergency_contact_phone, blood_type, allergies` **`.eq('id', user.id)` only** — no athleteId parameter, so it can never touch another row. (Service client is required: profiles RLS has `profile_self_insert`/`profile_self_select` but no self-update policy — verified in the prod dump; the staff `update-member` action uses the service client for the same reason.) The `phone_e164` generated column keeps SMS/WhatsApp matching in sync automatically.
 - "My details" card (`_components/my-details-card.tsx`, 'use client'): renders when `isSelf` (any role); pre-filled inputs, one Save with pending/error states, `router.refresh()` on success.
 - Staff `update-member` flow untouched.
 
-### 2. #78 — "Payments" card
+### 2. #78 — payment history (planning discovery: already live)
 
-- Member-detail page, `isSelf && viewer.role === 'athlete'`: fetch own invoices via RLS — `invoices.select('id, invoice_number, issued_at, total_aed, description').eq('athlete_id', user.id).order('issued_at', { ascending: false }).limit(24)` (columns verified against `012_vat_invoices.sql`; there is no status column — refunds live in credit notes and are out of scope here).
-- Card lists date · invoice number · description · total AED; each row links to `/dashboard/invoices/[invoiceId]`.
-- The invoice page already allows the document owner via `athlete_own_invoices` RLS and only gates the refund form behind `isOwner`; the plan includes a verification read of that page to confirm no owner-only redirect blocks athletes.
-- Empty state: "No invoices yet."
+- The member-detail page already fetches this member's invoices (`id, invoice_number, issued_at, total_aed, credit_notes(total_aed)`, last 20) and renders an ungated Invoices table whenever rows exist. The fetch is RLS-scoped, and `athlete_own_invoices` (SELECT `athlete_id = auth.uid()`) means an athlete viewing their own profile sees exactly their own invoices — today, with no new code.
+- Each row already links to `/dashboard/invoices/[invoiceId]`, which is print-styled with a PrintButton (browser print-to-PDF is the download) and gates only the refund form behind `isOwner` — no role redirect.
+- #78 therefore ships as a **verification step** (confirm the RLS policy + the invoice page's gating), not a new card. Building a separate self-only Payments card would duplicate the existing table.
 
 ### 3. #79 — "Agreements" card
 

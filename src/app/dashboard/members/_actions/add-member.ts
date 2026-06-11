@@ -1,6 +1,6 @@
 'use server'
 
-import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 
@@ -14,12 +14,13 @@ export async function addMember(prevState: State, formData: FormData): Promise<S
 
   if (!fullName || !email || !role) return { error: 'Name, email, and role are required.' }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Enter a valid email address.' }
-  if (!['athlete', 'coach'].includes(role)) return { error: 'Invalid role.' }
+  if (!['athlete', 'admin', 'coach', 'receptionist'].includes(role)) return { error: 'Invalid role.' }
 
-  // Verify caller is an owner
-  const auth = await requireOwnerAction('Only owners can add members.')
+  // Staff add athletes; only the owner creates staff accounts.
+  const auth = await requireStaffAction('Only staff can add members.')
   if ('error' in auth) return { error: auth.error }
   const { profile: callerProfile } = auth
+  if (role !== 'athlete' && callerProfile.role !== 'owner') return { error: 'Only owners can add staff.' }
 
   const service = createServiceClient()
 

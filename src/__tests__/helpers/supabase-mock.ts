@@ -43,7 +43,10 @@ export function makeSupabaseMock(opts: {
   return {
     auth: {
       getUser: vi.fn(() => Promise.resolve({ data: { user: opts.user ?? null }, error: null })),
-      admin: { deleteUser: vi.fn(() => Promise.resolve({ error: null })) },
+      admin: {
+        deleteUser: vi.fn(() => Promise.resolve({ error: null })),
+        createUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'new1' } }, error: null })),
+      },
     },
     from: vi.fn((table: string) => (builders[table] ??= makeBuilder(table))),
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

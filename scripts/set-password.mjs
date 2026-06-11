@@ -28,7 +28,10 @@ const rank = { owner: 0, coach: 1, athlete: 2 }
 const profile = [...rows].sort((a, b) => (rank[a.role] ?? 9) - (rank[b.role] ?? 9))[0]
 if (rows.length > 1) console.log(`Note: ${rows.length} profiles share this email; using the ${profile.role} row.`)
 
-const { error } = await service.auth.admin.updateUserById(profile.id, { password })
+const { error } = await service.auth.admin.updateUserById(profile.id, {
+  password,
+  user_metadata: { has_password: true },
+})
 if (error) {
   console.error(`Failed to set password: ${error.message}`)
   process.exit(1)

@@ -12,6 +12,7 @@ import { MemberTags } from './_components/member-tags'
 import { HouseholdCard } from './_components/household-card'
 import { SkillsEditor } from './_components/skills-editor'
 import { MemberFollowups } from './_components/member-followups'
+import { MyDetailsCard } from './_components/my-details-card'
 import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_components/task-item'
 import { ReferCard } from './_components/refer-card'
 import { ChangePasswordCard } from './_components/change-password-card'
@@ -431,6 +432,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
             )}
 
             {isSelf && <div style={{ marginBottom: 16 }}><ChangePasswordCard /></div>}
+
+            {isSelf && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>My details</div>
+                <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: member.emergency_contact_name, emergencyContactPhone: member.emergency_contact_phone, bloodType: member.blood_type, allergies: member.allergies }} />
+              </div>
+            )}
 
             {isStaff && (
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>

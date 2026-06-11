@@ -28,6 +28,7 @@ function getNavGroups(role: string): NavGroup[] {
     { key: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'home' },
   ]
   if (isOwner) runTheGym.push({ key: 'kpi', label: 'Metrics', href: '/dashboard/kpi', icon: 'chart' })
+  if (isOwner) runTheGym.push({ key: 'reports', label: 'Reports', href: '/dashboard/reports', icon: 'chart' })
   if (isStaff) runTheGym.push({ key: 'retention', label: 'Retention', href: '/dashboard/retention', icon: 'activity' })
   if (isOwner) runTheGym.push({ key: 'lifecycle', label: 'Lifecycle', href: '/dashboard/lifecycle', icon: 'funnel' })
   if (isOwner) runTheGym.push({ key: 'members', label: 'Member directory', href: '/dashboard/members', icon: 'users' })

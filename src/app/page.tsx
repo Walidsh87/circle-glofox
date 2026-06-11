@@ -191,14 +191,15 @@ export default function LoginPage() {
                 <button type="submit" disabled={loading || code.length !== 6} style={{ height: 46, background: 'var(--circle-lime)', border: 'none', borderRadius: 10, fontSize: 14.5, fontWeight: 700, cursor: (loading || code.length !== 6) ? 'not-allowed' : 'pointer', color: 'var(--circle-ink)', letterSpacing: '0.01em', opacity: (loading || code.length !== 6) ? 0.6 : 1, transition: 'opacity .12s' }}>
                   {loading ? 'Verifying…' : 'Sign in →'}
                 </button>
-                <button type="button" onClick={() => { setCodeSent(false); setCode(''); setError(null) }} style={{ background: 'none', border: '1px solid var(--c-border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--c-ink-2)' }}>← Use a different email</button>
+                <button type="button" disabled={loading} onClick={() => { setCodeSent(false); setCode(''); setError(null) }} style={{ background: 'none', border: '1px solid var(--c-border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, color: 'var(--c-ink-2)' }}>← Use a different email</button>
               </form>
             )}
 
             <button
               type="button"
+              disabled={loading}
               onClick={() => switchMode(mode === 'password' ? 'code' : 'password')}
-              style={{ marginTop: 16, background: 'none', border: 'none', padding: 0, fontSize: 13, cursor: 'pointer', color: 'var(--c-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}
+              style={{ marginTop: 16, background: 'none', border: 'none', padding: 0, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, color: 'var(--c-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}
             >
               {mode === 'password' ? 'Sign in with a code instead' : 'Use a password instead'}
             </button>

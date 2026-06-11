@@ -1,4 +1,5 @@
-import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { requireStaffPage } from '@/lib/auth/page-guards'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { AddMemberForm } from './_components/add-member-form'
@@ -6,35 +7,36 @@ import { RemoveMemberButton } from './_components/remove-member-button'
 import { AddLeadForm } from './_components/add-lead-form'
 import { LeadsList, type Lead } from './_components/leads-list'
 import { DownloadCsvButton } from '@/components/download-csv-button'
+import { RolePicker } from './_components/role-picker'
 
-type Tab = 'members' | 'coaches' | 'leads'
+type Tab = 'members' | 'staff' | 'leads'
 
 export default async function MembersPage({
   searchParams,
 }: {
   searchParams: { tab?: string; tag?: string }
 }) {
-  const { supabase, user, profile, boxName } = await requireOwnerPage()
+  const { supabase, user, profile, boxName } = await requireStaffPage()
+  const isOwner = profile.role === 'owner'
 
-  const tab: Tab = (['members', 'coaches', 'leads'].includes(searchParams.tab ?? '')
-    ? searchParams.tab
-    : 'members') as Tab
+  const allowedTabs: Tab[] = isOwner ? ['members', 'staff', 'leads'] : ['members', 'leads']
+  const tab: Tab = (allowedTabs.includes(searchParams.tab as Tab) ? searchParams.tab : 'members') as Tab
 
   // Counts for all tabs
-  const [{ count: memberCount }, { count: coachCount }, { count: leadCount }] = await Promise.all([
+  const [{ count: memberCount }, { count: staffCount }, { count: leadCount }] = await Promise.all([
     supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id).eq('role', 'athlete'),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id).eq('role', 'coach'),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id).in('role', [...ALL_STAFF_ROLES]),
     supabase.from('leads').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id),
   ])
 
   // Tab-specific data
+  const peopleBase = supabase
+    .from('profiles')
+    .select('id, full_name, email, phone, role, created_at')
+    .eq('box_id', profile.box_id)
+    .order('created_at', { ascending: true })
   const { data: people } = tab !== 'leads'
-    ? await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone, role, created_at')
-        .eq('box_id', profile.box_id)
-        .eq('role', tab === 'coaches' ? 'coach' : 'athlete')
-        .order('created_at', { ascending: true })
+    ? await (tab === 'staff' ? peopleBase.in('role', [...ALL_STAFF_ROLES]) : peopleBase.eq('role', 'athlete'))
     : { data: null }
 
   const { data: leads } = tab === 'leads'
@@ -72,15 +74,15 @@ export default async function MembersPage({
         rows: (leads ?? []).map((l) => [l.full_name, l.phone, l.email, l.source, l.status, l.notes, l.drop_in_date, l.created_at?.slice(0, 10)]),
       }
     : {
-        filename: tab === 'coaches' ? 'coaches.csv' : 'members.csv',
+        filename: tab === 'staff' ? 'staff.csv' : 'members.csv',
         headers: ['Name', 'Email', 'Phone', 'Role'],
         rows: shownPeople.map((p) => [p.full_name, p.email, p.phone, p.role]),
       }
 
-  const TABS = [
-    { key: 'members' as Tab, label: 'Members',  count: memberCount ?? 0 },
-    { key: 'coaches' as Tab, label: 'Coaches',  count: coachCount ?? 0 },
-    { key: 'leads'   as Tab, label: 'Leads',    count: leadCount ?? 0 },
+  const TABS: { key: Tab; label: string; count: number }[] = [
+    { key: 'members', label: 'Members', count: memberCount ?? 0 },
+    ...(isOwner ? [{ key: 'staff' as Tab, label: 'Staff', count: staffCount ?? 0 }] : []),
+    { key: 'leads', label: 'Leads', count: leadCount ?? 0 },
   ]
 
   return (
@@ -97,7 +99,7 @@ export default async function MembersPage({
           <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
             People
           </h1>
-          <DownloadCsvButton filename={csvExport.filename} headers={csvExport.headers} rows={csvExport.rows} />
+          {isOwner && <DownloadCsvButton filename={csvExport.filename} headers={csvExport.headers} rows={csvExport.rows} />}
         </header>
 
         {/* Tab bar */}
@@ -157,9 +159,11 @@ export default async function MembersPage({
                 boxShadow: 'var(--c-shadow-sm)',
               }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>
-                  Add {tab === 'coaches' ? 'coach' : 'member'}
+                  Add {tab === 'staff' ? 'staff' : 'member'}
                 </p>
-                <AddMemberForm defaultRole={tab === 'coaches' ? 'coach' : 'athlete'} />
+                <AddMemberForm roles={tab === 'staff'
+                  ? [{ value: 'coach', label: 'Coach' }, { value: 'admin', label: 'Admin' }, { value: 'receptionist', label: 'Receptionist' }]
+                  : [{ value: 'athlete', label: 'Athlete' }]} />
               </div>
 
               {allTags.length > 0 && (
@@ -203,16 +207,20 @@ export default async function MembersPage({
                         <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{member.email}</td>
                         <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{member.phone ?? '—'}</td>
                         <td style={{ padding: '12px 16px' }}>
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center',
-                            padding: '2px 8px', borderRadius: 999, fontSize: 11.5, fontWeight: 500,
-                            background: member.role === 'coach' ? 'var(--c-ok-soft)' : 'var(--c-surface-alt)',
-                            color: member.role === 'coach' ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)',
-                            textTransform: 'capitalize',
-                          }}>{member.role}</span>
+                          {tab === 'staff' && isOwner && member.role !== 'owner' && member.id !== user.id ? (
+                            <RolePicker profileId={member.id} role={member.role} />
+                          ) : (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center',
+                              padding: '2px 8px', borderRadius: 999, fontSize: 11.5, fontWeight: 500,
+                              background: member.role === 'athlete' ? 'var(--c-surface-alt)' : 'var(--c-ok-soft)',
+                              color: member.role === 'athlete' ? 'var(--c-ink-muted)' : 'var(--c-ok-ink)',
+                              textTransform: 'capitalize',
+                            }}>{member.role}</span>
+                          )}
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          {member.id !== user.id && (
+                          {isOwner && member.id !== user.id && (
                             <RemoveMemberButton memberId={member.id} memberName={member.full_name} />
                           )}
                         </td>

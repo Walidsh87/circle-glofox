@@ -31,7 +31,7 @@ function SubmitButton() {
   )
 }
 
-export function AddMemberForm({ defaultRole = 'athlete' }: { defaultRole?: 'athlete' | 'coach' }) {
+export function AddMemberForm({ roles = [{ value: 'athlete', label: 'Athlete' }] }: { roles?: { value: string; label: string }[] }) {
   const [state, formAction] = useFormState(addMember, { error: null })
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -46,9 +46,8 @@ export function AddMemberForm({ defaultRole = 'athlete' }: { defaultRole?: 'athl
       <input name="fullName" type="text" required placeholder="Full name" style={{ ...inputStyle, width: 180 }} />
       <input name="email" type="email" required placeholder="Email" style={{ ...inputStyle, width: 200 }} />
       <input name="phone" type="tel" placeholder="Phone (optional)" style={{ ...inputStyle, width: 160 }} />
-      <select name="role" required defaultValue={defaultRole} style={{ ...inputStyle, width: 120 }}>
-        <option value="athlete">Athlete</option>
-        <option value="coach">Coach</option>
+      <select name="role" required defaultValue={roles[0].value} style={{ ...inputStyle, width: 130 }}>
+        {roles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
       </select>
       <SubmitButton />
       {state.error && <span style={{ fontSize: 12.5, color: 'var(--c-danger)' }}>{state.error}</span>}

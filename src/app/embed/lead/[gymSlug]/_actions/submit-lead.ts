@@ -1,7 +1,6 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
-import { env } from '@/env'
+import { createServiceClient } from '@/lib/supabase/service'
 import { validateLeadSubmission } from '@/lib/lead-capture'
 
 export type LeadInput = { name: string; email: string; phone: string; message: string; company: string; ref?: string }
@@ -14,7 +13,7 @@ export async function submitLead(gymSlug: string, input: LeadInput): Promise<{ o
   if (vErr) return { ok: false, error: vErr }
   if (input.message.length > 1000) return { ok: false, error: 'Message is too long.' }
 
-  const service = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const service = createServiceClient()
   const { data: box } = await service.from('boxes').select('id').eq('slug', gymSlug).single()
   if (!box) return { ok: false, error: 'This form is not available.' }
 

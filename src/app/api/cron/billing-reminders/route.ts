@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { getDueDate, getReminderStage } from '@/lib/billing-reminders'
 import { sendBillingReminderEmail } from '@/lib/email'
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
   const today = new Date().toISOString().slice(0, 10)
 
-  const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  const supabase = createServiceClient({
     global: {
       fetch: (input: RequestInfo | URL, init?: RequestInit) =>
         fetch(input, { ...init, cache: 'no-store' }),

@@ -1,4 +1,4 @@
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { GymLoginForm } from './_components/gym-login-form'
@@ -11,10 +11,7 @@ export default async function GymLoginPage(ctx: { params: Promise<{ gymSlug: str
   if (user) redirect('/dashboard')
 
   // Fetch gym by slug (public lookup — bypasses RLS)
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const service = createServiceClient()
 
   const { data: box } = await service
     .from('boxes')

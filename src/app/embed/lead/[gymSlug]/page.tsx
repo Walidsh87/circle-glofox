@@ -1,12 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
-import { env } from '@/env'
 import { LeadForm } from './_components/lead-form'
 
 export default async function LeadEmbedPage(ctx: { params: Promise<{ gymSlug: string }>; searchParams: Promise<{ ref?: string }> }) {
   const { gymSlug } = await ctx.params
   const { ref } = await ctx.searchParams
-  const service = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const service = createServiceClient()
   const { data: box } = await service.from('boxes').select('name, logo_url').eq('slug', gymSlug).single()
   if (!box) notFound()
 

@@ -1,11 +1,10 @@
 'use server'
 
-import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { env } from '@/env'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export async function unsubscribe(token: string): Promise<{ gymName: string | null }> {
   if (!token) return { gymName: null }
-  const service = createServiceClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const service = createServiceClient()
   const { data: profile } = await service.from('profiles').select('id, box_id').eq('unsubscribe_token', token).maybeSingle()
   if (!profile) return { gymName: null }
   await service.from('profiles').update({ marketing_opt_out: true }).eq('id', profile.id)

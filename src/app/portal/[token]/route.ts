@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
+import { env } from '@/env'
 import { getProviderForBox } from '@/lib/psp'
 import { verifyPortalToken } from '@/lib/portal-token'
 
@@ -17,13 +18,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null
   const userAgent = req.headers.get('user-agent') ?? null
 
-  const secret = process.env.PORTAL_SIGN_SECRET ?? ''
+  const secret = env.PORTAL_SIGN_SECRET
   const verification = verifyPortalToken(params.token, secret)
 
-  const service = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  const service = createServiceClient()
 
   if (!verification.ok) {
     // Can't log to portal_access_log without a membership_id — token didn't decode.
@@ -65,7 +63,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
     .eq('id', membership.box_id)
     .single()
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin
+  const baseUrl = env.NEXT_PUBLIC_APP_URL
   const returnUrl = box?.slug ? `${baseUrl}/${box.slug}` : baseUrl
 
   try {

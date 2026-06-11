@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 
 const RESERVED_SLUGS = ['dashboard', 'onboarding', 'auth', 'api', 'login', 'signup', 'admin', 'settings']
@@ -23,10 +23,7 @@ export async function createGym(prevState: State, formData: FormData): Promise<S
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/')
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const service = createServiceClient()
 
   const { data: box, error: boxError } = await service
     .from('boxes')

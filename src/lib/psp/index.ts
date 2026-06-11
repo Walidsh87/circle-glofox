@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { StripeProvider, type StripeCredentials } from './stripe-provider'
 import { PspConfigError, type PaymentProvider, type ProviderKey } from './types'
 
@@ -20,10 +20,7 @@ type BoxRow = {
  * applied AND the row has been touched. Remove the fallback in a follow-up.
  */
 export async function getProviderForBox(boxId: string): Promise<PaymentProvider> {
-  const service = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  const service = createServiceClient()
 
   const { data: box } = await service
     .from('boxes')
@@ -56,10 +53,7 @@ export async function findProviderForIncomingWebhook(
   rawBody: string,
   headers: Headers,
 ): Promise<{ boxId: string; provider: PaymentProvider; event: NonNullable<Awaited<ReturnType<PaymentProvider['verifyAndParseWebhook']>>> } | null> {
-  const service = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  const service = createServiceClient()
 
   const { data: boxes } = await service
     .from('boxes')

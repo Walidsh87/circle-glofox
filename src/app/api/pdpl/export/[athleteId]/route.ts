@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { env } from '@/env'
+import { createServiceClient } from '@/lib/supabase/service'
 import { buildPdplExport } from '@/lib/pdpl-export'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +24,7 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const service = createServiceClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  const service = createServiceClient({
     global: {
       fetch: (input: RequestInfo | URL, init?: RequestInit) =>
         fetch(input, { ...init, cache: 'no-store' }),

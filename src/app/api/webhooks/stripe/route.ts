@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { deriveVatFromInclusive, formatCreditNoteNumber, formatInvoiceNumber } from '@/lib/invoices'
 import { decideAfterFailedCharge, resetAfterSuccess } from '@/lib/dunning'
 import { sendCardFailedEmail } from '@/lib/email'
@@ -9,10 +9,7 @@ import { env } from '@/env'
 
 export const dynamic = 'force-dynamic'
 
-const service = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+const service = createServiceClient()
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()

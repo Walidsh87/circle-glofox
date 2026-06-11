@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { CircleMark } from '@/components/circle-mark'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
@@ -38,7 +38,7 @@ export default async function TvBoardPage(ctx: { params: Promise<{ token: string
   const { token } = await ctx.params
 
   // No session on a wall TV → service-role. EVERY read below MUST be box-scoped.
-  const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  const service = createServiceClient()
 
   const { data: box } = await service
     .from('boxes')

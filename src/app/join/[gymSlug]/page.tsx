@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import { createAthlete } from './_actions/create-athlete'
 import { JoinForm } from './_components/join-form'
@@ -11,10 +11,7 @@ export default async function JoinPage(ctx: { params: Promise<{ gymSlug: string 
 
   if (!user) redirect(`/${params.gymSlug}`)
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const service = createServiceClient()
 
   // Already has a profile — go to dashboard
   const { data: existing } = await service.from('profiles').select('id').eq('id', user.id).single()

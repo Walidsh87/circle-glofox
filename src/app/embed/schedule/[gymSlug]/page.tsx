@@ -1,7 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { env } from '@/env'
 import { groupByDay, spotsLabel, spotsRemaining, type WidgetInstance } from '@/lib/schedule-widget'
 
 type Embedded<T> = T | T[] | null
@@ -11,7 +10,7 @@ function one<T>(v: Embedded<T>): T | null {
 
 export default async function ScheduleEmbedPage(ctx: { params: Promise<{ gymSlug: string }> }) {
   const { gymSlug } = await ctx.params
-  const service = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const service = createServiceClient()
   const { data: box } = await service.from('boxes').select('id, name, timezone, logo_url').eq('slug', gymSlug).single()
   if (!box) notFound()
 

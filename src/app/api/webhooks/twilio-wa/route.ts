@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { verifyTwilioSignature } from '@/lib/twilio'
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   const next = status === 'delivered' ? 'delivered' : status === 'read' ? 'read' : (status === 'failed' || status === 'undelivered') ? 'failed' : null
   if (next) {
-    const service = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+    const service = createServiceClient()
     await service.from('wa_recipients').update({ status: next }).eq('twilio_sid', sid)
   }
   return NextResponse.json({ ok: true })

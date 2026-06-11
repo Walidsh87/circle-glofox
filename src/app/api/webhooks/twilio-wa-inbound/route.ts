@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { verifyTwilioSignature } from '@/lib/twilio'
 import { normalizeUaePhone } from '@/lib/sms'
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const phone = normalizeUaePhone(from)
   if (!phone || !body) return NextResponse.json({ ok: true })
 
-  const service = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const service = createServiceClient()
   const { data: profs } = await service.from('profiles').select('id, box_id, phone').eq('role', 'athlete')
   const member = ((profs ?? []) as { id: string; box_id: string; phone: string | null }[]).find((p) => normalizeUaePhone(p.phone) === phone)
   if (!member) return NextResponse.json({ ok: true })

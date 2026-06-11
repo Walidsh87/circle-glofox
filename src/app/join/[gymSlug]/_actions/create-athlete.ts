@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 
 type State = { error: string | null }
@@ -14,10 +14,7 @@ export async function createAthlete(gymSlug: string, prevState: State, formData:
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/${gymSlug}`)
 
-  const service = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const service = createServiceClient()
 
   // Check if profile already exists (e.g. existing member)
   const { data: existing } = await service.from('profiles').select('id').eq('id', user.id).single()

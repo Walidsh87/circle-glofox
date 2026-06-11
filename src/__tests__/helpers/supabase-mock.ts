@@ -9,26 +9,34 @@ export type MockResult = { data: unknown; error: unknown; count?: number }
  * `.from(table)` returns the SAME builder per table (so tests can inspect calls
  * afterward via `.builder(table)`), and terminals (`.single` / `.maybeSingle` /
  * `await`) resolve to the configured per-table result.
+ *
+ * A table's result may be an ARRAY: each terminal call consumes the next entry
+ * (the last entry sticks) — for actions that hit the same table more than once.
  */
 export function makeSupabaseMock(opts: {
   user?: { id: string } | null
-  results?: Record<string, MockResult>
+  results?: Record<string, MockResult | MockResult[]>
   rpc?: MockResult
 }) {
   const results = opts.results ?? {}
   const builders: Record<string, ReturnType<typeof makeBuilder>> = {}
 
   function makeBuilder(table: string) {
-    const result: MockResult = results[table] ?? { data: null, error: null }
+    const configured = results[table] ?? { data: null, error: null }
+    const queue = Array.isArray(configured) ? [...configured] : null
+    const next = (): MockResult =>
+      queue
+        ? (queue.length > 1 ? queue.shift()! : (queue[0] ?? { data: null, error: null }))
+        : (configured as MockResult)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const b: any = {}
     for (const m of ['select', 'insert', 'upsert', 'update', 'delete', 'eq', 'in', 'order', 'limit', 'is', 'not', 'gte', 'gt', 'ilike']) {
       b[m] = vi.fn(() => b)
     }
-    b.single = vi.fn(() => Promise.resolve(result))
-    b.maybeSingle = vi.fn(() => Promise.resolve(result))
+    b.single = vi.fn(() => Promise.resolve(next()))
+    b.maybeSingle = vi.fn(() => Promise.resolve(next()))
     // Make the builder awaitable (for queries without .single()).
-    b.then = (resolve: (r: MockResult) => unknown) => resolve(result)
+    b.then = (resolve: (r: MockResult) => unknown) => resolve(next())
     return b
   }
 

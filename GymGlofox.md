@@ -195,11 +195,11 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 49. ✅ `[Kept]` **Referral tracking** (+ #88 member refer link) — each member gets a `referral_code` (lazy `ensureReferralCode`, service-role) + a share link to the #45 widget `/embed/lead/[slug]?ref=CODE`. A friend submitting via `?ref` → `submitLead` resolves code→referrer in-box → `leads.referred_by`; on `convertLead` the attribution carries to `profiles.referred_by`. Pure `generateReferralCode` (7-char unambiguous) + `referralLink`. Staff owner-only `/dashboard/referrals` groups by referrer (pending lead vs joined member) with manual **Mark rewarded** (`profiles.referral_rewarded_at`). Member "Refer a friend" card on own profile (link + copy + N referred · M joined) [#88]. Mig 049 (no new tables: `profiles.referral_code`/`referred_by`/`referral_rewarded_at` + unique index, `leads.referred_by`). No automated reward credits; manual flag only. Spec `…referrals-design.md`.
 
 ### Tier 6 — Reporting & analytics
-50. ⬜ `[G-gap]` Attendance + no-show report
-51. ⬜ `[Kept]` Retention / churn / "members at risk" report *(partly covered by #18)*
-52. ⬜ `[G-gap]` Lead conversion funnel by source
-53. ⬜ `[G-gap]` Instructor / class performance (fill rate, no-show rate per coach)
-54. ⬜ `[G-gap]` CSV export everywhere
+50. ✅ `[G-gap]` Attendance + no-show report — *done 2026-06-11: `/dashboard/reports/attendance` — summary cards, per-template fill/no-show, busiest top-5, CSV*
+51. ⬜ `[Kept]` Retention / churn / "members at risk" report *(largely covered by #18 `/dashboard/retention`; remaining gap = historical churn trend)*
+52. ✅ `[G-gap]` Lead conversion funnel by source — *done 2026-06-11: `/dashboard/reports/lead-funnel` — new→engaged→converted by source, CSV. Known limit: convert-to-member deletes the lead row, so status-based conversion undercounts*
+53. ✅ `[G-gap]` Instructor / class performance — *done 2026-06-11: `/dashboard/reports/classes` — per-coach + per-template fill % / no-show %, CSV*
+54. ✅ `[G-gap]` CSV export everywhere — *done 2026-06-11: shared `toCsv` + `DownloadCsvButton`; wired on People (per-tab), Payments, Retention + all report pages*
 55. ⬜ `[G-gap]` Payroll report (per-coach pay rates × classes taught)
 56. ⬜ `[Wedge]` **Per-location P&L** for multi-branch operators
 

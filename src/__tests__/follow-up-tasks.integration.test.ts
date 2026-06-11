@@ -62,7 +62,7 @@ test('createTask validates the assignee is box staff and inserts assigned_to', a
   serverCreate.mockResolvedValue(rls)
   const res = await createTask({ title: 'Call', dueDate: '2026-06-15', assignedTo: 'c2' })
   expect(res.error).toBeNull()
-  expect(rls.builder('profiles').in).toHaveBeenCalledWith('role', ['owner', 'coach'])
+  expect(rls.builder('profiles').in).toHaveBeenCalledWith('role', ['owner', 'admin', 'coach', 'receptionist'])
   const ins = rls.builder('follow_up_tasks').insert.mock.calls[0][0]
   expect(ins).toEqual(expect.objectContaining({ assigned_to: 'c2' }))
 })

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requireStaffPage } from '@/lib/auth/page-guards'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import { Sidebar } from '@/components/sidebar'
 import { bucketTasks } from '@/lib/follow-up-tasks'
 import { QuickAdd } from './_components/quick-add'
@@ -19,7 +20,7 @@ export default async function TasksPage(ctx: { searchParams: Promise<{ filter?: 
   const [{ data: openRows }, { data: doneRows }, { data: staffRows }] = await Promise.all([
     (mine ? baseOpen.eq('assigned_to', profile.id) : baseOpen).order('due_date', { ascending: true }),
     (mine ? baseDone.eq('assigned_to', profile.id) : baseDone).order('completed_at', { ascending: false }).limit(20),
-    supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).in('role', ['owner', 'coach']).order('full_name'),
+    supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).in('role', [...ALL_STAFF_ROLES]).order('full_name'),
   ])
   const open = (openRows ?? []) as DbTask[]
   const doneList = (doneRows ?? []) as DbTask[]

@@ -1,4 +1,5 @@
 import { requirePage } from '@/lib/auth/page-guards'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
@@ -145,7 +146,8 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   if (!member) notFound()
 
   const isOwner = viewer.role === 'owner'
-  const isStaff = ['owner', 'coach'].includes(viewer.role)
+  const isManager = ['owner', 'admin'].includes(viewer.role)
+  const isStaff = (ALL_STAFF_ROLES as readonly string[]).includes(viewer.role)
   const today = new Date().toISOString().slice(0, 10)
 
   // Onboarding/offboarding checklist (#38) kind is stage-driven off the memberships above.
@@ -194,13 +196,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     isStaff
       ? supabase.from('member_checklist_progress').select('item_id').eq('box_id', viewer.box_id).eq('member_id', params.memberId)
       : Promise.resolve({ data: [] as { item_id: string }[] }),
-    isOwner && member.household_id
+    isManager && member.household_id
       ? supabase.from('households').select('id, name, primary_athlete_id').eq('id', member.household_id).single()
       : Promise.resolve({ data: null }),
-    isOwner && member.household_id
+    isManager && member.household_id
       ? supabase.from('profiles').select('id, full_name').eq('household_id', member.household_id)
       : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
-    isOwner
+    isManager
       ? supabase.from('households').select('id, name').eq('box_id', viewer.box_id).order('name')
       : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     supabase.from('bookings').select('class_instances(starts_at)').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id).eq('checked_in', true),
@@ -208,7 +210,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
       ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).eq('role', 'coach').order('full_name')
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
     isStaff
-      ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).in('role', ['owner', 'coach']).order('full_name')
+      ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).in('role', [...ALL_STAFF_ROLES]).order('full_name')
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
   ])
 
@@ -409,7 +411,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               </div>
             )}
 
-            {isOwner && (
+            {isManager && (
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
                 <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Household</div>
                 <HouseholdCard

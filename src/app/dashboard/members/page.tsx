@@ -49,7 +49,7 @@ export default async function MembersPage({
 
   // Staff list for the lead-row QuickAdd assignee picker (#60).
   const { data: leadStaff } = tab === 'leads'
-    ? await supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).in('role', ['owner', 'coach']).order('full_name')
+    ? await supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).in('role', [...ALL_STAFF_ROLES]).order('full_name')
     : { data: null }
 
   // Tags (#33): box-scoped, grouped by athlete, for the members/coaches tabs.

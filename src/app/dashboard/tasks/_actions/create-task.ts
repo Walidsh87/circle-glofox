@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import { revalidatePath } from 'next/cache'
 import { validateTask } from '@/lib/follow-up-tasks'
 
@@ -16,7 +17,7 @@ export async function createTask(input: CreateTaskInput): Promise<{ error: strin
   if (input.leadId && input.memberId) return { error: 'A task can link to a lead or a member, not both.' }
 
   if (input.assignedTo) {
-    const { data: assignee } = await supabase.from('profiles').select('id').eq('id', input.assignedTo).eq('box_id', caller.box_id).in('role', ['owner', 'coach']).maybeSingle()
+    const { data: assignee } = await supabase.from('profiles').select('id').eq('id', input.assignedTo).eq('box_id', caller.box_id).in('role', [...ALL_STAFF_ROLES]).maybeSingle()
     if (!assignee) return { error: 'Assignee must be a staff member of your gym.' }
   }
 

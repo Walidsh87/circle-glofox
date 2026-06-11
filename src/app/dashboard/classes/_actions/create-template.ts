@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -15,19 +15,9 @@ export async function createTemplate(prevState: State, formData: FormData): Prom
 
   if (!name || !startTime || isNaN(weekday)) return { error: 'Name, weekday, and start time are required.' }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || !['owner', 'coach'].includes(profile.role)) {
-    return { error: 'Only owners and coaches can manage class templates.' }
-  }
+  const auth = await requireStaffAction('Only owners and coaches can manage class templates.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
 
   const { error } = await supabase.from('class_templates').insert({
     box_id: profile.box_id,

@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateEditTemplateInput } from '../_lib/validation'
 
@@ -20,19 +20,9 @@ export async function editTemplate(
   const validationError = validateEditTemplateInput(name, startTime, weekday)
   if (validationError) return { error: validationError }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || !['owner', 'coach'].includes(profile.role)) {
-    return { error: 'Only owners and coaches can manage class templates.' }
-  }
+  const auth = await requireStaffAction('Only owners and coaches can manage class templates.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
 
   const { error } = await supabase
     .from('class_templates')

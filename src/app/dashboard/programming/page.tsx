@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { monthGridDays, prevMonth, nextMonth, monthRange, formatMonth } from './_lib/calendar'
@@ -19,23 +18,9 @@ function todayInTimezone(timezone: string): string {
 
 export default async function ProgrammingPage(ctx: { searchParams: Promise<{ month?: string }> }) {
   const searchParams = await ctx.searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
+  const { supabase, profile, boxName, box } = await requireStaffPage()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name, timezone)')
-    .eq('id', user.id)
-    .single()
-  if (!profile) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
-
-  const boxes = profile.boxes as { name: string; timezone: string | null }[] | { name: string; timezone: string | null } | null
-  const box = Array.isArray(boxes) ? (boxes[0] ?? null) : boxes
-  const boxName = box?.name ?? ''
-
-  const today = todayInTimezone(box?.timezone ?? 'Asia/Dubai')
+  const today = todayInTimezone(box.timezone ?? 'Asia/Dubai')
   const month = MONTH_RE.test(searchParams.month ?? '') ? searchParams.month! : today.slice(0, 7)
   const { start, end } = monthRange(month)
 

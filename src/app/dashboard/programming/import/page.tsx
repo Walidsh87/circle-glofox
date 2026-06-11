@@ -1,24 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { ImportForm } from '../_components/import-form'
 
 export default async function ImportPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-  if (!profile) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { profile, boxName } = await requireStaffPage()
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>

@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
@@ -32,22 +31,8 @@ type Booking = { athlete_id: string; checked_in: boolean; profiles: { full_name:
 
 export default async function PrepPage(ctx: { searchParams: Promise<{ class?: string }> }) {
   const searchParams = await ctx.searchParams
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name, timezone)')
-    .eq('id', user.id)
-    .single()
-  if (!profile) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
-
-  const box = profile.boxes as { name: string; timezone: string | null }[] | { name: string; timezone: string | null } | null
-  const boxObj = Array.isArray(box) ? box[0] : box
-  const boxName = boxObj?.name ?? ''
-  const timezone = boxObj?.timezone ?? 'Asia/Dubai'
+  const { supabase, profile, boxName, box } = await requireStaffPage()
+  const timezone = box.timezone ?? 'Asia/Dubai'
   const { start, end } = todayWindow(timezone)
   const todayIso = todayLocalDate(timezone)
   const nowIso = new Date().toISOString()

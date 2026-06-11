@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requirePage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { AddTemplateForm } from './_components/add-template-form'
 import { TemplateActions } from './_components/template-actions'
@@ -15,20 +14,7 @@ function formatTime(time: string) {
 }
 
 export default async function ClassesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/onboarding')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requirePage()
 
   const isStaff = ['owner', 'coach'].includes(profile.role)
 

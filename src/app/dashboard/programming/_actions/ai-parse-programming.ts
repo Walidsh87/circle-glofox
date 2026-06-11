@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import Anthropic from '@anthropic-ai/sdk'
 import { env } from '@/env'
 import { buildParsePrompt, extractBlockText } from '../_lib/ai-prompt'
@@ -12,14 +12,8 @@ export async function aiParseProgramming(freeform: string): Promise<{ error: str
   if (!input) return { error: 'Paste some programming to parse.', text: null }
   if (input.length > MAX_INPUT) return { error: "That's too long to parse at once — try a week or two.", text: null }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.', text: null }
-
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (!profile || !['owner', 'coach'].includes(profile.role)) {
-    return { error: 'Only owners and coaches can use the AI parser.', text: null }
-  }
+  const auth = await requireStaffAction('Only owners and coaches can use the AI parser.')
+  if ('error' in auth) return { error: auth.error, text: null }
 
   if (!env.ANTHROPIC_API_KEY) return { error: "AI parsing isn't configured yet.", text: null }
 

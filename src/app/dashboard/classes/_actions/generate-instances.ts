@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 // GCC timezones have no DST — fixed offsets are safe
@@ -32,19 +32,9 @@ function buildStartsAt(dateStr: string, timeStr: string, offsetHours: number): s
 type Result = { created: number; skipped: number; error: string | null }
 
 export async function generateInstances(startDate: string): Promise<Result> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { created: 0, skipped: 0, error: 'Not authenticated.' }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || !['owner', 'coach'].includes(profile.role)) {
-    return { created: 0, skipped: 0, error: 'Only owners and coaches can generate instances.' }
-  }
+  const auth = await requireStaffAction('Only owners and coaches can generate instances.')
+  if ('error' in auth) return { created: 0, skipped: 0, error: auth.error }
+  const { supabase, profile } = auth
 
   // Fetch active templates + box timezone in parallel
   const [{ data: templates }, { data: box }] = await Promise.all([

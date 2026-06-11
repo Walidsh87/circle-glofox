@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
+import { requireStaffPage } from '@/lib/auth/page-guards'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { WodForm } from '@/app/dashboard/wod/_components/wod-form'
@@ -26,20 +26,7 @@ export default async function DayEditorPage(ctx: {
 
   if (!DATE_RE.test(params.date)) notFound()
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-  if (!profile) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireStaffPage()
 
   const [{ data: workout }, { data: templates }] = await Promise.all([
     supabase.from('workouts')

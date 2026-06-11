@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requirePage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { WodForm } from './_components/wod-form'
@@ -101,20 +100,7 @@ function YourLoads({ liftValue, sets, oneRmGrams }: { liftValue: string; sets: S
 }
 
 export default async function WodPage({ searchParams }: { searchParams: { date?: string } }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/onboarding')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, user, profile, boxName } = await requirePage()
 
   const { data: box } = await supabase.from('boxes').select('timezone').eq('id', profile.box_id).single()
   const timezone = box?.timezone ?? 'Asia/Dubai'

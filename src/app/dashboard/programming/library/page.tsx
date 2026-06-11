@@ -1,25 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { LibraryList } from '../_components/library-list'
 import type { TemplateExisting } from '../_components/template-form'
 
 export default async function LibraryPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, role, box_id, boxes(name)')
-    .eq('id', user.id)
-    .single()
-  if (!profile) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
-
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireStaffPage()
 
   const { data: templates } = await supabase
     .from('workout_templates')

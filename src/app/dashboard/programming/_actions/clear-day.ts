@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireStaffAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -8,18 +8,9 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 export async function clearDay(date: string): Promise<{ error: string | null }> {
   if (!DATE_RE.test(date ?? '')) return { error: 'Invalid date.' }
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-  if (!profile || !['owner', 'coach'].includes(profile.role)) {
-    return { error: 'Only owners and coaches can program WODs.' }
-  }
+  const auth = await requireStaffAction('Only owners and coaches can program WODs.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
 
   const { data: workout } = await supabase
     .from('workouts')

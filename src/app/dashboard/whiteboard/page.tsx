@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { CheckInButton } from './_components/checkin-button'
 import { CircleMark } from '@/components/circle-mark'
@@ -43,18 +42,7 @@ function todayLocalDate(timezone: string): string {
 }
 
 export default async function WhiteboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('box_id, role')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) redirect('/onboarding')
-  if (!['owner', 'coach'].includes(profile.role)) redirect('/dashboard')
+  const { supabase, profile } = await requireStaffPage()
 
   const { data: box } = await supabase
     .from('boxes')

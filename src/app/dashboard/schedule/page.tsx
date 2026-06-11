@@ -5,6 +5,7 @@ import { waitlistPosition } from './_lib/waitlist'
 import { env } from '@/env'
 import { rosterFirstNames } from '@/lib/roster'
 import { CalendarSyncCard } from './_components/calendar-sync-card'
+import { PushCard } from './_components/push-card'
 
 function formatDateTime(startsAt: string, timezone: string) {
   const date = new Date(startsAt)
@@ -78,6 +79,7 @@ export default async function SchedulePage() {
         <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
           <div style={{ maxWidth: 640 }}>
             <CalendarSyncCard feedUrl={feedUrl} />
+            <PushCard vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
           </div>
           {grouped.size === 0 && (
             <div style={{

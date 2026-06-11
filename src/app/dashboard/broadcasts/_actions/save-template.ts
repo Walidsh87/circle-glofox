@@ -1,15 +1,13 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateBlocks, type Block } from '@/lib/email-blocks'
 
 export async function saveTemplate(name: string, subject: string, bodyBlocks: Block[]): Promise<{ error: string | null }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!caller || caller.role !== 'owner') return { error: 'Only owners can manage templates.' }
+  const auth = await requireOwnerAction('Only owners can manage templates.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, user, profile: caller } = auth
 
   const cleanName = name.trim()
   if (!cleanName || cleanName.length > 120) return { error: 'Template name must be 1–120 characters.' }

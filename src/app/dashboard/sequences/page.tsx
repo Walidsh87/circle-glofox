@@ -1,19 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { SequencesList, type SequenceRow } from './_components/sequences-list'
 
 export default async function SequencesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase.from('profiles').select('full_name, role, box_id, boxes(name)').eq('id', user.id).single()
-  if (!profile) redirect('/onboarding')
-  if (profile.role !== 'owner') redirect('/dashboard')
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireOwnerPage()
 
   const { data: seqs } = await supabase.from('sequences').select('id, name, trigger_type, trigger_days, steps, enabled').eq('box_id', profile.box_id).order('created_at', { ascending: false })
   const { data: enrollments } = await supabase.from('sequence_enrollments').select('sequence_id, status').eq('box_id', profile.box_id)

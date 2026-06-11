@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { notFound } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { SEGMENT_LABELS, type Segment } from '@/lib/broadcast-audience'
 import { renderBlocks, type Block } from '@/lib/email-blocks'
@@ -14,15 +14,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default async function BroadcastDetailPage(ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase.from('profiles').select('full_name, role, box_id, boxes(name)').eq('id', user.id).single()
-  if (!profile) redirect('/onboarding')
-  if (profile.role !== 'owner') redirect('/dashboard')
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireOwnerPage()
 
   const { data: b } = await supabase.from('broadcasts').select('id, subject, body, body_blocks, audience_status, audience_tag, created_at, status, recipient_count, sent_count, failed_count, skipped_count').eq('id', id).eq('box_id', profile.box_id).single()
   if (!b) notFound()

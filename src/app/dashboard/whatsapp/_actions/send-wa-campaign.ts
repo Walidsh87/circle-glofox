@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { env } from '@/env'
 import { validateWaCampaign } from '../_lib/wa-validation'
@@ -15,11 +15,9 @@ import type { Segment } from '@/lib/broadcast-audience'
 type Result = { error: string | null; campaignId?: string; sent?: number; failed?: number; skipped?: number }
 
 export async function sendWaCampaign(templateId: string, varValues: WaVarValues, audienceStatus: string, tag: string | null): Promise<Result> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!caller || caller.role !== 'owner') return { error: 'Only owners can send WhatsApp campaigns.' }
+  const auth = await requireOwnerAction('Only owners can send WhatsApp campaigns.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, user, profile: caller } = auth
 
   if (!templateId) return { error: 'Choose a template.' }
   const { data: t } = await supabase.from('wa_templates').select('id, content_sid, body_preview, var_count').eq('id', templateId).eq('box_id', caller.box_id).single()
@@ -29,7 +27,7 @@ export async function sendWaCampaign(templateId: string, varValues: WaVarValues,
   if (vErr) return { error: vErr }
   if (!waConfigured()) return { error: 'WhatsApp is not configured.' }
 
-  const service = createServiceClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const service = createServiceClient()
   const today = new Date().toISOString().slice(0, 10)
 
   const candidates = await loadSmsCandidates(service, caller.box_id, today)

@@ -1,17 +1,15 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateWaTemplate } from '../_lib/wa-validation'
 
 export type SaveWaTemplateInput = { name: string; contentSid: string; bodyPreview: string; varCount: number }
 
 export async function saveWaTemplate(input: SaveWaTemplateInput): Promise<{ error: string | null }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!caller || caller.role !== 'owner') return { error: 'Only owners can manage WhatsApp templates.' }
+  const auth = await requireOwnerAction('Only owners can manage WhatsApp templates.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, user, profile: caller } = auth
 
   const vErr = validateWaTemplate(input.name, input.contentSid, input.bodyPreview, input.varCount)
   if (vErr) return { error: vErr }

@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import type { TriggerType } from '@/lib/automations'
 import type { SequenceStep } from '@/lib/sequences'
@@ -15,11 +15,9 @@ export type SaveSequenceInput = {
 }
 
 export async function saveSequence(input: SaveSequenceInput): Promise<{ error: string | null }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!caller || caller.role !== 'owner') return { error: 'Only owners can manage sequences.' }
+  const auth = await requireOwnerAction('Only owners can manage sequences.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, user, profile: caller } = auth
 
   const vErr = validateSequence(input.name, input.triggerType, input.triggerDays, input.steps)
   if (vErr) return { error: vErr }

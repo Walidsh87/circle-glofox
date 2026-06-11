@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { WaTemplatesManager, type WaTemplate } from './_components/wa-templates-manager'
 import { WaComposeForm } from './_components/wa-compose-form'
@@ -7,15 +6,7 @@ import { WaList, type WaRow } from './_components/wa-list'
 import { waConfigured } from '@/lib/twilio'
 
 export default async function WhatsAppPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase.from('profiles').select('full_name, role, box_id, boxes(name)').eq('id', user.id).single()
-  if (!profile) redirect('/onboarding')
-  if (profile.role !== 'owner') redirect('/dashboard')
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireOwnerPage()
 
   const [{ data: tplRows }, { data: tagRows }, { data: campaignRows }] = await Promise.all([
     supabase.from('wa_templates').select('id, name, content_sid, body_preview, var_count').eq('box_id', profile.box_id).order('created_at', { ascending: false }),

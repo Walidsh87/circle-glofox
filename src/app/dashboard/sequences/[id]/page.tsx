@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { notFound } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
 import { SequenceForm } from '../_components/sequence-form'
 import type { SequenceStep } from '@/lib/sequences'
@@ -7,14 +7,7 @@ import type { TriggerType } from '@/lib/automations'
 
 export default async function EditSequencePage(ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-  const { data: profile } = await supabase.from('profiles').select('full_name, role, box_id, boxes(name)').eq('id', user.id).single()
-  if (!profile) redirect('/onboarding')
-  if (profile.role !== 'owner') redirect('/dashboard')
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireOwnerPage()
 
   const { data: s } = await supabase.from('sequences').select('id, name, trigger_type, trigger_days, steps').eq('id', id).eq('box_id', profile.box_id).single()
   if (!s) notFound()

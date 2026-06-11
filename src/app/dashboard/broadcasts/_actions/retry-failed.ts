@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { env } from '@/env'
 import { renderEmail, firstNameOf } from '@/lib/broadcast-render'
@@ -13,13 +13,11 @@ type Result = { error: string | null; sent?: number; failed?: number }
 const CHUNK = 100
 
 export async function retryFailedBroadcast(broadcastId: string): Promise<Result> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated.' }
-  const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
-  if (!caller || caller.role !== 'owner') return { error: 'Only owners can send broadcasts.' }
+  const auth = await requireOwnerAction('Only owners can send broadcasts.')
+  if ('error' in auth) return { error: auth.error }
+  const { profile: caller } = auth
 
-  const service = createServiceClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+  const service = createServiceClient()
 
   const { data: bc } = await service.from('broadcasts').select('id, box_id, subject, body, body_blocks').eq('id', broadcastId).single()
   if (!bc || bc.box_id !== caller.box_id) return { error: 'Broadcast not found.' }

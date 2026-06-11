@@ -1,19 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { AutomationsList, type AutomationRow } from './_components/automations-list'
 
 export default async function AutomationsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/')
-
-  const { data: profile } = await supabase.from('profiles').select('full_name, role, box_id, boxes(name)').eq('id', user.id).single()
-  if (!profile) redirect('/onboarding')
-  if (profile.role !== 'owner') redirect('/dashboard')
-  const boxes = profile.boxes as { name: string }[] | { name: string } | null
-  const boxName = Array.isArray(boxes) ? (boxes[0]?.name ?? '') : (boxes as { name: string } | null)?.name ?? ''
+  const { supabase, profile, boxName } = await requireOwnerPage()
 
   const { data: autos } = await supabase.from('automations').select('id, name, trigger_type, trigger_days, enabled, channel').eq('box_id', profile.box_id).order('created_at', { ascending: false })
   const { data: runs } = await supabase.from('automation_runs').select('automation_id').eq('box_id', profile.box_id)

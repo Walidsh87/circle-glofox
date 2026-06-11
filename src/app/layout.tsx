@@ -27,6 +27,7 @@ const hanken = Hanken_Grotesk({
 export const metadata: Metadata = {
   title: 'Circle',
   description: 'Gym management platform',
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Circle' },
 }
 
 export default function RootLayout({

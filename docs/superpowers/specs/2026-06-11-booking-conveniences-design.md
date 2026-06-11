@@ -28,7 +28,7 @@ No RLS changes: the schedule already reads bookings box-wide (`box_isolation_sel
 ### 2. #80 — roster pre-view
 
 - **Settings:** the booking-policy card gains a "Show who's booked on the schedule" checkbox; `saveBookingPolicy` carries `rosterPublic: boolean` and writes `roster_public` alongside the existing fields (still owner-gated).
-- **Schedule page:** the box select adds `roster_public`. When true, the instances select embeds names — `bookings(athlete_id, profiles!bookings_athlete_id_fkey(full_name))` (the prep page already uses this exact FK-disambiguated join). Each class card with ≥1 booking renders a native `<details>`: summary "Who's coming (N)", body = comma-separated first names.
+- **Schedule page:** the box select adds `roster_public`. The instances select ALWAYS embeds names — `bookings(athlete_id, profiles!bookings_athlete_id_fkey(full_name))` (the prep page already uses this exact FK-disambiguated join); the toggle gates RENDERING only. (Conditional selects would force a box-fetch waterfall before the instances query; names are box-readable at RLS regardless, so the toggle is display policy.) When on, each class card with ≥1 booking renders a native `<details>`: summary "Who's coming (N)", body = comma-separated first names.
 - **Pure helper** `rosterFirstNames(fullNames: (string | null)[]): string[]` in `src/lib/roster.ts`: first whitespace-token of each name, `'Member'` fallback for null/empty, input order preserved. TDD.
 - Toggle off (default): the instances query keeps its current shape (`bookings(athlete_id)` only) — today's behavior byte for byte.
 

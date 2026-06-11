@@ -2,6 +2,9 @@ import { requirePage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { BookingButton } from './_components/booking-button'
 import { waitlistPosition } from './_lib/waitlist'
+import { env } from '@/env'
+import { rosterFirstNames } from '@/lib/roster'
+import { CalendarSyncCard } from './_components/calendar-sync-card'
 
 function formatDateTime(startsAt: string, timezone: string) {
   const date = new Date(startsAt)
@@ -23,21 +26,24 @@ export default async function SchedulePage() {
 
   const now = new Date().toISOString()
 
-  const [{ data: instances }, { data: box }, { data: myBookings }, { data: waitlist }] = await Promise.all([
+  const [{ data: instances }, { data: box }, { data: myBookings }, { data: waitlist }, { data: me }] = await Promise.all([
     supabase
       .from('class_instances')
-      .select(`id, starts_at, duration_minutes, capacity, status, class_templates(name), profiles(full_name), bookings(athlete_id)`)
+      .select(`id, starts_at, duration_minutes, capacity, status, class_templates(name), profiles(full_name), bookings(athlete_id, profiles!bookings_athlete_id_fkey(full_name))`)
       .eq('box_id', profile.box_id)
       .eq('status', 'scheduled')
       .gte('starts_at', now)
       .order('starts_at')
       .limit(30),
-    supabase.from('boxes').select('timezone').eq('id', profile.box_id).single(),
+    supabase.from('boxes').select('timezone, roster_public').eq('id', profile.box_id).single(),
     supabase.from('bookings').select('class_instance_id').eq('athlete_id', user.id),
     supabase.from('class_waitlist').select('class_instance_id, athlete_id, created_at').eq('box_id', profile.box_id),
+    supabase.from('profiles').select('calendar_token').eq('id', user.id).single(),
   ])
 
   const timezone = box?.timezone ?? 'Asia/Dubai'
+  const rosterPublic = box?.roster_public === true
+  const feedUrl = me?.calendar_token ? `${env.NEXT_PUBLIC_APP_URL}/api/calendar/${me.calendar_token}` : null
   const bookedInstanceIds = new Set((myBookings ?? []).map((b) => b.class_instance_id))
 
   const waitlistByInstance = new Map<string, { athlete_id: string; created_at: string }[]>()
@@ -70,6 +76,9 @@ export default async function SchedulePage() {
         </header>
 
         <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
+          <div style={{ maxWidth: 640 }}>
+            <CalendarSyncCard feedUrl={feedUrl} />
+          </div>
           {grouped.size === 0 && (
             <div style={{
               background: 'var(--c-surface)', border: '1px solid var(--c-border)',
@@ -93,7 +102,7 @@ export default async function SchedulePage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {dayInstances!.map((instance) => {
                       const { time } = formatDateTime(instance.starts_at, timezone)
-                      const bookings = instance.bookings as { athlete_id: string }[] | null
+                      const bookings = instance.bookings as { athlete_id: string; profiles: { full_name: string } | { full_name: string }[] | null }[] | null
                       const bookedCount = bookings?.length ?? 0
                       const isFull = bookedCount >= instance.capacity
                       const isBooked = bookedInstanceIds.has(instance.id)
@@ -129,6 +138,14 @@ export default async function SchedulePage() {
                                 {bookedCount}/{instance.capacity}
                               </span>
                             </div>
+                            {rosterPublic && bookedCount > 0 && (
+                              <details style={{ marginTop: 6 }}>
+                                <summary style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', cursor: 'pointer' }}>Who&apos;s coming ({bookedCount})</summary>
+                                <p style={{ fontSize: 12, color: 'var(--c-ink-2)', margin: '4px 0 0' }}>
+                                  {rosterFirstNames((bookings ?? []).map((b) => { const p = b.profiles; return Array.isArray(p) ? (p[0]?.full_name ?? null) : (p?.full_name ?? null) })).join(', ')}
+                                </p>
+                              </details>
+                            )}
                           </div>
                           <div style={{ flexShrink: 0 }}>
                             {(() => {

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CircleMark } from '@/components/circle-mark'
 
-export function GymLoginForm({ gymName, gymSlug }: { gymName: string; gymSlug: string }) {
+export function GymLoginForm({ gymName, gymSlug, redirectTo }: { gymName: string; gymSlug: string; redirectTo?: string }) {
   const [mode, setMode]         = useState<'password' | 'code'>('password')
   const [codeSent, setCodeSent] = useState(false)
   const [code, setCode]         = useState('')
@@ -24,7 +24,7 @@ export function GymLoginForm({ gymName, gymSlug }: { gymName: string; gymSlug: s
       setLoading(false)
       setError(error.message)
     } else {
-      window.location.href = `/join/${gymSlug}`
+      window.location.href = redirectTo ?? `/join/${gymSlug}`
     }
   }
 
@@ -50,7 +50,7 @@ export function GymLoginForm({ gymName, gymSlug }: { gymName: string; gymSlug: s
       setLoading(false)
       setError(error.message)
     } else {
-      window.location.href = `/join/${gymSlug}`
+      window.location.href = redirectTo ?? `/join/${gymSlug}`
     }
   }
 

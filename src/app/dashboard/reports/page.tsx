@@ -6,6 +6,7 @@ const REPORTS = [
   { href: '/dashboard/reports/attendance', title: 'Attendance & no-shows', desc: 'Check-in trends, busiest classes, no-show rates over time.' },
   { href: '/dashboard/reports/lead-funnel', title: 'Lead funnel', desc: 'Lead → member conversion, split by acquisition source.' },
   { href: '/dashboard/reports/classes', title: 'Class & coach performance', desc: 'Fill rate and no-show rate per class template and per coach.' },
+  { href: '/dashboard/reports/payroll', title: 'Payroll', desc: 'Per-coach pay: class rates, monthly salaries, and PT sessions.' },
 ]
 
 export default async function ReportsHubPage() {

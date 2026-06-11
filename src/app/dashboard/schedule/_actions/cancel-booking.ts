@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { sendWaitlistEmail } from '@/lib/email'
+import { sendPushTo } from '@/lib/push'
 import { env } from '@/env'
 import { isLateCancel } from '@/lib/booking-policy'
 
@@ -95,6 +96,11 @@ export async function cancelBooking(instanceId: string): Promise<{ error: string
             classTime,
             gymName: box?.name ?? 'your gym',
             bookUrl: `${env.NEXT_PUBLIC_APP_URL}/dashboard/schedule`,
+          })
+          await sendPushTo(svc, next.athlete_id, {
+            title: 'A spot opened!',
+            body: `${tmpl?.name ?? 'Your class'} ${classTime} — book it before someone else does`,
+            url: '/dashboard/schedule',
           })
         }
       }

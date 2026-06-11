@@ -13,6 +13,7 @@ import { SkillsEditor } from './_components/skills-editor'
 import { MemberFollowups } from './_components/member-followups'
 import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_components/task-item'
 import { ReferCard } from './_components/refer-card'
+import { ChangePasswordCard } from './_components/change-password-card'
 import { ensureReferralCode } from '@/app/dashboard/referrals/_actions/ensure-referral-code'
 import { referralLink } from '@/lib/referrals'
 import { env } from '@/env'
@@ -416,6 +417,8 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                 <ReferCard link={referLink} referred={referredCount} joined={joinedCount} />
               </div>
             )}
+
+            {isSelf && <div style={{ marginBottom: 16 }}><ChangePasswordCard /></div>}
 
             {isStaff && (
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>

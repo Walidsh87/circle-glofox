@@ -38,8 +38,8 @@ export function ChangePasswordCard() {
         <p style={{ fontSize: 13.5, color: 'var(--c-ink)' }}>Password updated — use it next time you sign in.</p>
       ) : (
         <form onSubmit={onSave} style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 320 }}>
-          <input type="password" autoComplete="new-password" placeholder="New password (min 8 chars)" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
-          <input type="password" autoComplete="new-password" placeholder="Confirm new password" value={confirm} onChange={(e) => setConfirm(e.target.value)} style={inputStyle} />
+          <input type="password" autoComplete="new-password" aria-label="New password" placeholder="New password (min 8 chars)" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
+          <input type="password" autoComplete="new-password" aria-label="Confirm new password" placeholder="Confirm new password" value={confirm} onChange={(e) => setConfirm(e.target.value)} style={inputStyle} />
           {error && <p style={{ fontSize: 12.5, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
           <button type="submit" disabled={saving || !password || !confirm} style={{ height: 38, borderRadius: 8, border: 'none', background: '#111', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: saving || !password || !confirm ? 0.6 : 1 }}>
             {saving ? 'Saving…' : 'Set password'}

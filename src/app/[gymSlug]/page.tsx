@@ -5,10 +5,10 @@ import { GymLoginForm } from './_components/gym-login-form'
 
 export default async function GymLoginPage(ctx: { params: Promise<{ gymSlug: string }> }) {
   const params = await ctx.params
-  // Redirect to dashboard if already authenticated
+  // Already authenticated → resume at /join (it bounces profiled members on to /dashboard)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (user) redirect('/dashboard')
+  if (user) redirect(`/join/${params.gymSlug}`)
 
   // Fetch gym by slug (public lookup — bypasses RLS)
   const service = createServiceClient()

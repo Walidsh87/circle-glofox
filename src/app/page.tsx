@@ -21,9 +21,12 @@ export default function LoginPage() {
     setError(null)
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (error) setError(error.message)
-    else window.location.href = '/dashboard'
+    if (error) {
+      setLoading(false)
+      setError(error.message)
+    } else {
+      window.location.href = '/dashboard'
+    }
   }
 
   async function handleSendCode(e: React.FormEvent) {
@@ -44,9 +47,12 @@ export default function LoginPage() {
     setError(null)
     const supabase = createClient()
     const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'email' })
-    setLoading(false)
-    if (error) setError(error.message)
-    else window.location.href = '/dashboard'
+    if (error) {
+      setLoading(false)
+      setError(error.message)
+    } else {
+      window.location.href = '/dashboard'
+    }
   }
 
   function switchMode(next: 'password' | 'code') {
@@ -98,6 +104,7 @@ export default function LoginPage() {
                   <input
                     type="email"
                     required
+                    disabled={loading}
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -117,6 +124,7 @@ export default function LoginPage() {
                     type="password"
                     autoComplete="current-password"
                     required
+                    disabled={loading}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -154,6 +162,7 @@ export default function LoginPage() {
                   <input
                     type="email"
                     required
+                    disabled={loading}
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -179,7 +188,7 @@ export default function LoginPage() {
                 <label>
                   <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>6-digit code</div>
                   <input
-                    type="text" inputMode="numeric" autoComplete="one-time-code" required placeholder="123456"
+                    type="text" inputMode="numeric" autoComplete="one-time-code" required disabled={loading} placeholder="123456"
                     value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     style={{ width: '100%', height: 54, padding: '0 14px', border: '1.5px solid var(--c-border-strong)', borderRadius: 10, background: 'var(--c-surface)', fontSize: 28, color: 'var(--c-ink)', fontFamily: 'var(--font-geist-mono)', outline: 'none', letterSpacing: '0.2em', textAlign: 'center', boxSizing: 'border-box' }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}

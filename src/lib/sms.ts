@@ -1,5 +1,7 @@
 import { matchesSegment, type Candidate, type Segment } from './broadcast-audience'
 
+// Mirrored in SQL as normalize_uae_phone (migrations/053_phone_e164.sql,
+// feeds the profiles.phone_e164 generated column) — keep both in sync.
 export function normalizeUaePhone(raw: string | null): string | null {
   if (!raw) return null
   let d = raw.replace(/[^\d+]/g, '').replace(/^00/, '+')

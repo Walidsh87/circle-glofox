@@ -28,13 +28,14 @@ test('invalid signature returns 403', async () => {
 test('a known member phone records an inbound whatsapp message', async () => {
   verifyMock.mockReturnValue(true)
   const svc = makeSupabaseMock({ results: {
-    profiles: { data: [{ id: 'a1', box_id: 'b1', phone: '0501234567' }], error: null },
+    profiles: { data: { id: 'a1', box_id: 'b1' }, error: null },
     conversations: { data: { id: 'cv1' }, error: null },
     messages: { data: null, error: null },
   } })
   serviceCreate.mockReturnValue(svc)
   const res = await POST(reqWith({ From: 'whatsapp:+971501234567', Body: 'Is the 6am on?' }) as never)
   expect(res.status).toBe(200)
+  expect(svc.builder('profiles').eq).toHaveBeenCalledWith('phone_e164', '+971501234567')
   const up = svc.builder('conversations').upsert.mock.calls[0][0]
   expect(up).toEqual(expect.objectContaining({ box_id: 'b1', member_id: 'a1', last_sender_role: 'member', staff_unread: true }))
   expect(up.last_wa_inbound_at).toBeTruthy()
@@ -44,7 +45,7 @@ test('a known member phone records an inbound whatsapp message', async () => {
 
 test('an unknown phone is a no-op 200', async () => {
   verifyMock.mockReturnValue(true)
-  const svc = makeSupabaseMock({ results: { profiles: { data: [], error: null } } })
+  const svc = makeSupabaseMock({ results: { profiles: { data: null, error: null } } })
   serviceCreate.mockReturnValue(svc)
   const res = await POST(reqWith({ From: 'whatsapp:+971509999999', Body: 'hi' }) as never)
   expect(res.status).toBe(200)

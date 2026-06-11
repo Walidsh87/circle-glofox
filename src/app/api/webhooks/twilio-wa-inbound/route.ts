@@ -22,8 +22,10 @@ export async function POST(req: NextRequest) {
   if (!phone || !body) return NextResponse.json({ ok: true })
 
   const service = createServiceClient()
-  const { data: profs } = await service.from('profiles').select('id, box_id, phone').eq('role', 'athlete')
-  const member = ((profs ?? []) as { id: string; box_id: string; phone: string | null }[]).find((p) => normalizeUaePhone(p.phone) === phone)
+  // phone_e164 is a generated column (migration 053) holding normalizeUaePhone(phone);
+  // indexed equality replaces the old scan-all-athletes JS match. Multi-box phone → first match.
+  const { data: memberRow } = await service.from('profiles').select('id, box_id').eq('role', 'athlete').eq('phone_e164', phone).limit(1).maybeSingle()
+  const member = memberRow as { id: string; box_id: string } | null
   if (!member) return NextResponse.json({ ok: true })
 
   const nowIso = new Date().toISOString()

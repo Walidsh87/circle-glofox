@@ -1,17 +1,40 @@
 # Deploy pass — 2026-06-11 (migrations 028–053 + env + vendor consoles)
 
-Everything shipped since 2026-06-08 is in the repo but **not live**: prod is missing migrations **028–053** (26 files), four Vercel env vars, and the Resend/Twilio console wiring. This runbook takes prod from the June-7 state to current `main` (`1de9ced`).
+Prod is running current code (`main` auto-deploys) but the **database is missing migrations 028–053** — everything shipped since June 8 is dark until they run. This walks prod to current state, in order.
 
-**Safety properties:** every migration is idempotent (`IF NOT EXISTS` / `CREATE OR REPLACE` / `DROP POLICY IF EXISTS`) — re-running a chunk after a mid-paste error is safe. Reverse procedures: [ROLLBACKS.md](../../migrations/ROLLBACKS.md) (highest number first).
+**✅ Already done (no action needed):**
+- Code deployed & healthy on Vercel (200, full security headers verified)
+- Crons already registered in `vercel.json` (billing-reminders 05:00 · automations 06:00 · sequences 06:15 UTC)
+- Docker running, `postgres:17` image pulled, backup folder created at `~/circle-glofox-backups/` (outside the repo — dumps hold real member data, never commit them)
 
-**Division of labor:** you run the Supabase SQL Editor / Vercel / vendor consoles (Claude has no access); Claude verifies after each step and runs the public-surface smoke at the end.
+**⛔ Blocked (skip for now, not on the critical path):**
+- WhatsApp sender setup + `TWILIO_WHATSAPP_FROM` env — Circle Fitness hasn't provided the mobile number yet. When asking: the number gets **disconnected from the regular WhatsApp app** once registered, so they should dedicate a number, not the front-desk phone's. Everything WhatsApp shows "not configured" until then — nothing breaks.
+
+**Safety:** all 26 migrations are additive and idempotent — re-running a chunk after an error is safe. Rollbacks: [ROLLBACKS.md](../../migrations/ROLLBACKS.md). Paste any SQL error to Claude verbatim; don't improvise.
 
 ---
 
-## Step 0 — Pre-flight (5 min)
+## ▶︎ STEP 1 — Manual backup (you, ~3 min) ← YOU ARE HERE
 
-1. **Backup check** (audit item R2, do not skip with 26 migrations queued): Supabase Dashboard → Project → Database → Backups. Confirm a backup exists from the last 24h. Note the timestamp. (Free tier = daily, 7-day retention. If the project is on Pro, confirm PITR is on.)
-2. **State probe** — paste this in the SQL Editor. Expected result right now: **all 26 rows `false`** (and if any are already `true`, tell Claude before proceeding — it means partial state):
+Free tier has no automated backups, so take a one-off dump before touching the DB.
+
+1. Supabase Dashboard → **Connect** (top bar) → **Connection String** → copy the **Session pooler** URI (port **5432**). Looks like:
+   `postgresql://postgres.<project-ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:5432/postgres`
+   (If it shows `[YOUR-PASSWORD]`, replace it with the DB password — reset it there if you don't have it.)
+2. In your own terminal, run (paste your real string between the quotes):
+
+```bash
+docker run --rm postgres:17 pg_dump --no-owner --no-privileges \
+  "PASTE_CONNECTION_STRING_HERE" > ~/circle-glofox-backups/prod-2026-06-11.sql
+```
+
+3. Verify: `ls -lh ~/circle-glofox-backups/` → file should be **at least a few hundred KB**. Tell Claude the size.
+
+---
+
+## ▶︎ STEP 2 — State probe (you, 1 min)
+
+Supabase Dashboard → **SQL Editor** → paste & run the probe below. **Expected: all 26 rows `false`.** If any row is `true`, stop and tell Claude.
 
 ```sql
 SELECT migration, applied FROM (
@@ -44,101 +67,81 @@ SELECT migration, applied FROM (
 ) p ORDER BY migration;
 ```
 
-3. **Start Meta/WhatsApp verification now** (Step 3c) — it has multi-day approval lead time; everything else can proceed while it's pending.
+---
+
+## ▶︎ STEP 3 — Migrations, 4 chunks (you, ~15 min total)
+
+For each chunk: open the listed files from the repo's `migrations/` folder, paste their contents **in numeric order** into one SQL Editor run, execute. Then re-run the Step-2 probe — that chunk's rows must flip to `true`. Then run the one-line sanity check. Report to Claude after each chunk.
+
+- [ ] **Chunk A (028–034):** `028_tv_token` · `029_workout_scaling` · `030_member_outreach` · `031_class_waitlist` · `032_member_achievements` · `033_membership_freeze` · `034_member_fields`
+  (033 replaces the `cron_eligible_memberships` function — expected.)
+  Sanity: `SELECT COUNT(*) FROM class_waitlist;` → `0`
+
+- [ ] **Chunk B (035–040):** `035_membership_plans` · `036_trial_plans` · `037_member_tags` · `038_households` · `039_booking_policies` · `040_skill_levels`
+  Sanity: `SELECT booking_close_minutes, late_cancel_hours FROM boxes LIMIT 1;` → `0, 0`
+
+- [ ] **Chunk C (041–046):** `041_broadcasts` · `042_email_campaigns` · `043_automations` · `044_sequences` · `045_sms_campaigns` · `046_whatsapp`
+  Sanity: `SELECT COUNT(*) FROM profiles WHERE unsubscribe_token IS NULL;` → `0`
+
+- [ ] **Chunk D (047–053):** `047_inbox` · `048_follow_up_tasks` · `049_referrals` · `050_member_source` · `051_checklists` · `052_wa_inbound` · `053_phone_e164`
+  Sanity: `SELECT phone, phone_e164 FROM profiles WHERE phone IS NOT NULL LIMIT 5;` → `+9715xxxxxxxx` for valid UAE mobiles, `NULL` otherwise
+
+**When the probe shows 26 × `true`, the DB is current. Tell Claude — most features are live at this point.**
 
 ---
 
-## Step 1 — Migrations, four chunks
+## ▶︎ STEP 4 — Vercel env vars (you, ~10 min)
 
-For each chunk: open the listed files from `migrations/` in the repo, paste their contents **in numeric order** into one SQL Editor run, execute, then re-run the state probe above — the chunk's rows must flip to `true`. If a paste errors midway: read the error, fix nothing blindly — re-running the same chunk is safe (idempotent). Report any error to Claude verbatim.
-
-### Chunk 1 — programming, retention, booking depth (028–034)
-`028_tv_token` · `029_workout_scaling` · `030_member_outreach` · `031_class_waitlist` · `032_member_achievements` · `033_membership_freeze` · `034_member_fields`
-
-Note: 033 also `CREATE OR REPLACE`s `cron_eligible_memberships` (billing-reminder cron now skips frozen memberships) — replacing the existing function is expected.
-
-Sanity after probe: `SELECT COUNT(*) FROM class_waitlist;` → `0` (not an error).
-
-### Chunk 2 — membership depth (035–040)
-`035_membership_plans` · `036_trial_plans` · `037_member_tags` · `038_households` · `039_booking_policies` · `040_skill_levels`
-
-Sanity: `SELECT booking_close_minutes, late_cancel_hours FROM boxes LIMIT 1;` → `0, 0` (policies disabled by default — existing booking behavior unchanged).
-
-### Chunk 3 — comms (041–046)
-`041_broadcasts` · `042_email_campaigns` · `043_automations` · `044_sequences` · `045_sms_campaigns` · `046_whatsapp`
-
-Note: 041 backfills `unsubscribe_token` for every existing profile (instant at pilot size).
-
-Sanity: `SELECT COUNT(*) FROM profiles WHERE unsubscribe_token IS NULL;` → `0`.
-
-### Chunk 4 — CRM, inbox, WhatsApp inbound (047–053)
-`047_inbox` · `048_follow_up_tasks` · `049_referrals` · `050_member_source` · `051_checklists` · `052_wa_inbound` · `053_phone_e164`
-
-Note: 053 creates the `normalize_uae_phone` SQL function + a generated `profiles.phone_e164` column (auto-computed for all existing rows on ADD COLUMN).
-
-Sanity: `SELECT phone, phone_e164 FROM profiles WHERE phone IS NOT NULL LIMIT 5;` → e164 column shows `+9715xxxxxxxx` for valid UAE mobiles, `NULL` otherwise.
-
-**→ Tell Claude when all 4 chunks are green (final probe = 26 × `true`).**
-
----
-
-## Step 2 — Vercel env vars (then redeploy)
-
-Vercel → Project → Settings → Environment Variables. Add to **Production** (and Preview where noted). After saving, **trigger a redeploy** — env changes don't apply to the running deployment.
+Vercel → Project → Settings → Environment Variables → add to **Production**. Then **redeploy** (env changes need it).
 
 | Var | Enables | Where to get it |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | #16 AI workout parser | console.anthropic.com → API Keys |
-| `RESEND_WEBHOOK_SECRET` | #41 email open/click analytics | Resend → Webhooks → Add endpoint `https://circle-glofox-rep.vercel.app/api/webhooks/resend` (events: opened, clicked, bounced, complained) → copy the signing secret |
-| `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` | #42 SMS + #39/#40 WhatsApp | Twilio Console home |
-| `TWILIO_SMS_FROM` | #42 SMS campaigns | Twilio alphanumeric sender ID (UAE requires sender-ID registration) |
-| `TWILIO_WHATSAPP_FROM` | #39 WA campaigns + #40 inbound | E.164 of the approved WhatsApp sender, **no `whatsapp:` prefix**. Set in **Preview too** |
+| `ANTHROPIC_API_KEY` | AI workout parser | console.anthropic.com → API Keys |
+| `RESEND_WEBHOOK_SECRET` | email open/click analytics | Resend → Webhooks → Add endpoint `https://circle-glofox-rep.vercel.app/api/webhooks/resend` (events: opened, clicked, bounced, complained) → copy signing secret |
+| `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` | SMS campaigns | Twilio Console home |
+| `TWILIO_SMS_FROM` | SMS campaigns | Twilio alphanumeric sender ID (UAE sender-ID registration) |
+| ~~`TWILIO_WHATSAPP_FROM`~~ | ⛔ blocked | waiting on the gym's number |
 
-Already set (no action): Supabase keys, Stripe keys, `RESEND_API_KEY`, `CRON_SECRET`, `PORTAL_SIGN_SECRET`, `NEXT_PUBLIC_APP_URL`.
-Crons: already registered in `vercel.json` (billing-reminders 05:00 · automations 06:00 · sequences 06:15 UTC) — live on redeploy, no console step.
-
-Missing vars degrade gracefully (features report "not configured") — you can do Twilio later without breaking anything else.
+Already set (skip): Supabase keys, Stripe keys, `RESEND_API_KEY`, `CRON_SECRET`, `PORTAL_SIGN_SECRET`, `NEXT_PUBLIC_APP_URL`.
+Missing vars degrade gracefully — you can add Twilio later without breaking anything.
 
 ---
 
-## Step 3 — Vendor consoles
+## ▶︎ STEP 5 — Vendor consoles (you)
 
-**a) Resend (5 min):** Settings → enable **open + click tracking** on the sending domain. Webhook endpoint added in Step 2. Done.
-
-**b) Twilio SMS:** register/confirm the UAE **alphanumeric sender ID**. No callback console step — the status callback (`/api/webhooks/twilio`) is passed per-message by the app.
-
-**c) Twilio WhatsApp (longest lead time — start first):**
-1. Twilio Console → Messaging → **WhatsApp sender** registration (walks through Meta business verification).
-2. Once approved: create **message templates** in Twilio Content Editor → submit for Meta approval → paste each approved Content SID (`HX…`) into **/dashboard/whatsapp** in the app.
-3. On the WhatsApp sender's configuration: set the **inbound webhook** to `https://circle-glofox-rep.vercel.app/api/webhooks/twilio-wa-inbound` (HTTP POST). ⚠️ The URL must match exactly — signature verification reconstructs it from `NEXT_PUBLIC_APP_URL`.
-4. Status callback (`/api/webhooks/twilio-wa`) is passed per-message — no console step.
+- [ ] **Resend (5 min):** Settings → enable **open + click tracking** on the sending domain. (Webhook endpoint was added in Step 4.)
+- [ ] **Twilio SMS:** register/confirm the UAE alphanumeric sender ID. No callback console step — the app passes it per-message.
+- [ ] ⛔ **Twilio WhatsApp — blocked on the gym's number.** When it arrives: (1) WhatsApp sender registration via Twilio (includes Meta business verification, multi-day); (2) create templates in Twilio Content Editor → after Meta approval paste each `HX…` Content SID into **/dashboard/whatsapp**; (3) set the sender's **inbound webhook** to `https://circle-glofox-rep.vercel.app/api/webhooks/twilio-wa-inbound` (POST, exact URL — signature check depends on it); (4) set `TWILIO_WHATSAPP_FROM` in Vercel (Production + Preview) → redeploy.
 
 ---
 
-## Step 4 — Post-deploy smoke
+## ▶︎ STEP 6 — Post-deploy smoke
 
-**Claude verifies (public surfaces, no login):** prod 200s + security headers; `/embed/lead/<gym-slug>` renders and is iframable; `/embed/schedule/<gym-slug>` renders; `/<gym-slug>` public page; `/tv/<token>` once a token is generated.
+**Claude verifies (public, no login):** prod 200 + headers · `/embed/lead/<slug>` · `/embed/schedule/<slug>` · `/<slug>` gym page · `/tv/<token>` once generated. → Give Claude the gym slug.
 
-**You click (authed dashboard), one pass:**
-- [ ] Settings: generate TV token → open the TV link on a screen
-- [ ] WOD form: add a scaling tier → shows on whiteboard/TV
-- [ ] Retention: `/dashboard/retention` lists at-risk members; "Mark contacted" works
-- [ ] Schedule: waitlist join on a full class (or just confirm the page loads)
-- [ ] Payments: create a membership plan in the catalog; freeze/unfreeze a membership
-- [ ] Member profile: edit safety fields, add a tag, set a skill belt, household card (owner)
-- [ ] Broadcasts: send a test email broadcast to yourself → opens/clicks appear after Resend wiring
-- [ ] Automations + Sequences: create one of each (enabled) → check tomorrow's 06:00/06:15 cron runs
-- [ ] SMS + WhatsApp campaign pages load (sends need Twilio creds from Step 2)
-- [ ] Inbox: message a member; reply as the member from `/dashboard/messages`
-- [ ] Tasks: create a follow-up task from a lead row and from a member profile
-- [ ] Referrals: member profile shows refer-link; `/dashboard/referrals` lists counts
-- [ ] Attribution: `/dashboard/attribution` renders the source table
-- [ ] Checklists: define onboarding steps in Settings → tick them on a member profile
-- [ ] Lead widget: submit a test lead through `/embed/lead/<gym-slug>` → appears in Leads with source "widget"
-- [ ] WhatsApp end-to-end (after 3c approval): member texts the WA number → lands in Inbox with WhatsApp badge → staff reply arrives on the member's WhatsApp
+**You click through (authed dashboard):**
+- [ ] Settings → generate TV token → open the TV link
+- [ ] WOD form → add a scaling tier → visible on whiteboard/TV
+- [ ] `/dashboard/retention` → at-risk list renders, "Mark contacted" works
+- [ ] Payments → create a plan in the catalog · freeze/unfreeze a membership
+- [ ] Member profile → safety fields, tag, skill belt, household (owner)
+- [ ] Broadcasts → send a test email to yourself (opens/clicks fill in after Step 5 Resend)
+- [ ] Automations + Sequences → create one each (enabled) → confirm tomorrow's 06:00/06:15 runs
+- [ ] SMS page loads (sending needs Step 4 Twilio creds)
+- [ ] Inbox → message a member · reply as the member from `/dashboard/messages`
+- [ ] Tasks → add a follow-up from a lead row and a member profile
+- [ ] Referrals → member's refer link · `/dashboard/referrals` counts
+- [ ] `/dashboard/attribution` renders
+- [ ] Checklists → define steps in Settings → tick on a member profile
+- [ ] Lead widget → submit a test lead via `/embed/lead/<slug>` → appears in Leads (source "widget")
+- [ ] ⛔ WhatsApp end-to-end — after the sender exists
 
 ---
 
 ## Rollback
 
-Reverse order, per [ROLLBACKS.md](../../migrations/ROLLBACKS.md) (`053` first). Prefer PITR/backup restore over manual drops for anything involving data loss.
+Reverse order per [ROLLBACKS.md](../../migrations/ROLLBACKS.md) (`053` first). Prefer restoring the Step-1 dump over manual drops for anything involving data.
+
+## Standing recommendation (audit R2)
+
+Free tier = no automated backups for a business holding payment + medical-adjacent data. Before more real members onboard: **Supabase Pro** (daily backups + PITR). Until then, re-run the Step-1 dump before any future migration batch.

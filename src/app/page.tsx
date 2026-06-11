@@ -5,13 +5,16 @@ import { createClient } from '@/lib/supabase/client'
 import { CircleMark } from '@/components/circle-mark'
 
 export default function LoginPage() {
+  const [mode, setMode]         = useState<'password' | 'code'>('password')
+  const [codeSent, setCodeSent] = useState(false)
+  const [code, setCode]         = useState('')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState<string | null>(null)
   const [loading, setLoading]   = useState(false)
 
-  // Testing-mode auth (2026-06-11): plain email+password; OTP/magic-link removed.
-  // Permanent auth design TBD. Passwords are set via scripts/set-password.mjs.
+  // Everyday sign-in. The code rail below covers first access, forgot-password
+  // and self-signup — no magic links; the typed 6-digit code is the mechanism.
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -21,6 +24,37 @@ export default function LoginPage() {
     setLoading(false)
     if (error) setError(error.message)
     else window.location.href = '/dashboard'
+  }
+
+  async function handleSendCode(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    const supabase = createClient()
+    // shouldCreateUser stays true: a brand-new gym owner self-starts here (code → /onboarding).
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } })
+    setLoading(false)
+    if (error) setError(error.message)
+    else setCodeSent(true)
+  }
+
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    const supabase = createClient()
+    const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'email' })
+    setLoading(false)
+    if (error) setError(error.message)
+    else window.location.href = '/dashboard'
+  }
+
+  function switchMode(next: 'password' | 'code') {
+    setMode(next)
+    setCodeSent(false)
+    setCode('')
+    setPassword('')
+    setError(null)
   }
 
   return (
@@ -52,62 +86,122 @@ export default function LoginPage() {
               The best hour<br />of your day.
             </h1>
             <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 32 }}>
-              Sign in with your email and password.
+              {mode === 'password' ? 'Sign in with your email and password.'
+                : codeSent ? <>We sent a 6-digit code to <span className="mono" style={{ color: 'var(--c-ink)', fontWeight: 600 }}>{email}</span>.</>
+                : "Enter your email and we'll send a 6-digit sign-in code."}
             </p>
 
-            <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <label>
-                <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Email</div>
-                <input
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+            {mode === 'password' && (
+              <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <label>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Email</div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{
+                      width: '100%', height: 46, padding: '0 14px',
+                      border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
+                      background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
+                      fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
+                  />
+                </label>
+                <label>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Password</div>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{
+                      width: '100%', height: 46, padding: '0 14px',
+                      border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
+                      background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
+                      fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
+                  />
+                </label>
+                {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading}
                   style={{
-                    width: '100%', height: 46, padding: '0 14px',
-                    border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
-                    background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
-                    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                    height: 46, background: 'var(--circle-lime)',
+                    border: 'none', borderRadius: 10,
+                    fontSize: 14.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+                    color: 'var(--circle-ink)', letterSpacing: '0.01em',
+                    opacity: loading ? 0.7 : 1, transition: 'opacity .12s',
                   }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
-                />
-              </label>
-              <label>
-                <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Password</div>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{
-                    width: '100%', height: 46, padding: '0 14px',
-                    border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
-                    background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
-                    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
-                />
-              </label>
-              {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  height: 46, background: 'var(--circle-lime)',
-                  border: 'none', borderRadius: 10,
-                  fontSize: 14.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-                  color: 'var(--circle-ink)', letterSpacing: '0.01em',
-                  opacity: loading ? 0.7 : 1, transition: 'opacity .12s',
-                }}
-              >
-                {loading ? 'Signing in…' : 'Sign in →'}
-              </button>
-            </form>
+                >
+                  {loading ? 'Signing in…' : 'Sign in →'}
+                </button>
+              </form>
+            )}
+
+            {mode === 'code' && !codeSent && (
+              <form onSubmit={handleSendCode} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <label>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Email</div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{
+                      width: '100%', height: 46, padding: '0 14px',
+                      border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
+                      background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
+                      fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
+                  />
+                </label>
+                {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
+                <button type="submit" disabled={loading} style={{ height: 46, background: 'var(--circle-lime)', border: 'none', borderRadius: 10, fontSize: 14.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', color: 'var(--circle-ink)', letterSpacing: '0.01em', opacity: loading ? 0.7 : 1, transition: 'opacity .12s' }}>
+                  {loading ? 'Sending…' : 'Send code →'}
+                </button>
+              </form>
+            )}
+
+            {mode === 'code' && codeSent && (
+              <form onSubmit={handleVerifyCode} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <label>
+                  <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>6-digit code</div>
+                  <input
+                    type="text" inputMode="numeric" autoComplete="one-time-code" required placeholder="123456"
+                    value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    style={{ width: '100%', height: 54, padding: '0 14px', border: '1.5px solid var(--c-border-strong)', borderRadius: 10, background: 'var(--c-surface)', fontSize: 28, color: 'var(--c-ink)', fontFamily: 'var(--font-geist-mono)', outline: 'none', letterSpacing: '0.2em', textAlign: 'center', boxSizing: 'border-box' }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
+                    autoFocus
+                  />
+                </label>
+                {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
+                <button type="submit" disabled={loading || code.length !== 6} style={{ height: 46, background: 'var(--circle-lime)', border: 'none', borderRadius: 10, fontSize: 14.5, fontWeight: 700, cursor: (loading || code.length !== 6) ? 'not-allowed' : 'pointer', color: 'var(--circle-ink)', letterSpacing: '0.01em', opacity: (loading || code.length !== 6) ? 0.6 : 1, transition: 'opacity .12s' }}>
+                  {loading ? 'Verifying…' : 'Sign in →'}
+                </button>
+                <button type="button" onClick={() => { setCodeSent(false); setCode(''); setError(null) }} style={{ background: 'none', border: '1px solid var(--c-border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', color: 'var(--c-ink-2)' }}>← Use a different email</button>
+              </form>
+            )}
+
+            <button
+              type="button"
+              onClick={() => switchMode(mode === 'password' ? 'code' : 'password')}
+              style={{ marginTop: 16, background: 'none', border: 'none', padding: 0, fontSize: 13, cursor: 'pointer', color: 'var(--c-ink)', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              {mode === 'password' ? 'Sign in with a code instead' : 'Use a password instead'}
+            </button>
 
             <p style={{ marginTop: 22, fontSize: 12, color: 'var(--c-ink-muted)' }}>
               New to Circle?{' '}

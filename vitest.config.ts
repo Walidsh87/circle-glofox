@@ -10,8 +10,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['src/**/_lib/*.ts'],
-      exclude: ['src/**/*.test.ts'],
+      include: ['src/**/_lib/*.ts', 'src/lib/**/*.ts'],
+      // supabase/ is client-construction glue (cookies/SSR wiring) — no logic to unit-test.
+      exclude: ['src/**/*.test.ts', 'src/lib/supabase/**'],
       thresholds: {
         lines: 70,
         functions: 70,

@@ -13,6 +13,7 @@ import { HouseholdCard } from './_components/household-card'
 import { SkillsEditor } from './_components/skills-editor'
 import { MemberFollowups } from './_components/member-followups'
 import { MyDetailsCard } from './_components/my-details-card'
+import { SelfAgreementsCard } from './_components/self-agreements-card'
 import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_components/task-item'
 import { ReferCard } from './_components/refer-card'
 import { ChangePasswordCard } from './_components/change-password-card'
@@ -243,6 +244,24 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     joinedCount = jc ?? 0
   }
 
+  // Self-serve pack (#79): own signed agreements, athlete self view only.
+  let waiverSig: { full_name: string; signed_at: string } | null = null
+  let termsSig: { full_name: string; terms_version: number; signed_at: string } | null = null
+  let waiverText: string | null = null
+  let termsDoc: { content: string; version: number } | null = null
+  if (isSelf && viewer.role === 'athlete') {
+    const [{ data: ws }, { data: ts }, { data: gw }, { data: gt }] = await Promise.all([
+      supabase.from('waiver_signatures').select('full_name, signed_at').eq('athlete_id', user.id).eq('box_id', viewer.box_id).maybeSingle(),
+      supabase.from('terms_signatures').select('full_name, terms_version, signed_at').eq('athlete_id', user.id).eq('box_id', viewer.box_id).order('signed_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('gym_waivers').select('content').eq('box_id', viewer.box_id).maybeSingle(),
+      supabase.from('gym_terms').select('content, version').eq('box_id', viewer.box_id).maybeSingle(),
+    ])
+    waiverSig = ws as typeof waiverSig
+    termsSig = ts as typeof termsSig
+    waiverText = (gw as { content: string } | null)?.content ?? null
+    termsDoc = gt as typeof termsDoc
+  }
+
   // Onboarding/offboarding checklist (#38): stage-driven, staff-only.
   const doneIds = new Set(((progRows ?? []) as { item_id: string }[]).map((p) => p.item_id))
   const checklist = mergeChecklist((ciRows ?? []) as { id: string; label: string }[], doneIds)
@@ -437,6 +456,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
                 <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>My details</div>
                 <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: member.emergency_contact_name, emergencyContactPhone: member.emergency_contact_phone, bloodType: member.blood_type, allergies: member.allergies }} />
+              </div>
+            )}
+
+            {isSelf && viewer.role === 'athlete' && (
+              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
+                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Agreements</div>
+                <SelfAgreementsCard waiverSig={waiverSig} termsSig={termsSig} waiverText={waiverText} termsDoc={termsDoc} />
               </div>
             )}
 

@@ -13,6 +13,7 @@ export type TaskRow = {
   done: boolean
   linkLabel: string | null
   linkHref: string | null
+  assigneeName: string | null
 }
 
 export function TaskItem({ task }: { task: TaskRow }) {
@@ -38,6 +39,7 @@ export function TaskItem({ task }: { task: TaskRow }) {
             : <span style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{task.linkLabel}</span>
         )}
       </div>
+      {task.assigneeName && <span style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', whiteSpace: 'nowrap' }}>→ {task.assigneeName}</span>}
       <span className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>{task.due_date}</span>
       <button onClick={onDelete} disabled={pending} style={{ padding: '2px 8px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'transparent', color: 'var(--c-ink-muted)', cursor: 'pointer', fontSize: 13 }}>×</button>
     </div>

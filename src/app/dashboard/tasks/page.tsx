@@ -31,7 +31,7 @@ export default async function TasksPage() {
     let linkHref: string | null = null
     if (t.member_id) { linkLabel = memberName.get(t.member_id) ?? 'Member'; linkHref = `/dashboard/members/${t.member_id}` }
     else if (t.lead_id) { linkLabel = `${leadName.get(t.lead_id) ?? 'Lead'} (lead)`; linkHref = '/dashboard/members?tab=leads' }
-    return { id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel, linkHref }
+    return { id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel, linkHref, assigneeName: null }
   }
 
   const { overdue, today: dueToday, upcoming } = bucketTasks(open, today)

@@ -217,7 +217,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
 
   // Follow-up tasks (#47): this member's open tasks, staff-only.
   const followups: FollowupTaskRow[] = ((followupRows ?? []) as { id: string; title: string; due_date: string; done: boolean }[])
-    .map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel: null, linkHref: null }))
+    .map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel: null, linkHref: null, assigneeName: null }))
 
   // Refer-a-friend (#49/#88): only on the member's own athlete profile.
   let referLink: string | null = null

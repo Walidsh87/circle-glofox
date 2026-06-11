@@ -230,9 +230,9 @@ These were added to v2 mid-flight and are tracked here so the original tier numb
 
 ### Tier 10 — Athlete (member) self-service
 76. ⬜ `[G-gap]` Self-serve plan changes — upgrade / downgrade / buy class pack from athlete profile *(partially addressed by 🆕 Packages umbrella)*
-77. ⬜ `[G-gap]` Athlete profile self-management (photo, phone, emergency contact, custom fields)
-78. ⬜ `[G-gap]` Payment history + VAT-invoice PDF download
-79. ⬜ `[G-gap]` View own waiver + signed contracts
+77. ✅ `[G-gap]` **Athlete profile self-management** — "My details" card on own profile: phone (UAE-validated, feeds `phone_e164`/WhatsApp matching), emergency contact name/phone (international OK), blood type, allergies via self-scoped `updateOwnProfile` (service role, row pinned to `auth.uid()`; profiles has no UPDATE RLS). Validator composes `normalizeUaePhone` + `validateMemberFields`. Photo (needs Storage infra) + custom fields deferred. Spec `…athlete-self-serve-design.md`.
+78. ✅ `[G-gap]` **Payment history + VAT-invoice download** — already live via existing plumbing, verified: the member-page invoices table is RLS-fed (`athlete_own_invoices`) and ungated, so athletes see their own invoices on their profile; each links to the print-styled invoice page (browser print = PDF; refund form stays owner-only). No code needed.
+79. ✅ `[G-gap]` **View own waiver + signed terms** — "Agreements" card on own athlete profile: waiver signature (name + date, or "sign now" link), latest terms signature with version + "updated since you signed" hint when `gym_terms.version` is newer; inline `<details>` shows the current document text. Read-only over existing RLS; re-signing deferred. Spec `…athlete-self-serve-design.md`.
 80. ⬜ `[G-gap]` Class roster pre-view (with per-gym privacy toggle)
 81. ⬜ `[G-gap]` Calendar sync (Google / Apple / Outlook)
 82. ⬜ `[Wedge]` **Movement demo / video library** — every WOD movement linked to a video

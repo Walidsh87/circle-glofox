@@ -4,34 +4,21 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CircleMark } from '@/components/circle-mark'
 
-type Step = 'email' | 'code'
-
 export function GymLoginForm({ gymName, gymSlug }: { gymName: string; gymSlug: string }) {
-  const [step, setStep]       = useState<Step>('email')
-  const [email, setEmail]     = useState('')
-  const [code, setCode]       = useState('')
-  const [error, setError]     = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail]       = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError]       = useState<string | null>(null)
+  const [loading, setLoading]   = useState(false)
 
-  async function handleSendCode(e: React.FormEvent) {
+  // Testing-mode auth (2026-06-11): plain email+password; OTP/magic-link removed.
+  // NOTE: this disables new-athlete self-signup here (OTP implicitly created the
+  // auth user) until the permanent auth design lands. Existing members sign in fine.
+  async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
     const supabase = createClient()
-    // Email link lands on the same origin the user signed in from (needs the
-    // origin in Supabase's Redirect URLs allowlist); typing the 6-digit code works regardless.
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${location.origin}/auth/callback` } })
-    setLoading(false)
-    if (error) setError(error.message)
-    else setStep('code')
-  }
-
-  async function handleVerifyCode(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    const supabase = createClient()
-    const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'email' })
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) setError(error.message)
     else window.location.href = `/join/${gymSlug}`
@@ -58,128 +45,74 @@ export function GymLoginForm({ gymName, gymSlug }: { gymName: string; gymSlug: s
         </div>
 
         <div style={{ maxWidth: 380, width: '100%' }}>
-          {step === 'email' ? (
-            <div className="c-stage-in">
-              <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Sign in</div>
-              <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 38, lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 8, color: 'var(--c-ink)' }}>
-                The best hour<br />of your day.
-              </h1>
-              <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 32 }}>
-                Enter your email and we&apos;ll send a 6-digit sign-in code.
-              </p>
+          <div className="c-stage-in">
+            <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Sign in</div>
+            <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 38, lineHeight: 1.05, letterSpacing: '-0.025em', marginBottom: 8, color: 'var(--c-ink)' }}>
+              The best hour<br />of your day.
+            </h1>
+            <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 32 }}>
+              Sign in with your email and password.
+            </p>
 
-              <form onSubmit={handleSendCode} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <label>
-                  <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Email</div>
-                  <input
-                    type="email"
-                    required
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={{
-                      width: '100%', height: 46, padding: '0 14px',
-                      border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
-                      background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
-                      fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
-                  />
-                </label>
-                {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
-                <button
-                  type="submit"
-                  disabled={loading}
+            <form onSubmit={handleSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <label>
+                <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Email</div>
+                <input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   style={{
-                    height: 46, background: 'var(--circle-lime)',
-                    border: 'none', borderRadius: 10,
-                    fontSize: 14.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-                    color: 'var(--circle-ink)', letterSpacing: '0.01em',
-                    opacity: loading ? 0.7 : 1, transition: 'opacity .12s',
+                    width: '100%', height: 46, padding: '0 14px',
+                    border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
+                    background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
+                    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
                   }}
-                >
-                  {loading ? 'Sending…' : 'Send code →'}
-                </button>
-              </form>
-
-              <p style={{ marginTop: 22, fontSize: 12, color: 'var(--c-ink-muted)' }}>
-                New to {gymName}?{' '}
-                <span style={{ color: 'var(--c-ink)', fontWeight: 600 }}>Enter your email above to create a free account.</span>
-              </p>
-            </div>
-          ) : (
-            <div className="c-stage-in">
-              <div style={{
-                width: 52, height: 52, borderRadius: '50%',
-                background: 'var(--circle-lime-soft)',
-                border: '1px solid var(--circle-lime)',
-                display: 'grid', placeItems: 'center', marginBottom: 22,
-              }}>
-                <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="var(--circle-lime-ink)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" />
-                </svg>
-              </div>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 14 }}>Check your inbox</div>
-              <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 32, letterSpacing: '-0.025em', marginBottom: 12, color: 'var(--c-ink)' }}>
-                Enter your code.
-              </h1>
-              <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, marginBottom: 24 }}>
-                We sent a 6-digit code to{' '}
-                <span className="mono" style={{ color: 'var(--c-ink)', fontWeight: 600 }}>{email}</span>.
-              </p>
-
-              <form onSubmit={handleVerifyCode} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <label>
-                  <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>6-digit code</div>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    required
-                    placeholder="123456"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    style={{
-                      width: '100%', height: 54, padding: '0 14px',
-                      border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
-                      background: 'var(--c-surface)', fontSize: 28, color: 'var(--c-ink)',
-                      fontFamily: 'var(--font-geist-mono)', outline: 'none',
-                      letterSpacing: '0.2em', textAlign: 'center', boxSizing: 'border-box',
-                    }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
-                    autoFocus
-                  />
-                </label>
-                {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
-                <button
-                  type="submit"
-                  disabled={loading || code.length !== 6}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
+                />
+              </label>
+              <label>
+                <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Password</div>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   style={{
-                    height: 46, background: 'var(--circle-lime)',
-                    border: 'none', borderRadius: 10,
-                    fontSize: 14.5, fontWeight: 700,
-                    cursor: (loading || code.length !== 6) ? 'not-allowed' : 'pointer',
-                    color: 'var(--circle-ink)', letterSpacing: '0.01em',
-                    opacity: (loading || code.length !== 6) ? 0.6 : 1, transition: 'opacity .12s',
+                    width: '100%', height: 46, padding: '0 14px',
+                    border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
+                    background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
+                    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
                   }}
-                >
-                  {loading ? 'Verifying…' : 'Sign in →'}
-                </button>
-              </form>
-
+                  onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--circle-lime)')}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--c-border-strong)')}
+                />
+              </label>
+              {error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
               <button
-                onClick={() => { setStep('email'); setCode(''); setError(null) }}
+                type="submit"
+                disabled={loading}
                 style={{
-                  marginTop: 14, background: 'none',
-                  border: '1px solid var(--c-border)', borderRadius: 8,
-                  padding: '8px 14px', fontSize: 13, cursor: 'pointer',
-                  color: 'var(--c-ink-2)', width: '100%',
+                  height: 46, background: 'var(--circle-lime)',
+                  border: 'none', borderRadius: 10,
+                  fontSize: 14.5, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+                  color: 'var(--circle-ink)', letterSpacing: '0.01em',
+                  opacity: loading ? 0.7 : 1, transition: 'opacity .12s',
                 }}
-              >← Use a different email</button>
-            </div>
-          )}
+              >
+                {loading ? 'Signing in…' : 'Sign in →'}
+              </button>
+            </form>
+
+            <p style={{ marginTop: 22, fontSize: 12, color: 'var(--c-ink-muted)' }}>
+              New to {gymName}?{' '}
+              <span style={{ color: 'var(--c-ink)', fontWeight: 600 }}>Ask the front desk for an account</span>.
+            </p>
+          </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, color: 'var(--c-ink-muted)' }}>

@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`059` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`060` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,11 @@ Reverse procedures for migrations `008`–`059` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 060_push_subscriptions
+```sql
+DROP TABLE IF EXISTS push_subscriptions;
+```
 
 ### 059_booking_conveniences
 ```sql

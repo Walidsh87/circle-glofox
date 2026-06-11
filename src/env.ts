@@ -22,6 +22,9 @@ const schema = z.object({
   // Optional: when both are set, per-IP rate limiting activates (src/lib/rate-limit.ts).
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  // Optional: when both are set, web push (#22) activates (src/lib/push.ts).
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
 })
 
 export const env = schema.parse({
@@ -41,4 +44,6 @@ export const env = schema.parse({
   TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM,
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
 })

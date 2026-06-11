@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { ALL_STAFF_ROLES, MANAGER_ROLES, PROGRAMMING_ROLES, type Role } from '@/lib/auth/roles'
 
 export type GuardedBox = { name: string; timezone: string | null; slug: string | null }
 
 export type PageContext = {
   supabase: Awaited<ReturnType<typeof createClient>>
   user: User
-  profile: { id: string; full_name: string | null; role: 'owner' | 'coach' | 'athlete'; box_id: string }
+  profile: { id: string; full_name: string | null; role: Role; box_id: string }
   boxName: string
   box: GuardedBox
 }
@@ -17,7 +18,7 @@ type BoxJoin = GuardedBox | GuardedBox[] | null
 type ProfileRow = {
   id: string
   full_name: string | null
-  role: 'owner' | 'coach' | 'athlete'
+  role: Role
   box_id: string
   boxes: BoxJoin
 }
@@ -51,16 +52,28 @@ export async function requirePage(): Promise<PageContext> {
   }
 }
 
-/** Owner or coach; anyone else lands back on /dashboard. */
-export async function requireStaffPage(): Promise<PageContext> {
+async function requireRolePage(roles: readonly string[]): Promise<PageContext> {
   const ctx = await requirePage()
-  if (ctx.profile.role !== 'owner' && ctx.profile.role !== 'coach') redirect('/dashboard')
+  if (!roles.includes(ctx.profile.role)) redirect('/dashboard')
   return ctx
 }
 
+/** Any staff role (incl. receptionist); anyone else lands back on /dashboard. */
+export function requireStaffPage(): Promise<PageContext> {
+  return requireRolePage(ALL_STAFF_ROLES)
+}
+
+/** Owner or admin; anyone else lands back on /dashboard. */
+export function requireManagerPage(): Promise<PageContext> {
+  return requireRolePage(MANAGER_ROLES)
+}
+
+/** Owner/admin/coach (workout & class authoring); anyone else lands back on /dashboard. */
+export function requireProgrammingPage(): Promise<PageContext> {
+  return requireRolePage(PROGRAMMING_ROLES)
+}
+
 /** Owner only; anyone else lands back on /dashboard. */
-export async function requireOwnerPage(): Promise<PageContext> {
-  const ctx = await requirePage()
-  if (ctx.profile.role !== 'owner') redirect('/dashboard')
-  return ctx
+export function requireOwnerPage(): Promise<PageContext> {
+  return requireRolePage(['owner'])
 }

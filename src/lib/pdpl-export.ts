@@ -3,7 +3,7 @@ export type ProfileRow = {
   full_name: string
   email: string
   phone: string | null
-  role: 'owner' | 'coach' | 'athlete'
+  role: 'owner' | 'admin' | 'coach' | 'receptionist' | 'athlete'
   created_at: string
   box_id: string
   emergency_contact_name?: string | null

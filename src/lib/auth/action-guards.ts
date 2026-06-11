@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { ALL_STAFF_ROLES, MANAGER_ROLES, PROGRAMMING_ROLES, type Role } from '@/lib/auth/roles'
 
 export type ActionDenied = { error: string }
 
@@ -9,7 +10,7 @@ export type UserActionContext = {
 }
 
 export type StaffActionContext = UserActionContext & {
-  profile: { box_id: string; role: 'owner' | 'coach' | 'athlete' }
+  profile: { box_id: string; role: Role }
 }
 
 const NOT_AUTHENTICATED = 'Not authenticated.'
@@ -22,7 +23,7 @@ export async function requireUserAction(): Promise<UserActionContext | ActionDen
   return { supabase, user }
 }
 
-async function requireRoleAction(roles: string[], msg: string): Promise<StaffActionContext | ActionDenied> {
+async function requireRoleAction(roles: readonly string[], msg: string): Promise<StaffActionContext | ActionDenied> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: NOT_AUTHENTICATED }
@@ -37,7 +38,17 @@ export function requireOwnerAction(msg: string): Promise<StaffActionContext | Ac
   return requireRoleAction(['owner'], msg)
 }
 
-/** Owner-or-coach mutation; `msg` is the action's denial copy. */
+/** Owner-or-admin mutation; `msg` is the action's denial copy. */
+export function requireManagerAction(msg: string): Promise<StaffActionContext | ActionDenied> {
+  return requireRoleAction(MANAGER_ROLES, msg)
+}
+
+/** Owner/admin/coach mutation (workout & class authoring); `msg` is the denial copy. */
+export function requireProgrammingAction(msg: string): Promise<StaffActionContext | ActionDenied> {
+  return requireRoleAction(PROGRAMMING_ROLES, msg)
+}
+
+/** Any staff mutation (incl. receptionist); `msg` is the action's denial copy. */
 export function requireStaffAction(msg: string): Promise<StaffActionContext | ActionDenied> {
-  return requireRoleAction(['owner', 'coach'], msg)
+  return requireRoleAction(ALL_STAFF_ROLES, msg)
 }

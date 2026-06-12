@@ -3,18 +3,15 @@
 import { useFormState, useFormStatus } from 'react-dom'
 import { saveLift, type PrInfo } from '../_actions/save-lift'
 import { useEffect, useRef } from 'react'
+import { cn } from '@/lib/utils'
 import { LIFT_NAMES } from '../_lib/lift-names'
 
 function prLabel(pr: PrInfo): string {
   return LIFT_NAMES.find((l) => l.value === pr.liftName)?.label ?? pr.liftName
 }
 
-const inputStyle: React.CSSProperties = {
-  height: 38, padding: '0 12px',
-  border: '1px solid var(--c-border-strong)', borderRadius: 8,
-  background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)',
-  fontFamily: 'inherit', outline: 'none',
-}
+const inputClass =
+  'h-[38px] rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -22,15 +19,10 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      style={{
-        height: 38, padding: '0 18px',
-        background: pending ? 'var(--c-surface-alt)' : 'var(--circle-lime)',
-        border: 'none', borderRadius: 8,
-        fontSize: 13.5, fontWeight: 700, cursor: pending ? 'not-allowed' : 'pointer',
-        color: pending ? 'var(--c-ink-muted)' : 'var(--circle-ink)',
-        letterSpacing: '0.01em',
-        transition: 'opacity 120ms',
-      }}
+      className={cn(
+        'h-[38px] rounded-lg px-[18px] text-[13.5px] font-bold tracking-[0.01em] transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        pending ? 'cursor-not-allowed bg-surface-2 text-ink-3' : 'bg-accent text-accent-contrast hover:bg-accent-hover'
+      )}
     >
       {pending ? 'Saving…' : 'Save 1RM'}
     </button>
@@ -50,12 +42,12 @@ export function LiftForm({ lifts }: { lifts: Lift[] }) {
   const liftMap = Object.fromEntries(lifts.map((l) => [l.lift_name, l.one_rm_grams / 1000]))
 
   return (
-    <form ref={formRef} action={formAction} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 10 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <label className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+    <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-2.5">
+      <div className="flex flex-col gap-[5px]">
+        <label className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
           Lift
         </label>
-        <select name="liftName" required style={{ ...inputStyle, minWidth: 200, paddingRight: 8 }}>
+        <select name="liftName" required className={cn(inputClass, 'min-w-[200px] pr-2')}>
           <option value="">Select lift</option>
           {LIFT_NAMES.map((l) => (
             <option key={l.value} value={l.value}>
@@ -65,8 +57,8 @@ export function LiftForm({ lifts }: { lifts: Lift[] }) {
         </select>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <label className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      <div className="flex flex-col gap-[5px]">
+        <label className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
           1RM (kg)
         </label>
         <input
@@ -75,17 +67,17 @@ export function LiftForm({ lifts }: { lifts: Lift[] }) {
           min={1} max={500} step={0.5}
           required
           placeholder="e.g. 100"
-          style={{ ...inputStyle, width: 110 }}
+          className={cn(inputClass, 'w-[110px]')}
         />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="flex items-center gap-2.5">
         <SubmitButton />
         {state.error && (
-          <span style={{ fontSize: 12.5, color: 'var(--c-danger)' }}>{state.error}</span>
+          <span className="text-[12.5px] text-danger">{state.error}</span>
         )}
         {state.pr && (
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>
+          <span className="text-[12.5px] font-bold text-accent-ink">
             🏆 {prLabel(state.pr)} PR! {state.pr.newKg}kg — +{state.pr.deltaKg}kg over your previous best
           </span>
         )}

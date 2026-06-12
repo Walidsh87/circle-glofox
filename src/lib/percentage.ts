@@ -1,4 +1,4 @@
-export type Zone = { label: string; bg: string; ink: string }
+export type Zone = { label: string; pill: string; ink: string }
 
 export function roundToBar(kg: number): number {
   return Math.round(kg / 2.5) * 2.5
@@ -9,10 +9,10 @@ export function kgToLb(kg: number): number {
 }
 
 export function getZone(pct: number): Zone {
-  if (pct <= 65) return { label: 'Warm-up', bg: 'var(--c-ok-soft)',       ink: 'var(--c-ok-ink)' }
-  if (pct <= 79) return { label: 'Work',    bg: 'var(--c-warn-soft)',     ink: 'var(--c-warn-ink)' }
-  if (pct <= 94) return { label: 'Heavy',   bg: 'var(--c-danger-soft)',   ink: 'var(--c-danger-ink)' }
-  return                { label: 'Max',     bg: 'var(--circle-lime-soft)', ink: 'var(--circle-lime-ink)' }
+  if (pct <= 65) return { label: 'Warm-up', pill: 'bg-ok-soft text-ok',         ink: 'text-ok' }
+  if (pct <= 79) return { label: 'Work',    pill: 'bg-warn-soft text-warn',     ink: 'text-warn' }
+  if (pct <= 94) return { label: 'Heavy',   pill: 'bg-danger-soft text-danger', ink: 'text-danger' }
+  return                { label: 'Max',     pill: 'bg-accent-soft text-accent-ink', ink: 'text-accent-ink' }
 }
 
 export function loadForPercent(oneRmGrams: number, pct: number): { exactKg: number; barKg: number } {

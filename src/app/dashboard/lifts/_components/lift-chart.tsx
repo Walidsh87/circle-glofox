@@ -1,5 +1,7 @@
 'use client'
 
+import { cn } from '@/lib/utils'
+
 type Entry = { recorded_on: string; one_rm_grams: number; is_pr: boolean }
 
 export function LiftChart({ entries }: { entries: Entry[] }) {
@@ -26,15 +28,16 @@ export function LiftChart({ entries }: { entries: Entry[] }) {
   const first = points[0]
   const last = points[points.length - 1]
   const improved = last.kg > first.kg
+  const lineColor = improved ? 'var(--ok)' : 'var(--ink-3)'
 
   return (
-    <div style={{ padding: '8px 16px 12px', borderTop: '1px solid var(--c-divider)' }}>
-      <svg width={W} height={H} style={{ overflow: 'visible', display: 'block' }}>
+    <div className="border-t border-line px-4 pb-3 pt-2">
+      <svg width={W} height={H} className="block overflow-visible">
         {/* Fill area under line */}
         <defs>
           <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={improved ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)'} stopOpacity="0.15" />
-            <stop offset="100%" stopColor={improved ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)'} stopOpacity="0" />
+            <stop offset="0%" stopColor={lineColor} stopOpacity="0.15" />
+            <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
           </linearGradient>
         </defs>
         <polygon
@@ -44,26 +47,26 @@ export function LiftChart({ entries }: { entries: Entry[] }) {
         <polyline
           points={polyline}
           fill="none"
-          stroke={improved ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)'}
+          stroke={lineColor}
           strokeWidth={1.5}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
         {points.map((p, i) => (
           <circle key={i} cx={p.x} cy={p.y} r={p.isPr ? 4 : 3}
-            fill={p.isPr ? 'var(--circle-lime-ink)' : (improved ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)')}
-            stroke={p.isPr ? 'var(--c-surface)' : 'none'}
+            fill={p.isPr ? 'var(--accent-ink)' : lineColor}
+            stroke={p.isPr ? 'var(--surface)' : 'none'}
             strokeWidth={p.isPr ? 1.5 : 0}
             aria-label={`${p.date} — ${p.kg.toFixed(1)} kg${p.isPr ? ' (PR)' : ''}`}
           />
         ))}
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-faint)' }}>{first.date}</span>
-        <span className="mono" style={{ fontSize: 10.5, color: improved ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)', fontWeight: 600 }}>
+      <div className="mt-1 flex justify-between">
+        <span className="font-mono text-[10.5px] text-ink-faint">{first.date}</span>
+        <span className={cn('font-mono text-[10.5px] font-semibold', improved ? 'text-ok' : 'text-ink-3')}>
           {improved ? '+' : ''}{(last.kg - first.kg).toFixed(1)} kg
         </span>
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-faint)' }}>{last.date}</span>
+        <span className="font-mono text-[10.5px] text-ink-faint">{last.date}</span>
       </div>
     </div>
   )

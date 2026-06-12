@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 import { LIFT_NAMES } from '../_lib/lift-names'
 import { roundToBar, kgToLb, getZone } from '@/lib/percentage'
 
@@ -28,50 +29,33 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
   })
 
   return (
-    <div style={{
-      background: 'var(--c-surface)',
-      border: '1px solid var(--c-border)',
-      borderRadius: 14,
-      overflow: 'hidden',
-      boxShadow: 'var(--c-shadow-sm)',
-    }}>
+    <div className="overflow-hidden rounded-[14px] border border-line bg-surface shadow-card">
 
-      {/* Dark hero header */}
-      <div style={{
-        background: 'var(--circle-ink)',
-        padding: '22px 24px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <div style={{ position: 'absolute', right: -50, top: -50, width: 180, height: 180, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.12 }} />
-        <div style={{ position: 'absolute', right: 20, bottom: -30, width: 100, height: 100, borderRadius: '50%', background: 'var(--circle-lime)', opacity: 0.06 }} />
+      {/* Brand-dark hero — stays literal in both themes (spec §4.3) */}
+      <div className="relative overflow-hidden bg-[#0A0A0A] px-6 py-[22px]">
+        <div className="absolute -right-[50px] -top-[50px] h-[180px] w-[180px] rounded-full border-2 border-[#C8F135] opacity-[0.12]" />
+        <div className="absolute -bottom-[30px] right-5 h-[100px] w-[100px] rounded-full bg-[#C8F135] opacity-[0.06]" />
 
-        <div style={{ position: 'relative' }}>
-          <div className="mono" style={{ fontSize: 10, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 14 }}>
+        <div className="relative">
+          <div className="mb-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-[#C8F135]">
             % Calculator
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Lift selector */}
             <select
               value={selectedLift}
               onChange={(e) => setSelectedLift(e.target.value)}
-              style={{
-                background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                borderRadius: 9, padding: '9px 12px',
-                fontSize: 14, fontWeight: 600,
-                color: lifts.length === 0 ? 'rgba(250,250,250,0.35)' : '#FAFAFA',
-                fontFamily: 'var(--font-space-grotesk)',
-                cursor: 'pointer', outline: 'none',
-                minWidth: 210,
-              }}
+              className={cn(
+                'min-w-[210px] cursor-pointer rounded-[9px] border border-white/15 bg-white/[0.07] px-3 py-2 font-display text-sm font-semibold outline-none',
+                lifts.length === 0 ? 'text-[#FAFAFA]/35' : 'text-[#FAFAFA]'
+              )}
             >
               {lifts.length === 0 && <option value="">Log a lift above first</option>}
               {lifts.map((l) => {
                 const label = LIFT_NAMES.find((n) => n.value === l.lift_name)?.label ?? l.lift_name
                 return (
-                  <option key={l.lift_name} value={l.lift_name} style={{ background: '#1a1a1a' }}>
+                  <option key={l.lift_name} value={l.lift_name} className="bg-[#1a1a1a]">
                     {label} — {l.one_rm_grams / 1000} kg
                   </option>
                 )
@@ -79,21 +63,15 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
             </select>
 
             {/* kg / lb toggle */}
-            <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.14)', flexShrink: 0 }}>
+            <div className="flex shrink-0 overflow-hidden rounded-lg border border-white/15">
               {(['kg', 'lb'] as const).map((u) => (
                 <button
                   key={u}
                   onClick={() => setUnit(u)}
-                  style={{
-                    padding: '7px 16px',
-                    background: unit === u ? 'var(--circle-lime)' : 'transparent',
-                    color: unit === u ? 'var(--circle-ink)' : 'rgba(250,250,250,0.55)',
-                    border: 'none', cursor: 'pointer',
-                    fontSize: 11.5, fontWeight: 700,
-                    fontFamily: 'var(--font-geist-mono)',
-                    letterSpacing: '0.06em',
-                    transition: 'background 120ms, color 120ms',
-                  }}
+                  className={cn(
+                    'px-4 py-[7px] font-mono text-[11.5px] font-bold tracking-[0.06em] transition-colors',
+                    unit === u ? 'bg-[#C8F135] text-[#0A0A0A]' : 'bg-transparent text-[#FAFAFA]/55'
+                  )}
                 >{u.toUpperCase()}</button>
               ))}
             </div>
@@ -101,23 +79,18 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
 
           {/* 1RM big display */}
           {oneRmKg && (
-            <div style={{ marginTop: 18, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{
-                fontFamily: 'var(--font-space-grotesk)',
-                fontSize: 48, fontWeight: 800,
-                color: 'var(--circle-lime)',
-                letterSpacing: '-0.04em', lineHeight: 1,
-              }}>
+            <div className="mt-[18px] flex items-baseline gap-2">
+              <span className="font-display text-5xl font-extrabold leading-none tracking-[-0.04em] text-[#C8F135]">
                 {unit === 'kg' ? oneRmKg : kgToLb(oneRmKg)}
               </span>
-              <span className="mono" style={{ fontSize: 18, color: 'rgba(250,250,250,0.45)', marginBottom: 2 }}>{unit}</span>
-              <span style={{ fontSize: 13, color: 'rgba(250,250,250,0.4)', marginLeft: 6 }}>{liftLabel}</span>
+              <span className="mb-0.5 font-mono text-lg text-[#FAFAFA]/45">{unit}</span>
+              <span className="ml-1.5 text-[13px] text-[#FAFAFA]/40">{liftLabel}</span>
             </div>
           )}
 
           {/* Cross-unit hint */}
           {oneRmKg && (
-            <div className="mono" style={{ marginTop: 6, fontSize: 11.5, color: 'rgba(250,250,250,0.35)', letterSpacing: '0.02em' }}>
+            <div className="mt-1.5 font-mono text-[11.5px] tracking-[0.02em] text-[#FAFAFA]/35">
               {unit === 'kg'
                 ? `${kgToLb(oneRmKg)} lb`
                 : `${oneRmKg} kg`}
@@ -128,26 +101,26 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
 
       {/* Empty states */}
       {lifts.length === 0 && (
-        <div style={{ padding: '36px 24px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
+        <div className="px-6 py-9 text-center text-[13px] text-ink-3">
           Log a 1RM above to unlock your percentage table.
         </div>
       )}
       {lifts.length > 0 && !oneRmKg && (
-        <div style={{ padding: '36px 24px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
+        <div className="px-6 py-9 text-center text-[13px] text-ink-3">
           Select a lift to see your percentages.
         </div>
       )}
 
       {/* Table */}
       {oneRmKg && (
-        <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 320 }}>
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[320px] border-collapse">
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-surface-sunk)' }}>
-              <Th style={{ width: 88 }}>Zone</Th>
-              <Th style={{ textAlign: 'center', width: 56 }}>%</Th>
-              <Th style={{ textAlign: 'right' }}>Exact</Th>
-              <Th style={{ textAlign: 'right', paddingRight: 20 }}>On the bar</Th>
+            <tr className="border-b border-line bg-canvas">
+              <Th className="w-[88px]">Zone</Th>
+              <Th className="w-14 text-center">%</Th>
+              <Th className="text-right">Exact</Th>
+              <Th className="pr-5 text-right">On the bar</Th>
             </tr>
           </thead>
           <tbody>
@@ -158,46 +131,40 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
               const isMax    = pct >= 95
 
               return (
-                <tr key={pct} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--c-divider)' : 'none' }}>
+                <tr key={pct} className={cn(i < rows.length - 1 && 'border-b border-line')}>
                   {/* Zone pill — only on first row of each zone */}
-                  <td style={{ padding: '10px 16px' }}>
+                  <td className="px-4 py-2.5">
                     {isZoneStart && (
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center',
-                        padding: '2px 8px', borderRadius: 999,
-                        fontSize: 10, fontWeight: 700,
-                        fontFamily: 'var(--font-geist-mono)',
-                        letterSpacing: '0.05em', textTransform: 'uppercase',
-                        background: z.bg, color: z.ink,
-                        whiteSpace: 'nowrap',
-                      }}>{z.label}</span>
+                      <span className={cn(
+                        'inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.05em]',
+                        z.pill
+                      )}>{z.label}</span>
                     )}
                   </td>
 
                   {/* % */}
-                  <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                    <span className="mono" style={{
-                      fontSize: 13, fontWeight: 600,
-                      color: isMax ? z.ink : isHeavy ? 'var(--c-ink-2)' : 'var(--c-ink-faint)',
-                    }}>{pct}%</span>
+                  <td className="px-2 py-2.5 text-center">
+                    <span className={cn(
+                      'font-mono text-[13px] font-semibold',
+                      isMax ? z.ink : isHeavy ? 'text-ink-2' : 'text-ink-faint'
+                    )}>{pct}%</span>
                   </td>
 
                   {/* Exact */}
-                  <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                    <span className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-faint)' }}>
+                  <td className="px-4 py-2.5 text-right">
+                    <span className="font-mono text-[11.5px] text-ink-faint">
                       {unit === 'kg' ? exact.toFixed(1) : exact} {unit}
                     </span>
                   </td>
 
                   {/* On the bar — the number that matters */}
-                  <td style={{ padding: '10px 20px 10px 16px', textAlign: 'right' }}>
-                    <span className="mono" style={{
-                      fontSize: isHeavy ? 20 : 15,
-                      fontWeight: 700,
-                      letterSpacing: '-0.015em',
-                      color: isMax ? z.ink : isHeavy ? 'var(--c-ink)' : 'var(--c-ink-2)',
-                    }}>{rounded}</span>
-                    <span className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-faint)', marginLeft: 3 }}>{unit}</span>
+                  <td className="py-2.5 pl-4 pr-5 text-right">
+                    <span className={cn(
+                      'font-mono font-bold tracking-[-0.015em]',
+                      isHeavy ? 'text-xl' : 'text-[15px]',
+                      isMax ? z.ink : isHeavy ? 'text-ink' : 'text-ink-2'
+                    )}>{rounded}</span>
+                    <span className="ml-0.5 font-mono text-[10.5px] text-ink-faint">{unit}</span>
                   </td>
                 </tr>
               )
@@ -210,14 +177,10 @@ export function Calculator({ lifts }: { lifts: Lift[] }) {
   )
 }
 
-function Th({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+function Th({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <th style={{
-      padding: '9px 16px', textAlign: 'left',
-      fontFamily: 'var(--font-geist-mono)', fontSize: 10.5,
-      fontWeight: 500, color: 'var(--c-ink-muted)',
-      textTransform: 'uppercase', letterSpacing: '0.06em',
-      ...style,
-    }}>{children}</th>
+    <th className={cn('px-4 py-[9px] text-left font-mono text-[10.5px] font-medium uppercase tracking-[0.06em] text-ink-3', className)}>
+      {children}
+    </th>
   )
 }

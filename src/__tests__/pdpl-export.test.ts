@@ -39,6 +39,26 @@ describe('buildPdplExport', () => {
     expect(out.athlete.billing_reminders[0].stage).toBe('pre')
   })
 
+  test('includes PAR-Q responses when provided', () => {
+    const out = buildPdplExport({
+      profile: baseProfile,
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+      parqResponses: [{ parq_version: 1, answers: [true, false], has_yes: true, signed_at: '2026-06-12T08:00:00Z', reviewed_at: null }],
+    })
+    expect(out.athlete.parq_responses).toHaveLength(1)
+    expect(out.athlete.parq_responses[0].has_yes).toBe(true)
+  })
+
+  test('parq_responses defaults to empty when omitted', () => {
+    const out = buildPdplExport({
+      profile: baseProfile,
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+    })
+    expect(out.athlete.parq_responses).toEqual([])
+  })
+
   test('metadata header contains export_date ISO and PDPL law reference', () => {
     const before = Date.now()
     const out = buildPdplExport({

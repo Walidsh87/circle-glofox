@@ -54,6 +54,7 @@ export async function GET(
     { data: scores },
     { data: waiverSignature },
     { data: billingReminders },
+    { data: parqRows },
   ] = await Promise.all([
     service.from('bookings')
       .select('class_instance_id, checked_in, checked_in_at, overridden_at, overridden_reason')
@@ -73,6 +74,10 @@ export async function GET(
           .select('stage, due_date, sent_at, email')
           .in('membership_id', membershipIds)
       : Promise.resolve({ data: [] as Array<{ stage: 'pre' | 'due' | 'overdue'; due_date: string; sent_at: string; email: string }> }),
+    service.from('parq_responses')
+      .select('parq_version, answers, has_yes, signed_at, reviewed_at')
+      .eq('athlete_id', params.athleteId)
+      .order('parq_version', { ascending: true }),
   ])
 
   const output = buildPdplExport({
@@ -83,6 +88,7 @@ export async function GET(
     scores: (scores ?? []) as never,
     waiverSignature: waiverSignature as never,
     billingReminders: (billingReminders ?? []) as never,
+    parqResponses: (parqRows ?? []) as never,
   })
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null

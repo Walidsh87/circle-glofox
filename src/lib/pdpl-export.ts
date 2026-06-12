@@ -59,6 +59,14 @@ export type BillingReminderRow = {
   email: string
 }
 
+export type ParqResponseRow = {
+  parq_version: number
+  answers: boolean[]
+  has_yes: boolean
+  signed_at: string
+  reviewed_at: string | null
+}
+
 export type PdplExportInput = {
   profile: ProfileRow
   memberships: MembershipRow[]
@@ -67,6 +75,7 @@ export type PdplExportInput = {
   scores: ScoreRow[]
   waiverSignature: WaiverSignatureRow | null
   billingReminders: BillingReminderRow[]
+  parqResponses?: ParqResponseRow[]
 }
 
 export type PdplExportOutput = {
@@ -84,6 +93,7 @@ export type PdplExportOutput = {
     scores: ScoreRow[]
     waiver_signature: WaiverSignatureRow | null
     billing_reminders: BillingReminderRow[]
+    parq_responses: ParqResponseRow[]
   }
 }
 
@@ -103,6 +113,7 @@ export function buildPdplExport(input: PdplExportInput): PdplExportOutput {
       scores: input.scores,
       waiver_signature: input.waiverSignature,
       billing_reminders: input.billingReminders,
+      parq_responses: input.parqResponses ?? [],
     },
   }
 }

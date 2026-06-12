@@ -21,7 +21,7 @@ export function DownloadCsvButton({ filename, headers, rows, label = 'Export CSV
   return (
     <button
       onClick={onDownload}
-      style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+      className="rounded-lg border border-line bg-surface px-3.5 py-[7px] text-[12.5px] font-semibold text-ink transition-colors hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       {label}
     </button>

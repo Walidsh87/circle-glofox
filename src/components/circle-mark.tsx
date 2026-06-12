@@ -1,6 +1,6 @@
 export function CircleMark({ size = 22, onDark = false }: { size?: number; onDark?: boolean }) {
-  const ringColor = 'var(--circle-lime)'
-  const barColor = onDark ? 'rgba(176,176,176,0.9)' : 'var(--circle-steel)'
+  const ringColor = '#C8F135'
+  const barColor = onDark ? 'rgba(176,176,176,0.9)' : '#B0B0B0'
   return (
     <span style={{ width: size, height: size, display: 'inline-block', flexShrink: 0 }} aria-hidden="true">
       <svg viewBox="0 0 64 64" fill="none" style={{ display: 'block', width: '100%', height: '100%' }}>

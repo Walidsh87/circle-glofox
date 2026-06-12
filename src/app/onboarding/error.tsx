@@ -9,13 +9,16 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   }, [error])
 
   return (
-    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, fontFamily: 'var(--font-geist-sans)' }}>
-      <div style={{ maxWidth: 420, textAlign: 'center', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '32px 28px', boxShadow: 'var(--c-shadow-sm)' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 8 }}>Something went wrong</h2>
-        <p style={{ fontSize: 14, color: 'var(--c-ink-muted)', marginBottom: 20 }}>
+    <div className="flex min-h-[60vh] items-center justify-center p-10">
+      <div className="max-w-[420px] rounded-[14px] border border-line bg-surface px-7 py-8 text-center shadow-card">
+        <h2 className="mb-2 text-lg font-semibold text-ink">Something went wrong</h2>
+        <p className="mb-5 text-sm text-ink-3">
           Onboarding hit an error. It&rsquo;s been logged — try again, or refresh the page.
         </p>
-        <button onClick={reset} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--c-ink)', color: 'var(--c-surface)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+        <button
+          onClick={reset}
+          className="rounded-lg bg-ink px-4 py-2 text-[13px] font-medium text-canvas transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
           Try again
         </button>
       </div>

@@ -63,59 +63,38 @@ export default function AuthCallbackPage() {
   }, [])
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      minHeight: '100vh', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)',
-      padding: 24,
-    }}>
-      <div style={{ maxWidth: 480, width: '100%' }}>
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
+      <div className="w-full max-w-[480px]">
         {status === 'processing' && (
           <>
-            <div style={{
-              width: 40, height: 40, borderRadius: '50%',
-              border: '2px solid var(--circle-lime)', borderTopColor: 'transparent',
-              animation: 'spin 0.7s linear infinite', margin: '0 auto 16px',
-            }} />
-            <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, textAlign: 'center' }}>Signing you in…</p>
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            <p className="text-center text-sm text-ink-3">Signing you in…</p>
           </>
         )}
 
         {status === 'success' && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>✓</div>
-            <p style={{ color: 'var(--c-ink)', fontSize: 15, fontWeight: 600 }}>Signed in! Redirecting…</p>
+          <div className="text-center">
+            <div className="mb-3 text-[32px]">✓</div>
+            <p className="text-[15px] font-semibold text-ink">Signed in! Redirecting…</p>
           </div>
         )}
 
         {status === 'error' && (
-          <div style={{
-            background: 'var(--c-surface)', border: '1px solid var(--c-danger)',
-            borderRadius: 12, padding: 20,
-          }}>
-            <p style={{ color: 'var(--c-danger)', fontWeight: 600, marginBottom: 8 }}>Auth Error</p>
-            <p style={{ color: 'var(--c-ink)', fontSize: 13, marginBottom: 16 }}>{errorMsg}</p>
-            <p style={{ color: 'var(--c-ink-muted)', fontSize: 11, marginBottom: 8 }}>Debug info (share with developer):</p>
-            <pre style={{
-              background: 'var(--c-surface-sunk)', borderRadius: 8, padding: 12,
-              fontSize: 11, color: 'var(--c-ink-2)', overflow: 'auto', whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-            }}>{debugInfo}</pre>
-            <Link href="/" style={{
-              display: 'block', marginTop: 16, textAlign: 'center',
-              color: 'var(--circle-lime-ink)', fontSize: 13, textDecoration: 'none',
-            }}>← Back to login</Link>
+          <div className="rounded-xl border border-danger bg-surface p-5">
+            <p className="mb-2 font-semibold text-danger">Auth Error</p>
+            <p className="mb-4 text-[13px] text-ink">{errorMsg}</p>
+            <p className="mb-2 text-[11px] text-ink-3">Debug info (share with developer):</p>
+            <pre className="overflow-auto whitespace-pre-wrap break-all rounded-lg bg-canvas p-3 text-[11px] text-ink-2">{debugInfo}</pre>
+            <Link href="/" className="mt-4 block text-center text-[13px] text-accent-ink transition-colors hover:text-ink">
+              ← Back to login
+            </Link>
           </div>
         )}
 
         {status === 'processing' && debugInfo && (
-          <pre style={{
-            marginTop: 24, background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-            borderRadius: 8, padding: 12, fontSize: 11, color: 'var(--c-ink-muted)',
-            overflow: 'auto', whiteSpace: 'pre-wrap',
-          }}>{debugInfo}</pre>
+          <pre className="mt-6 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-surface p-3 text-[11px] text-ink-3">{debugInfo}</pre>
         )}
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
 }

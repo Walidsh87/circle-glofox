@@ -7,6 +7,9 @@ import { buildPayroll, type PayRateRow, type PayrollInstance, type PtSessionRow,
 import { PayRateEditor } from './_components/pay-rate-editor'
 import { ClassRatesEditor } from './_components/class-rates-editor'
 import { AdjustmentsSection } from './_components/adjustments-section'
+import { TimecardsSection } from './_components/timecards-section'
+import { sumHoursByStaff, inMonth, fmtHours, type TimecardRow } from '@/lib/timecards'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 
 const BASE_LABEL: Record<string, string> = { per_class: 'Per class', monthly: 'Monthly' }
 
@@ -38,7 +41,7 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
   const fetchStart = new Date(Date.UTC(y, m - 1, 1) - 2 * 86400000).toISOString()
   const fetchEnd = new Date(Date.UTC(y, m, 1) + 2 * 86400000).toISOString()
 
-  const [{ data: coachRows }, { data: rateRows }, { data: instRows }, { data: ptRows }, { data: classRateRows }, { data: adjRows }, { data: templateRows }] = await Promise.all([
+  const [{ data: coachRows }, { data: rateRows }, { data: instRows }, { data: ptRows }, { data: classRateRows }, { data: adjRows }, { data: templateRows }, { data: tcRows }, { data: staffRows }] = await Promise.all([
     supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).eq('role', 'coach').order('full_name'),
     supabase.from('coach_pay_rates').select('coach_id, base_type, base_rate_aed, pt_rate_aed').eq('box_id', profile.box_id),
     supabase.from('class_instances').select('starts_at, coach_id, template_id, class_templates(coach_id)').eq('box_id', profile.box_id).neq('status', 'cancelled').gte('starts_at', fetchStart).lte('starts_at', fetchEnd),
@@ -46,6 +49,8 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
     supabase.from('coach_class_rates').select('id, coach_id, template_id, rate_aed').eq('box_id', profile.box_id),
     supabase.from('pay_adjustments').select('id, coach_id, amount_aed, note').eq('box_id', profile.box_id).eq('month', monthKey).order('created_at'),
     supabase.from('class_templates').select('id, name').eq('box_id', profile.box_id).order('name'),
+    supabase.from('timecards').select('id, staff_id, clock_in, clock_out').eq('box_id', profile.box_id).gte('clock_in', fetchStart).lte('clock_in', fetchEnd),
+    supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).in('role', [...ALL_STAFF_ROLES]).order('full_name'),
   ])
 
   type InstRow = { starts_at: string; coach_id: string | null; template_id: string | null; class_templates: Embedded<{ coach_id: string | null }> }
@@ -66,6 +71,19 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
     .map((r) => ({ coach_id: r.coach_id, template_id: r.template_id, rate_aed: Number(r.rate_aed) }))
   const adjustments: AdjustmentRow[] = ((adjRows ?? []) as { id: string; coach_id: string; amount_aed: number | string; note: string }[])
     .map((r) => ({ coach_id: r.coach_id, amount_aed: Number(r.amount_aed) }))
+
+  const timecards = (tcRows ?? []) as (TimecardRow & { id: string })[]
+  const hoursByStaff = sumHoursByStaff(timecards, monthKey, tz)
+  const staffNames = new Map(((staffRows ?? []) as { id: string; full_name: string | null }[]).map((s) => [s.id, s.full_name ?? 'Staff']))
+  const timecardEntries = [...hoursByStaff.entries()]
+    .map(([staffId, h]) => ({
+      staffId,
+      name: staffNames.get(staffId) ?? 'Staff',
+      hours: h.hours,
+      open: h.open,
+      cards: timecards.filter((c) => c.staff_id === staffId && inMonth(c.clock_in, monthKey, tz)),
+    }))
+    .sort((a, b) => b.hours - a.hours || a.name.localeCompare(b.name))
 
   const report = buildPayroll(
     (coachRows ?? []) as { id: string; full_name: string | null }[],
@@ -120,13 +138,14 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
             <div className="mb-2.5 flex items-end justify-end">
               <DownloadCsvButton
                 filename={`payroll-${monthKey}.csv`}
-                headers={['Coach', 'Base', 'Classes taught', 'PT rate (AED)', 'PT sessions', 'Adjustments (AED)', 'Pay (AED)']}
+                headers={['Coach', 'Base', 'Classes taught', 'PT rate (AED)', 'PT sessions', 'Hours', 'Adjustments (AED)', 'Pay (AED)']}
                 rows={report.rows.map((r) => [
                   r.coachName,
                   r.baseType ? `${BASE_LABEL[r.baseType]} ${r.baseRate ?? 0}` : '',
                   r.classesTaught,
                   r.ptRate ?? '',
                   r.ptCount,
+                  hoursByStaff.get(r.coachId)?.hours ?? 0,
                   r.adjustmentsAed,
                   r.payAed,
                 ])}
@@ -140,6 +159,7 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
                   <Th className="text-right">Classes</Th>
                   <Th className="text-right">PT rate</Th>
                   <Th className="text-right">PT sessions</Th>
+                  <Th className="text-right">Hours</Th>
                   <Th className="text-right">Adj.</Th>
                   <Th className="text-right">Pay (AED)</Th>
                   <Th></Th>
@@ -157,6 +177,7 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
                       {r.ptRate !== null ? r.ptRate : '—'}
                     </Td>
                     <Td className="text-right">{r.ptCount}</Td>
+                    <Td className="text-right text-ink-3">{fmtHours(hoursByStaff.get(r.coachId)?.hours ?? 0)}</Td>
                     <Td className={r.adjustmentsAed !== 0 ? 'font-mono text-right' : 'text-right text-ink-3'}>
                       {r.adjustmentsAed !== 0 ? r.adjustmentsAed.toFixed(2) : '—'}
                     </Td>
@@ -180,6 +201,7 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
                   <Td></Td>
                   <Td className="text-right font-bold">{report.totals.ptCount}</Td>
                   <Td></Td>
+                  <Td></Td>
                   <Td className="font-mono text-right font-bold">{report.totals.payAed.toFixed(2)}</Td>
                   <Td></Td>
                 </tr>
@@ -192,6 +214,8 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
               items={((adjRows ?? []) as { id: string; coach_id: string; amount_aed: number | string; note: string }[])
                 .map((a) => ({ id: a.id, coach_id: a.coach_id, amount_aed: Number(a.amount_aed), note: a.note }))}
             />
+
+            <TimecardsSection month={monthKey} timeZone={tz} entries={timecardEntries} />
 
             {report.unassignedClasses > 0 && (
               <p className="mt-2.5 text-xs text-warn">

@@ -6,7 +6,7 @@ export default async function SignWaiverPage() {
   const { supabase, user, profile, boxName } = await requirePage()
   if (profile.role !== 'athlete') redirect('/dashboard')
 
-  const [{ data: waiver }, { data: terms }, { data: waiverSig }] = await Promise.all([
+  const [{ data: waiver }, { data: terms }, { data: waiverSig }, { data: parqDoc }] = await Promise.all([
     supabase.from('gym_waivers').select('content').eq('box_id', profile.box_id).single(),
     supabase.from('gym_terms').select('content, version').eq('box_id', profile.box_id).single(),
     supabase
@@ -15,21 +15,35 @@ export default async function SignWaiverPage() {
       .eq('box_id', profile.box_id)
       .eq('athlete_id', user.id)
       .maybeSingle(),
+    supabase.from('gym_parq').select('questions, version').eq('box_id', profile.box_id).maybeSingle(),
   ])
 
   const currentTermsVersion = terms?.version ?? 1
-  const { data: termsSig } = await supabase
-    .from('terms_signatures')
-    .select('id')
-    .eq('box_id', profile.box_id)
-    .eq('athlete_id', user.id)
-    .eq('terms_version', currentTermsVersion)
-    .maybeSingle()
+  const [{ data: termsSig }, { data: parqResp }] = await Promise.all([
+    supabase
+      .from('terms_signatures')
+      .select('id')
+      .eq('box_id', profile.box_id)
+      .eq('athlete_id', user.id)
+      .eq('terms_version', currentTermsVersion)
+      .maybeSingle(),
+    parqDoc
+      ? supabase
+          .from('parq_responses')
+          .select('id')
+          .eq('box_id', profile.box_id)
+          .eq('athlete_id', user.id)
+          .eq('parq_version', parqDoc.version)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
 
   const waiverSigned = !!waiverSig
   const termsSigned = !!termsSig
+  const parqDue = !!parqDoc && !parqResp
+  const parqQuestions = (parqDoc?.questions as string[] | undefined) ?? []
 
-  if (waiverSigned && termsSigned) redirect('/dashboard')
+  if (waiverSigned && termsSigned && !parqDue) redirect('/dashboard')
 
   return (
     <div style={{
@@ -55,7 +69,7 @@ export default async function SignWaiverPage() {
             color: 'var(--c-ink)', marginBottom: 8, letterSpacing: '-0.02em',
           }}>Before you enter the gym</h1>
           <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, margin: 0 }}>
-            Please read and sign both documents to continue.
+            Please complete the documents below to continue.
           </p>
         </div>
 
@@ -72,6 +86,8 @@ export default async function SignWaiverPage() {
           waiverSigned={waiverSigned}
           termsSigned={termsSigned}
           termsVersion={currentTermsVersion}
+          parqDue={parqDue}
+          parqQuestions={parqQuestions}
         />
       </div>
     </div>

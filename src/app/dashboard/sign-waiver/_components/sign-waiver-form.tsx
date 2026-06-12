@@ -33,9 +33,11 @@ type Props = {
   waiverSigned: boolean
   termsSigned: boolean
   termsVersion: number
+  parqDue: boolean
+  parqQuestions: string[]
 }
 
-export function SignWaiverForm({ profileName, waiverSigned, termsSigned, termsVersion }: Props) {
+export function SignWaiverForm({ profileName, waiverSigned, termsSigned, termsVersion, parqDue, parqQuestions }: Props) {
   const [state, formAction] = useFormState(signAgreements, { error: null })
   const [waiverAgreed, setWaiverAgreed] = useState(waiverSigned)
   const [termsAgreed, setTermsAgreed] = useState(termsSigned)
@@ -53,13 +55,44 @@ export function SignWaiverForm({ profileName, waiverSigned, termsSigned, termsVe
   const buttonLabel =
     needsWaiver && needsTerms ? 'Sign Both & Enter Dashboard →'
       : needsWaiver ? 'Sign Waiver & Enter Dashboard →'
-      : 'Sign Terms & Enter Dashboard →'
+      : needsTerms ? 'Sign Terms & Enter Dashboard →'
+      : 'Submit PAR-Q & Enter Dashboard →'
 
   return (
     <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <input type="hidden" name="waiverAgreed" value={String(waiverAgreed)} />
       <input type="hidden" name="termsAgreed" value={String(termsAgreed)} />
       <input type="hidden" name="termsVersion" value={String(termsVersion)} />
+
+      {parqDue && (
+        <div style={{
+          background: 'var(--c-surface)', border: '1px solid var(--c-border-strong)',
+          borderRadius: 8, padding: '14px 16px',
+        }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: 'var(--c-ink-muted)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+          }}>
+            Physical Activity Readiness Questionnaire (PAR-Q)
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--c-ink-muted)', margin: '0 0 4px', lineHeight: 1.5 }}>
+            Answer honestly — a YES does not block your access; the team will follow up with you.
+          </p>
+          {parqQuestions.map((q, i) => (
+            <div key={i} style={{ padding: '10px 0', borderTop: i > 0 ? '1px solid var(--c-divider)' : 'none' }}>
+              <div style={{ fontSize: 13, color: 'var(--c-ink-2)', lineHeight: 1.5, marginBottom: 8 }}>{q}</div>
+              <div style={{ display: 'flex', gap: 18 }}>
+                <label style={{ fontSize: 13, color: 'var(--c-ink-2)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input type="radio" name={`parq_${i}`} value="yes" /> Yes
+                </label>
+                <label style={{ fontSize: 13, color: 'var(--c-ink-2)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input type="radio" name={`parq_${i}`} value="no" /> No
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {needsWaiver && (
         <ConsentBox

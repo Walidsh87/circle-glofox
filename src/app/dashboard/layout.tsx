@@ -3,7 +3,25 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <WaiverGate>{children}</WaiverGate>
+  return <MfaGate><WaiverGate>{children}</WaiverGate></MfaGate>
+}
+
+// Enrolled-but-unverified sessions (aal1 with aal2 available) must complete the
+// TOTP challenge before touching anything under /dashboard.
+async function MfaGate({ children }: { children: React.ReactNode }) {
+  const pathname = (await headers()).get('x-pathname') ?? ''
+  if (pathname === '/dashboard/mfa') return <>{children}</>
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return <>{children}</>
+
+  // Fail-open on error: an auth-service blip must never lock the gym out.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+  if (aal && aal.currentLevel === 'aal1' && aal.nextLevel === 'aal2') {
+    redirect('/dashboard/mfa')
+  }
+  return <>{children}</>
 }
 
 async function WaiverGate({
@@ -13,7 +31,9 @@ async function WaiverGate({
 }) {
   // Skip gate on the signing page itself to prevent redirect loop
   const pathname = (await headers()).get('x-pathname') ?? ''
-  if (pathname === '/dashboard/sign-waiver') {
+  // /dashboard/mfa must stay reachable or the two gates ping-pong an
+  // enrolled-but-unsigned athlete (API-only state) in a redirect loop.
+  if (pathname === '/dashboard/sign-waiver' || pathname === '/dashboard/mfa') {
     return <>{children}</>
   }
 

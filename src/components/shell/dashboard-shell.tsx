@@ -19,7 +19,7 @@ export function DashboardShell({
   userName: string | null
   userRole: string
   boxName: string
-  title: string
+  title: React.ReactNode
   actions?: React.ReactNode
   children: React.ReactNode
 }) {

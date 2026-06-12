@@ -2,7 +2,11 @@ import { requirePage } from '@/lib/auth/page-guards'
 import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { EditMemberForm } from './_components/edit-member-form'
 import { SellPackage } from './_components/sell-package'
 import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } from '@/lib/consistency'
@@ -24,16 +28,16 @@ import { ChecklistCard } from './_components/checklist-card'
 import { mergeChecklist, type ChecklistKind } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 
-const ROLE_STYLES: Record<string, { bg: string; color: string }> = {
-  owner:   { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
-  coach:   { bg: 'var(--c-ok-soft)',        color: 'var(--c-ok-ink)' },
-  athlete: { bg: 'var(--c-surface-alt)',    color: 'var(--c-ink-muted)' },
+const ROLE_TONES: Record<string, 'accent' | 'ok' | 'neutral'> = {
+  owner: 'accent',
+  coach: 'ok',
+  athlete: 'neutral',
 }
 
-const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  paid:    { bg: 'var(--c-ok-soft)',     color: 'var(--c-ok-ink)' },
-  unpaid:  { bg: 'var(--c-warn-soft)',   color: 'var(--c-warn-ink)' },
-  overdue: { bg: 'var(--c-danger-soft)', color: 'var(--c-danger-ink)' },
+const STATUS_TONES: Record<string, 'ok' | 'warn' | 'danger'> = {
+  paid: 'ok',
+  unpaid: 'warn',
+  overdue: 'danger',
 }
 
 const LIFT_LABELS: Record<string, string> = {
@@ -71,9 +75,19 @@ function ageFromDob(dob: string, today: string): number | null {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="mono" style={{ fontSize: 10, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-      <div style={{ fontSize: 13.5, color: 'var(--c-ink)', marginTop: 2 }}>{value}</div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">{label}</div>
+      <div className="mt-0.5 text-[13.5px] text-ink">{value}</div>
     </div>
+  )
+}
+
+/** Standard profile section: card + mono eyebrow. */
+function Section({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <Card className={cn('mb-4 p-4', className)}>
+      <div className="mb-3 font-mono text-xs uppercase tracking-[0.06em] text-ink-3">{label}</div>
+      {children}
+    </Card>
   )
 }
 
@@ -268,7 +282,6 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
 
   // A membership with a *future* end_date (scheduled to cancel) is still the active one.
   const activeMembership = memberships?.find((m) => !m.end_date || m.end_date >= today) ?? null
-  const rs = activeMembership ? (STATUS_STYLES[activeMembership.payment_status] ?? STATUS_STYLES.unpaid) : null
 
   // Consistency (Committed Club): full checked-in history (the bookings list above is capped at 10).
   const checkInDates = (attendance ?? [])
@@ -281,478 +294,393 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const consistencyStreak = currentStreakWeeks(checkInDates, today)
   const consistencyBadge = currentMilestone(consistencyTotal)
   const consistencyNext = nextMilestone(consistencyTotal)
-  const roleSt = ROLE_STYLES[member.role] ?? ROLE_STYLES.athlete
+
+  const rowClass = 'border-b border-line last:border-0'
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="members" userName={viewer.full_name!} userRole={viewer.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)',
-          display: 'flex', alignItems: 'center', padding: '0 32px',
-          background: 'var(--c-surface)', flexShrink: 0, gap: 12,
-        }}>
-          <Link href="/dashboard/members" style={{
-            fontSize: 13, color: 'var(--c-ink-muted)', textDecoration: 'none',
-            display: 'flex', alignItems: 'center', gap: 4,
-          }}>
+    <DashboardShell
+      active="members"
+      userName={viewer.full_name!}
+      userRole={viewer.role}
+      boxName={boxName}
+      title={
+        <span className="flex items-center gap-3">
+          <Link
+            href="/dashboard/members"
+            className="font-sans text-[13px] font-normal tracking-normal text-ink-3 transition-colors hover:text-ink"
+          >
             ← Members
           </Link>
-          <span style={{ color: 'var(--c-border)', fontSize: 16 }}>/</span>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 18, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
-            {member.full_name}
-          </h1>
-          {['owner', 'coach'].includes(viewer.role) && (
-            <EditMemberForm
-              memberId={member.id}
-              fullName={member.full_name}
-              phone={member.phone}
-              role={member.role}
-              viewerRole={viewer.role}
-              emergencyContactName={member.emergency_contact_name ?? null}
-              emergencyContactPhone={member.emergency_contact_phone ?? null}
-              bloodType={member.blood_type ?? null}
-              allergies={member.allergies ?? null}
-              dateOfBirth={member.date_of_birth ?? null}
-            />
-          )}
-        </header>
+          <span className="text-base font-normal text-line-strong">/</span>
+          <span>{member.full_name}</span>
+        </span>
+      }
+      actions={
+        ['owner', 'coach'].includes(viewer.role) ? (
+          <EditMemberForm
+            memberId={member.id}
+            fullName={member.full_name}
+            phone={member.phone}
+            role={member.role}
+            viewerRole={viewer.role}
+            emergencyContactName={member.emergency_contact_name ?? null}
+            emergencyContactPhone={member.emergency_contact_phone ?? null}
+            bloodType={member.blood_type ?? null}
+            allergies={member.allergies ?? null}
+            dateOfBirth={member.date_of_birth ?? null}
+          />
+        ) : undefined
+      }
+    >
+      <div className="max-w-[800px]">
+        {/* Profile card */}
+        <Card className="mb-4 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="mb-2.5 flex items-center gap-2.5">
+                <span className="font-display text-xl font-bold text-ink">{member.full_name}</span>
+                <Badge tone={ROLE_TONES[member.role] ?? 'neutral'} className="capitalize">
+                  {member.role}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                {member.email && <span className="text-[13.5px] text-ink-2">{member.email}</span>}
+                {member.phone && <span className="font-mono text-[13px] text-ink-3">{member.phone}</span>}
+                <span className="text-xs text-ink-3">Joined {formatDate(member.created_at)}</span>
+              </div>
+            </div>
 
-        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 800 }}>
-
-            {/* Profile card */}
-            <div style={{
-              background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-              borderRadius: 14, padding: '20px 24px', marginBottom: 16,
-              boxShadow: 'var(--c-shadow-sm)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <span style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 22, fontWeight: 700, color: 'var(--c-ink)' }}>
-                      {member.full_name}
+            {activeMembership && (
+              <div className="text-right">
+                <div className="mb-1 text-[13px] font-semibold text-ink">{activeMembership.plan_name}</div>
+                <div className="flex items-center justify-end gap-2">
+                  {activeMembership.is_trial && (
+                    <span className="font-mono text-[11px] font-bold text-accent-ink">
+                      Trial{activeMembership.end_date ? ` · ends ${activeMembership.end_date}` : ''}
                     </span>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: 999, fontSize: 11.5, fontWeight: 600,
-                      textTransform: 'capitalize', background: roleSt.bg, color: roleSt.color,
-                    }}>
-                      {member.role}
+                  )}
+                  {activeMembership.monthly_price_aed && (
+                    <span className="font-mono text-[13px] text-ink-3">
+                      AED {activeMembership.monthly_price_aed}/mo
                     </span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
-                    {member.email && (
-                      <span style={{ fontSize: 13.5, color: 'var(--c-ink-2)' }}>{member.email}</span>
-                    )}
-                    {member.phone && (
-                      <span className="mono" style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>{member.phone}</span>
-                    )}
-                    <span style={{ fontSize: 12.5, color: 'var(--c-ink-faint)' }}>
-                      Joined {formatDate(member.created_at)}
-                    </span>
-                  </div>
+                  )}
+                  <Badge tone={STATUS_TONES[activeMembership.payment_status] ?? 'warn'} className="capitalize">
+                    {activeMembership.payment_status}
+                  </Badge>
                 </div>
-
-                {activeMembership && rs && (
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 4 }}>
-                      {activeMembership.plan_name}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                      {activeMembership.is_trial && (
-                        <span className="mono" style={{ fontSize: 11, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>
-                          Trial{activeMembership.end_date ? ` · ends ${activeMembership.end_date}` : ''}
-                        </span>
-                      )}
-                      {activeMembership.monthly_price_aed && (
-                        <span className="mono" style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>
-                          AED {activeMembership.monthly_price_aed}/mo
-                        </span>
-                      )}
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 999, fontSize: 11.5, fontWeight: 600,
-                        textTransform: 'capitalize', background: rs.bg, color: rs.color,
-                      }}>
-                        {activeMembership.payment_status}
-                      </span>
-                    </div>
-                    {activeMembership.last_paid_date && (
-                      <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-faint)', marginTop: 4 }}>
-                        Last paid {activeMembership.last_paid_date}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {viewer.role === 'owner' && activeMembership && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Membership lifecycle</div>
-                <MembershipLifecycle membershipId={activeMembership.id} frozenFrom={activeMembership.frozen_from ?? null} frozenUntil={activeMembership.frozen_until ?? null} endDate={activeMembership.end_date ?? null} today={today} />
-                {!activeMembership.is_trial && (
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--c-divider)' }}>
-                    <ChangePlan
-                      membershipId={activeMembership.id}
-                      currentMonthly={activeMembership.monthly_price_aed ?? null}
-                      anchor={activeMembership.last_paid_date ?? activeMembership.start_date}
-                      today={today}
-                      plans={planList ?? []}
-                    />
+                {activeMembership.last_paid_date && (
+                  <div className="mt-1 font-mono text-[11.5px] text-ink-3">
+                    Last paid {activeMembership.last_paid_date}
                   </div>
                 )}
               </div>
             )}
+          </div>
+        </Card>
 
-            {/* Consistency (Committed Club) */}
-            <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-              <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Consistency</div>
-              <div style={{ display: 'flex', gap: 20, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                <div><span className="mono" style={{ fontSize: 22, fontWeight: 700, color: 'var(--c-ink)' }}>{consistencyStreak > 0 ? `🔥 ${consistencyStreak}` : '—'}</span> <span style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>week streak</span></div>
-                <div><span className="mono" style={{ fontSize: 22, fontWeight: 700, color: 'var(--c-ink)' }}>{consistencyTotal}</span> <span style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>check-ins{consistencyBadge !== null ? ` · 🏅 ${consistencyBadge} Club` : ''}</span></div>
-              </div>
-              {consistencyNext && (
-                <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 8 }}>{consistencyNext.remaining} to the {consistencyNext.threshold} Club</div>
-              )}
-            </div>
-
-            {isStaff && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Tags</div>
-                <MemberTags athleteId={member.id} tags={memberTags} suggestions={tagSuggestions} />
-              </div>
-            )}
-
-            {isStaff && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Skills</div>
-                <SkillsEditor athleteId={member.id} levels={skillLevels} />
-              </div>
-            )}
-
-            {isManager && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Household</div>
-                <HouseholdCard
-                  memberId={member.id}
-                  household={household ? { id: household.id, name: household.name, primaryAthleteId: household.primary_athlete_id } : null}
-                  members={householdMembers ?? []}
-                  allHouseholds={(allHouseholds ?? []).filter((h) => h.id !== member.household_id)}
+        {viewer.role === 'owner' && activeMembership && (
+          <Section label="Membership lifecycle">
+            <MembershipLifecycle membershipId={activeMembership.id} frozenFrom={activeMembership.frozen_from ?? null} frozenUntil={activeMembership.frozen_until ?? null} endDate={activeMembership.end_date ?? null} today={today} />
+            {!activeMembership.is_trial && (
+              <div className="mt-3 border-t border-line pt-3">
+                <ChangePlan
+                  membershipId={activeMembership.id}
+                  currentMonthly={activeMembership.monthly_price_aed ?? null}
+                  anchor={activeMembership.last_paid_date ?? activeMembership.start_date}
+                  today={today}
+                  plans={planList ?? []}
                 />
               </div>
             )}
+          </Section>
+        )}
 
-            {isSelf && viewer.role === 'athlete' && referLink && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Refer a friend</div>
-                <ReferCard link={referLink} referred={referredCount} joined={joinedCount} />
-              </div>
-            )}
-
-            {isSelf && <div style={{ marginBottom: 16 }}><ChangePasswordCard /></div>}
-
-            {isSelf && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>My details</div>
-                <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: member.emergency_contact_name, emergencyContactPhone: member.emergency_contact_phone, bloodType: member.blood_type, allergies: member.allergies }} />
-              </div>
-            )}
-
-            {isSelf && viewer.role === 'athlete' && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Agreements</div>
-                <SelfAgreementsCard waiverSig={waiverSig} termsSig={termsSig} waiverText={waiverText} termsDoc={termsDoc} />
-              </div>
-            )}
-
-            {isStaff && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>{checklistKind === 'offboarding' ? 'Offboarding' : 'Onboarding'}</div>
-                <ChecklistCard memberId={member.id} steps={checklist.steps} total={checklist.total} done={checklist.done} />
-              </div>
-            )}
-
-            {isStaff && (
-              <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Follow-ups</div>
-                <MemberFollowups memberId={member.id} tasks={followups} staff={boxStaffList} />
-              </div>
-            )}
-
-            {/* Personal & medical */}
-            <div style={{ padding: '16px 18px', borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)', marginBottom: 16 }}>
-              <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Personal &amp; medical</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
-                <Field label="Date of birth" value={member.date_of_birth ? `${member.date_of_birth}${ageFromDob(member.date_of_birth, today) !== null ? ` · ${ageFromDob(member.date_of_birth, today)}y` : ''}` : '—'} />
-                <Field label="Blood type" value={member.blood_type ?? '—'} />
-                <Field label="Emergency contact" value={member.emergency_contact_name ? `${member.emergency_contact_name}${member.emergency_contact_phone ? ` · ${member.emergency_contact_phone}` : ''}` : '—'} />
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <div className="mono" style={{ fontSize: 10, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Allergies / medical notes</div>
-                {member.allergies
-                  ? <div style={{ fontSize: 13, color: 'var(--c-warn-ink)', background: 'var(--c-warn-soft)', borderRadius: 8, padding: '8px 12px', fontWeight: 600 }}>⚠️ {member.allergies}</div>
-                  : <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>—</div>}
-              </div>
+        {/* Consistency (Committed Club) */}
+        <Section label="Consistency">
+          <div className="flex flex-wrap items-baseline gap-5">
+            <div>
+              <span className="font-mono text-xl font-bold text-ink">{consistencyStreak > 0 ? `🔥 ${consistencyStreak}` : '—'}</span>{' '}
+              <span className="text-xs text-ink-3">week streak</span>
             </div>
-
-            {/* 1RMs + Recent Scores */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-
-              {/* 1RM Lifts */}
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <div style={{
-                  padding: '12px 16px', borderBottom: '1px solid var(--c-divider)',
-                  background: 'var(--c-surface-sunk)',
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>1RM Lifts</span>
-                </div>
-                {lifts && lifts.length > 0 ? (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <tbody>
-                      {lifts.map((lift) => (
-                        <tr key={lift.lift_name} style={{ borderBottom: '1px solid var(--c-divider)' }}>
-                          <td style={{ padding: '10px 16px', fontSize: 13.5, color: 'var(--c-ink-2)' }}>
-                            {formatLiftName(lift.lift_name)}
-                          </td>
-                          <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                            <span className="mono" style={{ fontSize: 15, fontWeight: 700, color: 'var(--c-ink)' }}>
-                              {(lift.one_rm_grams / 1000).toFixed(1)} kg
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--c-ink-faint)', fontSize: 13 }}>
-                    No lifts logged yet.
-                  </div>
-                )}
-              </div>
-
-              {/* Recent WOD Scores */}
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <div style={{
-                  padding: '12px 16px', borderBottom: '1px solid var(--c-divider)',
-                  background: 'var(--c-surface-sunk)',
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>WOD Score History</span>
-                </div>
-                {scores && scores.length > 0 ? (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <tbody>
-                      {scores.map((s, i) => {
-                        const wod = Array.isArray(s.workouts) ? s.workouts[0] : s.workouts
-                        return (
-                          <tr key={i} style={{ borderBottom: '1px solid var(--c-divider)' }}>
-                            <td style={{ padding: '10px 16px', fontSize: 13, color: 'var(--c-ink-2)' }}>
-                              {wod?.title ?? '—'}
-                            </td>
-                            <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
-                                {s.rx && (
-                                  <span className="mono" style={{
-                                    fontSize: 9.5, fontWeight: 700, padding: '1px 5px',
-                                    borderRadius: 4, background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)',
-                                  }}>RX</span>
-                                )}
-                                <span className="mono" style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-ink)' }}>
-                                  {wod ? formatScore(s.score_value, wod.scoring_type) : s.score_value}
-                                </span>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--c-ink-faint)', fontSize: 13 }}>
-                    No scores logged yet.
-                  </div>
-                )}
-              </div>
+            <div>
+              <span className="font-mono text-xl font-bold text-ink">{consistencyTotal}</span>{' '}
+              <span className="text-xs text-ink-3">check-ins{consistencyBadge !== null ? ` · 🏅 ${consistencyBadge} Club` : ''}</span>
             </div>
+          </div>
+          {consistencyNext && (
+            <div className="mt-2 text-[11.5px] text-ink-3">{consistencyNext.remaining} to the {consistencyNext.threshold} Club</div>
+          )}
+        </Section>
 
-            {/* Recent Bookings */}
-            <div style={{
-              background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-              borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
-            }}>
-              <div style={{
-                padding: '12px 16px', borderBottom: '1px solid var(--c-divider)',
-                background: 'var(--c-surface-sunk)', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>Recent Bookings</span>
-              </div>
-              {bookings && bookings.length > 0 ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <tbody>
-                    {bookings.map((b) => {
-                      const inst = Array.isArray(b.class_instances) ? b.class_instances[0] : b.class_instances
-                      const tmpl = inst ? (Array.isArray(inst.class_templates) ? inst.class_templates[0] : inst.class_templates) : null
-                      const startsAt = inst?.starts_at ? new Date(inst.starts_at) : null
-                      return (
-                        <tr key={b.id} style={{ borderBottom: '1px solid var(--c-divider)' }}>
-                          <td style={{ padding: '10px 16px', fontSize: 13, color: 'var(--c-ink-2)' }}>
-                            {tmpl?.name ?? '—'}
-                          </td>
-                          <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                            <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>
-                              {startsAt ? formatDate(startsAt.toISOString()) : '—'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px 16px', width: 60, textAlign: 'right' }}>
-                            {b.checked_in && (
-                              <span style={{ fontSize: 11.5, color: 'var(--c-ok-ink)', fontWeight: 600 }}>✓ In</span>
+        {isStaff && (
+          <Section label="Tags">
+            <MemberTags athleteId={member.id} tags={memberTags} suggestions={tagSuggestions} />
+          </Section>
+        )}
+
+        {isStaff && (
+          <Section label="Skills">
+            <SkillsEditor athleteId={member.id} levels={skillLevels} />
+          </Section>
+        )}
+
+        {isManager && (
+          <Section label="Household">
+            <HouseholdCard
+              memberId={member.id}
+              household={household ? { id: household.id, name: household.name, primaryAthleteId: household.primary_athlete_id } : null}
+              members={householdMembers ?? []}
+              allHouseholds={(allHouseholds ?? []).filter((h) => h.id !== member.household_id)}
+            />
+          </Section>
+        )}
+
+        {isSelf && viewer.role === 'athlete' && referLink && (
+          <Section label="Refer a friend">
+            <ReferCard link={referLink} referred={referredCount} joined={joinedCount} />
+          </Section>
+        )}
+
+        {isSelf && <div className="mb-4"><ChangePasswordCard /></div>}
+
+        {isSelf && (
+          <Section label="My details">
+            <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: member.emergency_contact_name, emergencyContactPhone: member.emergency_contact_phone, bloodType: member.blood_type, allergies: member.allergies }} />
+          </Section>
+        )}
+
+        {isSelf && viewer.role === 'athlete' && (
+          <Section label="Agreements">
+            <SelfAgreementsCard waiverSig={waiverSig} termsSig={termsSig} waiverText={waiverText} termsDoc={termsDoc} />
+          </Section>
+        )}
+
+        {isStaff && (
+          <Section label={checklistKind === 'offboarding' ? 'Offboarding' : 'Onboarding'}>
+            <ChecklistCard memberId={member.id} steps={checklist.steps} total={checklist.total} done={checklist.done} />
+          </Section>
+        )}
+
+        {isStaff && (
+          <Section label="Follow-ups">
+            <MemberFollowups memberId={member.id} tasks={followups} staff={boxStaffList} />
+          </Section>
+        )}
+
+        {/* Personal & medical */}
+        <Section label="Personal & medical">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
+            <Field label="Date of birth" value={member.date_of_birth ? `${member.date_of_birth}${ageFromDob(member.date_of_birth, today) !== null ? ` · ${ageFromDob(member.date_of_birth, today)}y` : ''}` : '—'} />
+            <Field label="Blood type" value={member.blood_type ?? '—'} />
+            <Field label="Emergency contact" value={member.emergency_contact_name ? `${member.emergency_contact_name}${member.emergency_contact_phone ? ` · ${member.emergency_contact_phone}` : ''}` : '—'} />
+          </div>
+          <div className="mt-3">
+            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">Allergies / medical notes</div>
+            {member.allergies
+              ? <div className="rounded-lg bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn">⚠️ {member.allergies}</div>
+              : <div className="text-[13px] text-ink-3">—</div>}
+          </div>
+        </Section>
+
+        {/* 1RMs + Recent Scores */}
+        <div className="mb-4 grid gap-4 md:grid-cols-2">
+          {/* 1RM Lifts */}
+          <Card className="overflow-hidden">
+            <div className="border-b border-line bg-surface-2 px-4 py-3">
+              <span className="text-[13px] font-semibold text-ink">1RM Lifts</span>
+            </div>
+            {lifts && lifts.length > 0 ? (
+              <table className="w-full">
+                <tbody>
+                  {lifts.map((lift) => (
+                    <tr key={lift.lift_name} className={rowClass}>
+                      <td className="px-4 py-2.5 text-[13.5px] text-ink-2">{formatLiftName(lift.lift_name)}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="font-mono text-[15px] font-bold text-ink">
+                          {(lift.one_rm_grams / 1000).toFixed(1)} kg
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="px-4 py-7 text-center text-[13px] text-ink-3">No lifts logged yet.</div>
+            )}
+          </Card>
+
+          {/* Recent WOD Scores */}
+          <Card className="overflow-hidden">
+            <div className="border-b border-line bg-surface-2 px-4 py-3">
+              <span className="text-[13px] font-semibold text-ink">WOD Score History</span>
+            </div>
+            {scores && scores.length > 0 ? (
+              <table className="w-full">
+                <tbody>
+                  {scores.map((s, i) => {
+                    const wod = Array.isArray(s.workouts) ? s.workouts[0] : s.workouts
+                    return (
+                      <tr key={i} className={rowClass}>
+                        <td className="px-4 py-2.5 text-[13px] text-ink-2">{wod?.title ?? '—'}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {s.rx && (
+                              <span className="rounded bg-ok-soft px-1 py-px font-mono text-[9.5px] font-bold text-ok">RX</span>
                             )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <div style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--c-ink-faint)', fontSize: 13 }}>
-                  No bookings yet.
+                            <span className="font-mono text-sm font-bold text-ink">
+                              {wod ? formatScore(s.score_value, wod.scoring_type) : s.score_value}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="px-4 py-7 text-center text-[13px] text-ink-3">No scores logged yet.</div>
+            )}
+          </Card>
+        </div>
+
+        {/* Recent Bookings */}
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between border-b border-line bg-surface-2 px-4 py-3">
+            <span className="text-[13px] font-semibold text-ink">Recent Bookings</span>
+          </div>
+          {bookings && bookings.length > 0 ? (
+            <table className="w-full">
+              <tbody>
+                {bookings.map((b) => {
+                  const inst = Array.isArray(b.class_instances) ? b.class_instances[0] : b.class_instances
+                  const tmpl = inst ? (Array.isArray(inst.class_templates) ? inst.class_templates[0] : inst.class_templates) : null
+                  const startsAt = inst?.starts_at ? new Date(inst.starts_at) : null
+                  return (
+                    <tr key={b.id} className={rowClass}>
+                      <td className="px-4 py-2.5 text-[13px] text-ink-2">{tmpl?.name ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="font-mono text-xs text-ink-3">
+                          {startsAt ? formatDate(startsAt.toISOString()) : '—'}
+                        </span>
+                      </td>
+                      <td className="w-[60px] px-4 py-2.5 text-right">
+                        {b.checked_in && <span className="text-[11.5px] font-semibold text-ok">✓ In</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <div className="px-4 py-7 text-center text-[13px] text-ink-3">No bookings yet.</div>
+          )}
+        </Card>
+
+        {/* Invoices */}
+        {(invoices ?? []).length > 0 && (
+          <Card className="mt-5 overflow-hidden">
+            <div className="border-b border-line bg-surface-2 px-4 py-3">
+              <span className="text-[13px] font-semibold text-ink">VAT Invoices</span>
+            </div>
+            <table className="w-full">
+              <tbody>
+                {(invoices ?? []).map((inv) => {
+                  const cns = (inv as { credit_notes?: { total_aed: number }[] }).credit_notes ?? []
+                  const refunded = cns.reduce((s, c) => s + Number(c.total_aed), 0)
+                  return (
+                    <tr key={inv.id} className={rowClass}>
+                      <td className="px-4 py-2.5">
+                        <Link
+                          href={`/dashboard/invoices/${inv.id}`}
+                          className="font-mono text-xs text-ink transition-colors hover:text-accent-ink"
+                        >
+                          {inv.invoice_number}
+                        </Link>
+                        {refunded > 0 && (
+                          <Badge tone="warn" className="ml-2 text-[10.5px]">
+                            {refunded >= Number(inv.total_aed) - 0.001 ? 'Refunded' : 'Partial refund'}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="font-mono text-xs text-ink-3">{formatDate(inv.issued_at)}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">
+                        <span className="text-[13px] font-semibold text-ink">
+                          AED {Number(inv.total_aed).toFixed(2)}
+                        </span>
+                        {refunded > 0 && (
+                          <div className="text-[11px] text-warn">−AED {refunded.toFixed(2)}</div>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </Card>
+        )}
+
+        {/* Packages & credits — owner only */}
+        {isOwner && (
+          <div className="mt-5">
+            <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} coaches={(boxCoaches ?? []) as { id: string; full_name: string | null }[]} />
+          </div>
+        )}
+
+        {/* PDPL Data Export — owner only */}
+        {viewer.role === 'owner' && (
+          <Card className="mt-5 p-5">
+            <div className="mb-3.5 flex items-start justify-between gap-4">
+              <div>
+                <div className="mb-0.5 text-[13px] font-semibold text-ink">PDPL Data Export</div>
+                <div className="text-[11.5px] text-ink-3">
+                  UAE Federal Decree-Law No. 45 of 2021 — data subject access request
                 </div>
+              </div>
+              <a
+                href={`/api/pdpl/export/${params.memberId}`}
+                download
+                className={cn(buttonVariants({ size: 'sm' }), 'whitespace-nowrap')}
+              >
+                Export JSON ↓
+              </a>
+            </div>
+
+            <div className="mt-1.5 border-t border-line pt-3">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-3">
+                Export history
+              </div>
+              {(pdplExports ?? []).length === 0 ? (
+                <div className="text-xs text-ink-3">No exports yet.</div>
+              ) : (
+                (pdplExports ?? []).map((e, i) => {
+                  const exporter = (Array.isArray(e.exporter) ? e.exporter[0] : e.exporter) as { full_name?: string } | null
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        'grid grid-cols-[1fr_auto] gap-2.5 py-1.5 text-xs text-ink-2',
+                        i < (pdplExports ?? []).length - 1 && 'border-b border-line'
+                      )}
+                    >
+                      <div>
+                        <span className="text-ink">{exporter?.full_name ?? 'Owner'}</span>
+                        {e.ip_address && (
+                          <span className="ml-2 font-mono text-[11px] text-ink-faint">{e.ip_address}</span>
+                        )}
+                      </div>
+                      <div className="font-mono text-[11px] text-ink-faint">
+                        {new Date(e.exported_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  )
+                })
               )}
             </div>
-
-            {/* Invoices */}
-            {(invoices ?? []).length > 0 && (
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, overflow: 'hidden', marginTop: 20,
-                boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <div style={{
-                  padding: '12px 16px', borderBottom: '1px solid var(--c-divider)',
-                  background: 'var(--c-surface-sunk)',
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>VAT Invoices</span>
-                </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <tbody>
-                    {(invoices ?? []).map((inv) => {
-                      const cns = (inv as { credit_notes?: { total_aed: number }[] }).credit_notes ?? []
-                      const refunded = cns.reduce((s, c) => s + Number(c.total_aed), 0)
-                      return (
-                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--c-divider)' }}>
-                          <td style={{ padding: '10px 16px' }}>
-                            <Link href={`/dashboard/invoices/${inv.id}`} className="mono" style={{ fontSize: 12.5, color: 'var(--c-ink)', textDecoration: 'none' }}>
-                              {inv.invoice_number}
-                            </Link>
-                            {refunded > 0 && (
-                              <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: 'var(--c-warn-soft)', color: 'var(--c-warn-ink)' }}>
-                                {refunded >= Number(inv.total_aed) - 0.001 ? 'Refunded' : 'Partial refund'}
-                              </span>
-                            )}
-                          </td>
-                          <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                            <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>
-                              {formatDate(inv.issued_at)}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                            <span style={{ fontSize: 13, color: 'var(--c-ink)', fontWeight: 600 }}>
-                              AED {Number(inv.total_aed).toFixed(2)}
-                            </span>
-                            {refunded > 0 && (
-                              <div style={{ fontSize: 11, color: 'var(--c-warn-ink)' }}>
-                                −AED {refunded.toFixed(2)}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Packages & credits — owner only */}
-            {isOwner && (
-              <div style={{ marginTop: 20 }}>
-                <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} coaches={(boxCoaches ?? []) as { id: string; full_name: string | null }[]} />
-              </div>
-            )}
-
-            {/* PDPL Data Export — owner only */}
-            {viewer.role === 'owner' && (
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, padding: '18px 20px', marginTop: 20,
-                boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 3 }}>
-                      PDPL Data Export
-                    </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>
-                      UAE Federal Decree-Law No. 45 of 2021 — data subject access request
-                    </div>
-                  </div>
-                  <a
-                    href={`/api/pdpl/export/${params.memberId}`}
-                    download
-                    style={{
-                      padding: '8px 14px', borderRadius: 8,
-                      background: 'var(--circle-lime)', color: 'var(--circle-ink)',
-                      fontSize: 12.5, fontWeight: 700, textDecoration: 'none',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Export JSON ↓
-                  </a>
-                </div>
-
-                <div style={{ borderTop: '1px solid var(--c-divider)', paddingTop: 12, marginTop: 6 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                    Export history
-                  </div>
-                  {(pdplExports ?? []).length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'var(--c-ink-faint)' }}>No exports yet.</div>
-                  ) : (
-                    (pdplExports ?? []).map((e, i) => {
-                      const exporter = (Array.isArray(e.exporter) ? e.exporter[0] : e.exporter) as { full_name?: string } | null
-                      return (
-                        <div key={i} style={{
-                          display: 'grid', gridTemplateColumns: '1fr auto', gap: 10,
-                          padding: '6px 0', fontSize: 12, color: 'var(--c-ink-2)',
-                          borderBottom: i < (pdplExports ?? []).length - 1 ? '1px solid var(--c-divider)' : 'none',
-                        }}>
-                          <div>
-                            <span style={{ color: 'var(--c-ink)' }}>{exporter?.full_name ?? 'Owner'}</span>
-                            {e.ip_address && (
-                              <span className="mono" style={{ color: 'var(--c-ink-faint)', marginLeft: 8, fontSize: 11 }}>
-                                {e.ip_address}
-                              </span>
-                            )}
-                          </div>
-                          <div className="mono" style={{ color: 'var(--c-ink-faint)', fontSize: 11 }}>
-                            {new Date(e.exported_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-
-          </div>
-        </div>
+          </Card>
+        )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

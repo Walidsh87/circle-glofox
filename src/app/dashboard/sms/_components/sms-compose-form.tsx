@@ -2,12 +2,18 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { sendSmsCampaign } from '../_actions/send-sms-campaign'
 import { previewSmsAudience } from '../_actions/preview-sms-audience'
 import { SEGMENT_LABELS, type Segment } from '@/lib/broadcast-audience'
 import { smsSegments } from '@/lib/sms'
 
 const SEGMENTS: Segment[] = ['all', 'paid', 'unpaid', 'trial', 'frozen']
+
+const inputClass =
+  'w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function SmsComposeForm({ tags, configured }: { tags: string[]; configured: boolean }) {
   const router = useRouter()
@@ -37,43 +43,41 @@ export function SmsComposeForm({ tags, configured }: { tags: string[]; configure
     })
   }
 
-  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)' } as const
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 18, borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', marginBottom: 28 }}>
+    <Card className="mb-7 flex flex-col gap-3.5 p-4">
       {!configured && (
-        <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--c-warn-soft)', color: 'var(--c-warn-ink)', fontSize: 13 }}>
+        <div className="rounded-lg bg-warn-soft px-3 py-2.5 text-[13px] text-warn">
           SMS isn’t configured yet. Add your Twilio credentials + sender ID to send.
         </div>
       )}
       <textarea
-        style={{ ...inputStyle, minHeight: 120, resize: 'vertical', fontFamily: 'inherit' }}
+        className={cn(inputClass, 'min-h-[120px] resize-y')}
         placeholder="Your message… Use {{first_name}} to personalise."
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />
-      <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>
+      <div className="font-mono text-[11.5px] text-ink-3">
         {seg.chars} chars · {seg.segments} segment{seg.segments === 1 ? '' : 's'} · {seg.encoding === 'gsm7' ? 'GSM-7' : 'Unicode'}
       </div>
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <select style={{ ...inputStyle, width: 'auto' }} value={status} onChange={(e) => { const s = e.target.value as Segment; setStatus(s); refreshCount(s, tag) }}>
+      <div className="flex flex-wrap gap-2.5">
+        <select className={cn(inputClass, 'w-auto')} value={status} onChange={(e) => { const s = e.target.value as Segment; setStatus(s); refreshCount(s, tag) }}>
           {SEGMENTS.map((s) => <option key={s} value={s}>{SEGMENT_LABELS[s]}</option>)}
         </select>
-        <select style={{ ...inputStyle, width: 'auto' }} value={tag} onChange={(e) => { setTag(e.target.value); refreshCount(status, e.target.value) }}>
+        <select className={cn(inputClass, 'w-auto')} value={tag} onChange={(e) => { setTag(e.target.value); refreshCount(status, e.target.value) }}>
           <option value="">Any tag</option>
           {tags.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
-        <span style={{ alignSelf: 'center', fontSize: 13, color: 'var(--c-ink-muted)' }}>
+        <span className="self-center text-[13px] text-ink-3">
           {count === null ? 'Choose an audience to preview count' : `${count} recipient${count === 1 ? '' : 's'}`}
         </span>
       </div>
 
-      {error && <p style={{ color: 'var(--c-danger)', fontSize: 13 }}>{error}</p>}
+      {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
 
-      <button onClick={onSend} disabled={pending || !configured || !body.trim()} style={{ alignSelf: 'flex-start', padding: '10px 18px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', opacity: pending || !configured ? 0.6 : 1 }}>
+      <Button onClick={onSend} disabled={pending || !configured || !body.trim()} className="self-start">
         {pending ? 'Sending…' : 'Send SMS'}
-      </button>
-    </div>
+      </Button>
+    </Card>
   )
 }

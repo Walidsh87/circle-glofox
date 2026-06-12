@@ -1,5 +1,5 @@
 import { requireManagerPage } from '@/lib/auth/page-guards'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { SmsComposeForm } from './_components/sms-compose-form'
 import { SmsList, type SmsRow } from './_components/sms-list'
 import { smsConfigured } from '@/lib/twilio'
@@ -15,20 +15,18 @@ export default async function SmsPage() {
   const rows = (campaignRows ?? []) as SmsRow[]
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="sms" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>SMS</h1>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 640 }}>
-            <SmsComposeForm tags={tags} configured={smsConfigured()} />
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>History</h2>
-            <SmsList rows={rows} />
-          </div>
-        </div>
+    <DashboardShell
+      active="sms"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="SMS"
+    >
+      <div className="max-w-[640px]">
+        <SmsComposeForm tags={tags} configured={smsConfigured()} />
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.04em] text-ink-3">History</h2>
+        <SmsList rows={rows} />
       </div>
-    </div>
+    </DashboardShell>
   )
 }

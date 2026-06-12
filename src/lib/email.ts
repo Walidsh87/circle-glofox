@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { env } from '@/env'
+import { emailShell, emailButton } from './email-shell'
 import type { ReminderStage } from '@/lib/billing-reminders'
 
 const resend = new Resend(env.RESEND_API_KEY)
@@ -75,12 +76,12 @@ export async function sendCardFailedEmail(
   const body = isFinal
     ? `<p>Hi ${athleteName},</p>
 <p>We tried ${attemptCount} times to charge ${amount} for your <strong>${gymName}</strong> membership and your card was declined each time. Your account is now <strong>past due</strong>, which means your check-ins may be blocked.</p>
-<p><a href="${updatePaymentUrl}" style="display:inline-block;padding:12px 20px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Update your card</a></p>
+${emailButton('Update your card', updatePaymentUrl)}
 <p>Once you update your card, we'll automatically retry the charge.</p>
 <p>— ${gymName}</p>`
     : `<p>Hi ${athleteName},</p>
 <p>We tried to charge ${amount} for your <strong>${gymName}</strong> membership but your card was declined (attempt ${attemptCount} of ${maxRetries}). We'll retry automatically, but updating your card now will speed things up.</p>
-<p><a href="${updatePaymentUrl}" style="display:inline-block;padding:12px 20px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Update payment method</a></p>
+${emailButton('Update payment method', updatePaymentUrl)}
 <p>— ${gymName}</p>`
 
   try {
@@ -88,7 +89,7 @@ export async function sendCardFailedEmail(
       from: env.RESEND_FROM_EMAIL,
       to,
       subject,
-      html: body,
+      html: emailShell(body),
     })
     if (error) return { id: null, error: error.message }
     return { id: data?.id ?? null, error: null }
@@ -111,14 +112,14 @@ export async function sendWaitlistEmail(
 ): Promise<{ id: string | null; error: string | null }> {
   const body = `<p>Hi ${input.athleteName},</p>
 <p>A spot just opened in <strong>${input.className}</strong> (${input.classTime}) at ${input.gymName}. Spots go fast — book now:</p>
-<p><a href="${input.bookUrl}" style="display:inline-block;padding:12px 20px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-weight:600">Book now</a></p>
+${emailButton('Book now', input.bookUrl)}
 <p>— ${input.gymName}</p>`
   try {
     const { data, error } = await resend.emails.send({
       from: env.RESEND_FROM_EMAIL,
       to: input.to,
       subject: `A spot opened in ${input.className} at ${input.gymName}`,
-      html: body,
+      html: emailShell(body),
     })
     if (error) return { id: null, error: error.message }
     return { id: data?.id ?? null, error: null }
@@ -154,7 +155,7 @@ export async function sendBillingReminderEmail(
       to: input.to,
       bcc: input.stage === 'overdue' && input.bcc ? [input.bcc] : undefined,
       subject: buildSubject(input.stage, input.gymName, input.dueDate),
-      html: buildBody(input),
+      html: emailShell(buildBody(input)),
     })
 
     if (error) return { id: null, error: error.message }

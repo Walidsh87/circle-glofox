@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { PasswordNudge } from './_components/password-nudge'
+import { ClockCard } from './_components/clock-card'
 import { countIncompleteOnboarding } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { todayInTimezone } from '@/lib/timezone'
@@ -29,6 +30,7 @@ export default async function DashboardPage() {
     { data: wod },
     { count: activeLeadCount },
     { count: tasksDueCount },
+    { data: openCard },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -69,6 +71,9 @@ export default async function DashboardPage() {
           .eq('done', false)
           .lte('due_date', today)
       : { count: null },
+    isStaff
+      ? supabase.from('timecards').select('clock_in').eq('staff_id', user.id).is('clock_out', null).maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
   const unpaidCount = memberships?.filter((m) => m.payment_status !== 'paid').length ?? 0
@@ -126,6 +131,10 @@ export default async function DashboardPage() {
     >
       <div className="flex flex-col gap-5">
         <PasswordNudge show={!hasPassword} />
+
+        {isStaff && (
+          <ClockCard openSince={(openCard as { clock_in: string } | null)?.clock_in ?? null} timeZone={timezone} />
+        )}
 
         {/* Greeting */}
         <div>

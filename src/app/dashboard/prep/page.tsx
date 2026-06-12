@@ -1,4 +1,6 @@
 import { requireStaffPage } from '@/lib/auth/page-guards'
+import { PROGRAMMING_ROLES } from '@/lib/auth/roles'
+import { InstanceCoachPicker } from './_components/instance-coach-picker'
 import Link from 'next/link'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { Card } from '@/components/ui/card'
@@ -35,7 +37,7 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
 
   const { data: instances } = await supabase
     .from('class_instances')
-    .select('id, starts_at, capacity, class_templates(name), profiles(full_name), bookings(athlete_id, checked_in, profiles!bookings_athlete_id_fkey(full_name))')
+    .select('id, starts_at, capacity, coach_id, class_templates(name), profiles(full_name), bookings(athlete_id, checked_in, profiles!bookings_athlete_id_fkey(full_name))')
     .eq('box_id', profile.box_id)
     .eq('status', 'scheduled')
     .gte('starts_at', start)
@@ -43,6 +45,12 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
     .order('starts_at')
 
   const classes = instances ?? []
+
+  // Substitutions (#59): programming-tier staff can reassign the selected class's coach.
+  const isProgramming = (PROGRAMMING_ROLES as readonly string[]).includes(profile.role)
+  const { data: coachList } = isProgramming
+    ? await supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).eq('role', 'coach').order('full_name')
+    : { data: null }
   const selected =
     classes.find((c) => c.id === searchParams.class) ??
     classes.find((c) => c.starts_at >= nowIso) ??
@@ -148,7 +156,17 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
             <div className="flex flex-wrap items-baseline gap-2.5">
               <span className="text-base font-bold text-ink">{selectedClassName ?? 'Class'}</span>
               <span className="font-mono text-xs text-ink-3">
-                {selected ? fmtTime(selected.starts_at, timezone) : ''} · {selectedCoach ?? 'No coach'} · {roster.length} booked
+                {selected ? fmtTime(selected.starts_at, timezone) : ''} ·{' '}
+                {isProgramming && selected ? (
+                  <InstanceCoachPicker
+                    instanceId={selected.id}
+                    coachId={(selected as { coach_id?: string | null }).coach_id ?? null}
+                    coaches={(coachList ?? []) as { id: string; full_name: string | null }[]}
+                  />
+                ) : (
+                  selectedCoach ?? 'No coach'
+                )}{' '}
+                · {roster.length} booked
               </span>
             </div>
             {wod ? (

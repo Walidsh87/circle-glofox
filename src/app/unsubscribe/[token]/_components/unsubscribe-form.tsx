@@ -20,7 +20,7 @@ export function UnsubscribeForm({ token }: { token: string }) {
 
   if (done) {
     return (
-      <p style={{ fontSize: 15, color: 'var(--c-ink)' }}>
+      <p className="text-[15px] text-ink">
         {found
           ? `You've been unsubscribed${gym ? ` from ${gym} emails` : ''}. You won't receive further broadcasts.`
           : 'This unsubscribe link is no longer valid.'}
@@ -32,7 +32,7 @@ export function UnsubscribeForm({ token }: { token: string }) {
     <button
       onClick={onClick}
       disabled={pending}
-      style={{ padding: '12px 20px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
+      className="rounded-lg bg-accent px-5 py-3 font-semibold text-accent-contrast transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"
     >
       {pending ? 'Unsubscribing…' : 'Unsubscribe me'}
     </button>

@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { toggleChecklistStep } from '../_actions/toggle-checklist-step'
 import type { ChecklistStep } from '@/lib/checklists'
 
@@ -14,15 +15,24 @@ export function ChecklistCard({ memberId, steps, total, done }: { memberId: stri
   }
 
   if (total === 0) {
-    return <p style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>No steps defined yet — add them in Settings.</p>
+    return <p className="text-xs text-ink-3">No steps defined yet — add them in Settings.</p>
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginBottom: 2 }}>{done} of {total} done</div>
+    <div className="flex flex-col gap-1.5">
+      <div className="mb-0.5 font-mono text-[11.5px] text-ink-3">{done} of {total} done</div>
       {steps.map((s) => (
-        <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13.5, color: 'var(--c-ink)', cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
-          <input type="checkbox" checked={s.done} disabled={pending} onChange={(e) => onToggle(s.id, e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--circle-lime-ink)', cursor: 'pointer' }} />
-          <span style={{ textDecoration: s.done ? 'line-through' : 'none', color: s.done ? 'var(--c-ink-muted)' : 'var(--c-ink)' }}>{s.label}</span>
+        <label
+          key={s.id}
+          className={cn('flex cursor-pointer items-center gap-2 text-[13.5px] text-ink', pending && 'opacity-60')}
+        >
+          <input
+            type="checkbox"
+            checked={s.done}
+            disabled={pending}
+            onChange={(e) => onToggle(s.id, e.target.checked)}
+            className="h-[15px] w-[15px] cursor-pointer accent-[var(--accent-ink)]"
+          />
+          <span className={cn(s.done ? 'text-ink-3 line-through' : 'text-ink')}>{s.label}</span>
         </label>
       ))}
     </div>

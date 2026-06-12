@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { Button } from '@/components/ui/button'
 import { addTag } from '../_actions/add-tag'
 import { removeTag } from '../_actions/remove-tag'
-
-const chip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 8px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: 'var(--c-surface-alt)', color: 'var(--c-ink-2)' }
 
 export function MemberTags({ athleteId, tags, suggestions }: { athleteId: string; tags: string[]; suggestions: string[] }) {
   const [input, setInput] = useState('')
@@ -13,12 +12,20 @@ export function MemberTags({ athleteId, tags, suggestions }: { athleteId: string
   const submit = () => { if (input.trim()) { const v = input; setInput(''); run(() => addTag(athleteId, v)) } }
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-      {tags.length === 0 && <span style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>No tags yet.</span>}
+    <div className="flex flex-wrap items-center gap-2">
+      {tags.length === 0 && <span className="text-xs text-ink-3">No tags yet.</span>}
       {tags.map((t) => (
-        <span key={t} style={chip}>
+        <span
+          key={t}
+          className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold text-ink-2"
+        >
           {t}
-          <button onClick={() => run(() => removeTag(athleteId, t))} disabled={pending} aria-label={`Remove ${t}`} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--c-ink-muted)', fontSize: 13, lineHeight: 1, padding: 0 }}>×</button>
+          <button
+            onClick={() => run(() => removeTag(athleteId, t))}
+            disabled={pending}
+            aria-label={`Remove ${t}`}
+            className="p-0 text-[13px] leading-none text-ink-3 transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+          >×</button>
         </span>
       ))}
       <input
@@ -26,13 +33,15 @@ export function MemberTags({ athleteId, tags, suggestions }: { athleteId: string
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Add tag…"
-        style={{ height: 30, padding: '0 10px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 13, fontFamily: 'inherit', width: 140 }}
+        className="h-8 w-[140px] rounded-lg border border-line-strong bg-surface px-2.5 text-[13px] text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit() } }}
       />
       <datalist id="member-tag-suggestions">
         {suggestions.map((s) => <option key={s} value={s} />)}
       </datalist>
-      <button onClick={submit} disabled={pending} style={{ height: 30, padding: '0 12px', borderRadius: 8, border: 'none', background: 'var(--circle-lime)', color: 'var(--circle-ink)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Add</button>
+      <Button size="sm" className="h-8 px-3 text-xs" onClick={submit} disabled={pending}>
+        Add
+      </Button>
     </div>
   )
 }

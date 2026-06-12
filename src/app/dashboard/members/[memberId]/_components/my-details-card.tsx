@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { updateOwnProfile } from '../_actions/update-own-profile'
 import { BLOOD_TYPES } from '../_lib/member-fields-validation'
 
-const field: React.CSSProperties = { height: 36, padding: '0 12px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 13.5, color: 'var(--c-ink)', fontFamily: 'inherit', boxSizing: 'border-box', width: '100%' }
-const label: React.CSSProperties = { fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
+const fieldClass =
+  'h-9 w-full rounded-lg border border-line-strong bg-surface px-3 text-[13.5px] text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const labelClass = 'mb-1 block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3'
 
 export function MyDetailsCard({ initial }: { initial: { phone: string | null; emergencyContactName: string | null; emergencyContactPhone: string | null; bloodType: string | null; allergies: string | null } }) {
   const router = useRouter()
@@ -37,23 +39,30 @@ export function MyDetailsCard({ initial }: { initial: { phone: string | null; em
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div><span className="mono" style={label}>Phone</span><input style={field} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="05x xxx xxxx" /></div>
-        <div><span className="mono" style={label}>Blood type</span>
-          <select style={field} value={bloodType} onChange={(e) => setBloodType(e.target.value)}>
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        <div><span className={labelClass}>Phone</span><input className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="05x xxx xxxx" /></div>
+        <div><span className={labelClass}>Blood type</span>
+          <select className={fieldClass} value={bloodType} onChange={(e) => setBloodType(e.target.value)}>
             <option value="">—</option>
             {BLOOD_TYPES.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
         </div>
-        <div><span className="mono" style={label}>Emergency contact</span><input style={field} value={ecName} onChange={(e) => setEcName(e.target.value)} placeholder="Name" /></div>
-        <div><span className="mono" style={label}>Emergency phone</span><input style={field} value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} placeholder="Any format" /></div>
+        <div><span className={labelClass}>Emergency contact</span><input className={fieldClass} value={ecName} onChange={(e) => setEcName(e.target.value)} placeholder="Name" /></div>
+        <div><span className={labelClass}>Emergency phone</span><input className={fieldClass} value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} placeholder="Any format" /></div>
       </div>
-      <div><span className="mono" style={label}>Allergies / medical notes</span><textarea style={{ ...field, height: 64, padding: '8px 12px', resize: 'vertical' }} value={allergies} onChange={(e) => setAllergies(e.target.value)} /></div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button onClick={onSave} disabled={pending} style={{ height: 36, padding: '0 18px', borderRadius: 8, border: 'none', background: 'var(--circle-lime)', color: 'var(--circle-ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>{pending ? 'Saving…' : 'Save'}</button>
-        {saved && !error && <span style={{ fontSize: 12.5, color: 'var(--c-ok-ink)' }}>Saved</span>}
-        {error && <span style={{ fontSize: 12.5, color: 'var(--c-danger)' }}>{error}</span>}
+      <div>
+        <span className={labelClass}>Allergies / medical notes</span>
+        <textarea
+          className="min-h-16 w-full resize-y rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13.5px] text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          value={allergies}
+          onChange={(e) => setAllergies(e.target.value)}
+        />
+      </div>
+      <div className="flex items-center gap-2.5">
+        <Button size="sm" onClick={onSave} disabled={pending}>{pending ? 'Saving…' : 'Save'}</Button>
+        {saved && !error && <span className="text-xs text-ok">Saved</span>}
+        {error && <span role="alert" className="text-xs text-danger">{error}</span>}
       </div>
     </div>
   )

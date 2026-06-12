@@ -5,7 +5,8 @@ import { SKILLS, BELTS, overallBelt } from '@/lib/skills'
 import { BeltChip } from '@/components/belt-chip'
 import { setSkillLevel } from '../_actions/set-skill-level'
 
-const sel: React.CSSProperties = { height: 30, padding: '0 8px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 12.5, fontFamily: 'inherit' }
+const selClass =
+  'h-8 rounded-lg border border-line-strong bg-surface px-2 text-xs text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function SkillsEditor({ athleteId, levels: initial }: { athleteId: string; levels: Record<string, string> }) {
   const [levels, setLevels] = useState<Record<string, string>>(initial)
@@ -24,18 +25,18 @@ export function SkillsEditor({ athleteId, levels: initial }: { athleteId: string
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--c-ink-muted)' }}>
+    <div className="flex flex-col gap-3.5">
+      <div className="flex items-center gap-2 text-xs text-ink-3">
         Overall belt: {overall ? <BeltChip belt={overall} /> : <span>not assessed</span>}
       </div>
       {categories.map((cat) => (
         <div key={cat}>
-          <div className="mono" style={{ fontSize: 10, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{cat}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">{cat}</div>
+          <div className="flex flex-col gap-1.5">
             {SKILLS.filter((s) => s.category === cat).map((s) => (
-              <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ flex: 1, fontSize: 13, color: 'var(--c-ink-2)' }}>{s.label}</span>
-                <select value={levels[s.key] ?? ''} disabled={pending} onChange={(e) => set(s.key, e.target.value)} style={sel}>
+              <div key={s.key} className="flex items-center gap-2.5">
+                <span className="flex-1 text-[13px] text-ink-2">{s.label}</span>
+                <select value={levels[s.key] ?? ''} disabled={pending} onChange={(e) => set(s.key, e.target.value)} className={selClass}>
                   <option value="">—</option>
                   {BELTS.map((b) => <option key={b} value={b}>{b}</option>)}
                 </select>

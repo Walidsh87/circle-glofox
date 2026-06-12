@@ -13,10 +13,16 @@ export function PasswordNudge({ show }: { show: boolean }) {
   }, [show])
   if (!visible) return null
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderRadius: 10, background: 'var(--circle-lime-soft)', border: '1px solid var(--circle-lime)' }}>
-      <span style={{ fontSize: 13, color: 'var(--c-ink)' }}>Set a password to sign in faster next time.</span>
-      <Link href="/dashboard/profile" style={{ fontSize: 13, fontWeight: 700, color: 'var(--circle-lime-ink)', textDecoration: 'none' }}>Set password →</Link>
-      <button aria-label="Dismiss" onClick={() => { localStorage.setItem(DISMISS_KEY, '1'); setVisible(false) }} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-ink-muted)', fontSize: 16, lineHeight: 1 }}>×</button>
+    <div className="flex items-center gap-3 rounded-[10px] border border-accent bg-accent-soft px-4 py-2.5">
+      <span className="text-[13px] text-ink">Set a password to sign in faster next time.</span>
+      <Link href="/dashboard/profile" className="text-[13px] font-bold text-accent-ink transition-colors hover:text-ink">
+        Set password →
+      </Link>
+      <button
+        aria-label="Dismiss"
+        onClick={() => { localStorage.setItem(DISMISS_KEY, '1'); setVisible(false) }}
+        className="ml-auto text-base leading-none text-ink-3 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >×</button>
     </div>
   )
 }

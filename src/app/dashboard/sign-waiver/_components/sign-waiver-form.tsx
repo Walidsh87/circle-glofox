@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom'
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 import { signAgreements } from '../_actions/sign-waiver'
 
 function SubmitButton({ disabled, label }: { disabled: boolean; label: string }) {
@@ -10,18 +11,12 @@ function SubmitButton({ disabled, label }: { disabled: boolean; label: string })
     <button
       type="submit"
       disabled={pending || disabled}
-      style={{
-        width: '100%',
-        height: 48,
-        background: pending || disabled ? 'var(--c-surface-alt)' : 'var(--circle-lime)',
-        border: 'none',
-        borderRadius: 8,
-        fontSize: 15,
-        fontWeight: 700,
-        cursor: pending || disabled ? 'not-allowed' : 'pointer',
-        color: pending || disabled ? 'var(--c-ink-muted)' : 'var(--circle-ink)',
-        fontFamily: 'inherit',
-      }}
+      className={cn(
+        'h-12 w-full rounded-lg text-[15px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        pending || disabled
+          ? 'cursor-not-allowed bg-surface-2 text-ink-3'
+          : 'bg-accent text-accent-contrast hover:bg-accent-hover'
+      )}
     >
       {pending ? 'Signing…' : label}
     </button>
@@ -59,34 +54,28 @@ export function SignWaiverForm({ profileName, waiverSigned, termsSigned, termsVe
       : 'Submit PAR-Q & Enter Dashboard →'
 
   return (
-    <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <form action={formAction} className="flex flex-col gap-3">
       <input type="hidden" name="waiverAgreed" value={String(waiverAgreed)} />
       <input type="hidden" name="termsAgreed" value={String(termsAgreed)} />
       <input type="hidden" name="termsVersion" value={String(termsVersion)} />
 
       {parqDue && (
-        <div style={{
-          background: 'var(--c-surface)', border: '1px solid var(--c-border-strong)',
-          borderRadius: 8, padding: '14px 16px',
-        }}>
-          <div style={{
-            fontSize: 11, fontWeight: 700, color: 'var(--c-ink-muted)',
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
-          }}>
+        <div className="rounded-lg border border-line-strong bg-surface px-4 py-3.5">
+          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-3">
             Physical Activity Readiness Questionnaire (PAR-Q)
           </div>
-          <p style={{ fontSize: 12, color: 'var(--c-ink-muted)', margin: '0 0 4px', lineHeight: 1.5 }}>
+          <p className="mb-1 text-xs leading-normal text-ink-3">
             Answer honestly — a YES does not block your access; the team will follow up with you.
           </p>
           {parqQuestions.map((q, i) => (
-            <div key={i} style={{ padding: '10px 0', borderTop: i > 0 ? '1px solid var(--c-divider)' : 'none' }}>
-              <div style={{ fontSize: 13, color: 'var(--c-ink-2)', lineHeight: 1.5, marginBottom: 8 }}>{q}</div>
-              <div style={{ display: 'flex', gap: 18 }}>
-                <label style={{ fontSize: 13, color: 'var(--c-ink-2)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <input type="radio" name={`parq_${i}`} value="yes" /> Yes
+            <div key={i} className={cn('py-2.5', i > 0 && 'border-t border-line')}>
+              <div className="mb-2 text-[13px] leading-normal text-ink-2">{q}</div>
+              <div className="flex gap-[18px]">
+                <label className="flex cursor-pointer items-center gap-1.5 text-[13px] text-ink-2">
+                  <input type="radio" name={`parq_${i}`} value="yes" className="accent-accent" /> Yes
                 </label>
-                <label style={{ fontSize: 13, color: 'var(--c-ink-2)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <input type="radio" name={`parq_${i}`} value="no" /> No
+                <label className="flex cursor-pointer items-center gap-1.5 text-[13px] text-ink-2">
+                  <input type="radio" name={`parq_${i}`} value="no" className="accent-accent" /> No
                 </label>
               </div>
             </div>
@@ -110,11 +99,8 @@ export function SignWaiverForm({ profileName, waiverSigned, termsSigned, termsVe
         />
       )}
 
-      <div style={{ marginTop: 4 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 600, color: 'var(--c-ink-muted)',
-          letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8,
-        }}>
+      <div className="mt-1">
+        <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">
           Type your full legal name to sign
         </div>
         <input
@@ -123,16 +109,13 @@ export function SignWaiverForm({ profileName, waiverSigned, termsSigned, termsVe
           value={typedName}
           onChange={(e) => setTypedName(e.target.value)}
           placeholder={profileName}
-          style={{
-            width: '100%', height: 44, padding: '0 14px',
-            background: 'var(--c-surface)',
-            border: `1px solid ${typedName && nameMatches ? 'var(--circle-lime)' : 'var(--c-border-strong)'}`,
-            borderRadius: 8, fontSize: 15, color: 'var(--circle-lime)',
-            fontFamily: 'var(--font-geist-mono)', boxSizing: 'border-box', outline: 'none',
-          }}
+          className={cn(
+            'h-11 w-full rounded-lg border bg-surface px-3.5 font-mono text-[15px] text-accent-ink outline-none transition-colors placeholder:text-ink-faint focus-visible:ring-2 focus-visible:ring-accent',
+            typedName && nameMatches ? 'border-accent' : 'border-line-strong'
+          )}
         />
         {typedName && !nameMatches && (
-          <div style={{ fontSize: 12, color: 'var(--c-danger)', marginTop: 6 }}>
+          <div className="mt-1.5 text-xs text-danger">
             Must match your registered name: {profileName}
           </div>
         )}
@@ -141,15 +124,12 @@ export function SignWaiverForm({ profileName, waiverSigned, termsSigned, termsVe
       <SubmitButton disabled={!canSubmit} label={buttonLabel} />
 
       {state.error && (
-        <div style={{ fontSize: 13, color: 'var(--c-danger)', textAlign: 'center' }}>
+        <div className="text-center text-[13px] text-danger">
           {state.error}
         </div>
       )}
 
-      <div style={{
-        fontSize: 11, color: 'var(--c-ink-faint)',
-        textAlign: 'center', lineHeight: 1.6,
-      }}>
+      <div className="text-center text-[11px] leading-relaxed text-ink-faint">
         Signing electronically under UAE Federal Law No. 1 of 2006<br />
         Your IP address and timestamp will be recorded
       </div>
@@ -161,24 +141,18 @@ function ConsentBox({ checked, onToggle, label }: { checked: boolean; onToggle: 
   return (
     <div
       onClick={onToggle}
-      style={{
-        background: 'var(--c-surface)',
-        border: `1px solid ${checked ? 'var(--circle-lime)' : 'var(--c-border-strong)'}`,
-        borderRadius: 8, padding: '14px 16px',
-        display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
-      }}
+      className={cn(
+        'flex cursor-pointer items-start gap-3 rounded-lg border bg-surface px-4 py-3.5',
+        checked ? 'border-accent' : 'border-line-strong'
+      )}
     >
-      <div style={{
-        width: 18, height: 18,
-        border: `2px solid ${checked ? 'var(--circle-lime)' : 'var(--c-border-strong)'}`,
-        borderRadius: 4, marginTop: 1, flexShrink: 0,
-        background: checked ? 'var(--circle-lime)' : 'transparent',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 11, color: 'var(--circle-ink)', fontWeight: 700,
-      }}>
+      <div className={cn(
+        'mt-px flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-2 text-[11px] font-bold',
+        checked ? 'border-accent bg-accent text-accent-contrast' : 'border-line-strong bg-transparent'
+      )}>
         {checked ? '✓' : ''}
       </div>
-      <span style={{ fontSize: 13, color: 'var(--c-ink-2)', lineHeight: 1.5 }}>
+      <span className="text-[13px] leading-normal text-ink-2">
         {label}
       </span>
     </div>

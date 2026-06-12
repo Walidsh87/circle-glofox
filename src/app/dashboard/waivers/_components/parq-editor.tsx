@@ -9,40 +9,33 @@ export function ParqEditor({ initialText, version }: { initialText: string; vers
   const [pending, startTransition] = useTransition()
 
   return (
-    <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>PAR-Q questions (one per line)</span>
-        <span style={{ fontSize: 11, color: 'var(--c-ink-muted)' }}>current v{version}</span>
+    <div className="mb-5 rounded-[14px] border border-line bg-surface px-5 py-[18px]">
+      <div className="mb-2 flex items-baseline justify-between">
+        <span className="text-[13px] font-semibold text-ink">PAR-Q questions (one per line)</span>
+        <span className="text-[11px] text-ink-3">current v{version}</span>
       </div>
       <textarea
         value={text}
         onChange={(e) => { setText(e.target.value); setMsg(null) }}
         rows={9}
-        style={{
-          width: '100%', boxSizing: 'border-box', padding: '10px 12px',
-          background: 'var(--c-bg)', border: '1px solid var(--c-border-strong)', borderRadius: 8,
-          fontSize: 13, color: 'var(--c-ink-2)', fontFamily: 'inherit', lineHeight: 1.6, resize: 'vertical',
-        }}
+        className="w-full resize-y rounded-lg border border-line-strong bg-canvas px-3 py-2.5 text-[13px] leading-relaxed text-ink-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent"
       />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+      <div className="mt-2.5 flex items-center gap-3">
         <button
           onClick={() => startTransition(async () => {
             const res = await saveParqQuestions(text)
             setMsg(res.error ?? 'Saved — every member will be asked to answer again.')
           })}
           disabled={pending}
-          style={{
-            padding: '8px 16px', background: 'var(--circle-lime)', border: 'none', borderRadius: 8,
-            fontSize: 13, fontWeight: 700, color: 'var(--circle-ink)', cursor: pending ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-          }}
+          className="rounded-lg bg-accent px-4 py-2 text-[13px] font-bold text-accent-contrast transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? 'Saving…' : 'Save questions'}
         </button>
-        <span style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>
+        <span className="text-xs text-ink-3">
           ⚠️ Saving changes bumps the version and re-prompts every member at next login.
         </span>
       </div>
-      {msg && <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--c-ink-2)' }}>{msg}</div>}
+      {msg && <div className="mt-2 text-[12.5px] text-ink-2">{msg}</div>}
     </div>
   )
 }

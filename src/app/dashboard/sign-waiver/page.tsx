@@ -46,29 +46,14 @@ export default async function SignWaiverPage() {
   if (waiverSigned && termsSigned && !parqDue) redirect('/dashboard')
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--c-bg)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '32px 16px',
-      fontFamily: 'var(--font-geist-sans)',
-    }}>
-      <div style={{ width: '100%', maxWidth: 640 }}>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{
-            display: 'inline-block', background: 'var(--c-surface)',
-            border: '1px solid var(--c-border)', borderRadius: 8,
-            padding: '5px 14px', color: 'var(--c-ink-muted)', fontSize: 12,
-            marginBottom: 14, fontFamily: 'var(--font-geist-mono)',
-            textTransform: 'uppercase', letterSpacing: '0.08em',
-          }}>{boxName}</div>
-          <h1 style={{
-            fontFamily: 'var(--font-space-grotesk)', fontSize: 24, fontWeight: 700,
-            color: 'var(--c-ink)', marginBottom: 8, letterSpacing: '-0.02em',
-          }}>Before you enter the gym</h1>
-          <p style={{ color: 'var(--c-ink-muted)', fontSize: 14, margin: 0 }}>
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4 py-8">
+      <div className="w-full max-w-[640px]">
+        <div className="mb-7 text-center">
+          <div className="mb-3.5 inline-block rounded-lg border border-line bg-surface px-3.5 py-1 font-mono text-xs uppercase tracking-[0.08em] text-ink-3">
+            {boxName}
+          </div>
+          <h1 className="mb-2 font-display text-2xl font-bold tracking-[-0.02em] text-ink">Before you enter the gym</h1>
+          <p className="text-sm text-ink-3">
             Please complete the documents below to continue.
           </p>
         </div>
@@ -96,19 +81,10 @@ export default async function SignWaiverPage() {
 
 function DocBlock({ title, content }: { title: string; content: string }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{
-        fontSize: 11, fontWeight: 700, color: 'var(--c-ink-muted)',
-        textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, paddingLeft: 4,
-      }}>{title}</div>
-      <div style={{
-        background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-        borderRadius: 10, padding: '20px 22px', maxHeight: 240, overflowY: 'auto',
-      }}>
-        <pre style={{
-          fontFamily: 'var(--font-geist-sans)', fontSize: 13,
-          color: 'var(--c-ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0,
-        }}>{content}</pre>
+    <div className="mb-4">
+      <div className="mb-2 pl-1 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-3">{title}</div>
+      <div className="max-h-60 overflow-y-auto rounded-[10px] border border-line bg-surface px-[22px] py-5">
+        <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-ink-2">{content}</pre>
       </div>
     </div>
   )

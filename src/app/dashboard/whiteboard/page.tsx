@@ -2,12 +2,13 @@ import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { CheckInButton } from './_components/checkin-button'
 import { CircleMark } from '@/components/circle-mark'
+import { cn } from '@/lib/utils'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { loadForPercent } from '@/lib/percentage'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { currentStreakWeeks } from '@/lib/consistency'
-import { TIMEZONE_OFFSETS } from '@/lib/timezone'
+import { TIMEZONE_OFFSETS, todayInTimezone } from '@/lib/timezone'
 
 function todayWindow(timezone: string): { start: string; end: string } {
   const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
@@ -25,12 +26,6 @@ function formatTime(startsAt: string, timezone: string) {
   return new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(new Date(startsAt))
-}
-
-function todayLocalDate(timezone: string): string {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  const localMs = Date.now() + offsetHours * 60 * 60 * 1000
-  return new Date(localMs).toISOString().slice(0, 10)
 }
 
 export default async function WhiteboardPage() {
@@ -88,7 +83,7 @@ export default async function WhiteboardPage() {
     timeZone: timezone, weekday: 'long', day: 'numeric', month: 'long',
   }).format(new Date())
 
-  const todayIso = todayLocalDate(timezone)
+  const todayIso = todayInTimezone(timezone)
 
   // The Wedge — today's strength prescription + each booked athlete's 1RM for that lift
   const { data: wod } = await supabase
@@ -138,92 +133,68 @@ export default async function WhiteboardPage() {
   for (const [id, dates] of datesByAthlete) streakByAthlete.set(id, currentStreakWeeks(dates, todayIso))
 
   return (
-    <div className="circle-dark" style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      fontFamily: 'var(--font-geist-sans)',
-    }}>
+    <div className="theme-dark flex min-h-screen flex-col bg-canvas">
       {/* Header */}
-      <header style={{
-        height: 70, borderBottom: '1px solid var(--c-border)',
-        display: 'flex', alignItems: 'center', padding: '0 36px', gap: 24, flexShrink: 0,
-      }}>
+      <header className="flex h-[70px] shrink-0 items-center gap-6 border-b border-line px-9">
         {/* Logo */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 9,
-          fontFamily: 'var(--font-space-grotesk)', fontWeight: 700,
-          fontSize: 17, letterSpacing: '0.02em', textTransform: 'uppercase',
-          color: 'var(--c-ink)',
-        }}>
+        <div className="flex items-center gap-[9px] font-display text-[17px] font-bold uppercase tracking-[0.02em] text-ink">
           <CircleMark size={22} onDark />
           <span>Circle</span>
-          <span className="mono" style={{
-            fontSize: 11, color: 'var(--circle-lime)', marginLeft: 8,
-            padding: '2px 8px', border: '1px solid var(--circle-lime)', borderRadius: 4,
-            letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 500,
-          }}>Whiteboard</span>
+          <span className="ml-2 rounded border border-accent px-2 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.06em] text-accent-ink">Whiteboard</span>
         </div>
 
-        <div style={{ width: 1, height: 26, background: 'var(--c-border)' }} />
+        <div className="h-[26px] w-px bg-line" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="c-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--circle-lime)', flexShrink: 0 }} />
-          <span className="mono" style={{ fontSize: 13, color: 'var(--c-ink)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+        <div className="flex items-center gap-2">
+          <span className="c-pulse h-2 w-2 shrink-0 rounded-full bg-accent" />
+          <span className="font-mono text-[13px] uppercase tracking-[0.04em] text-ink">
             Live · {box?.name}
           </span>
         </div>
 
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
-        <div className="mono" style={{ fontSize: 15, color: 'var(--c-ink-muted)' }}>{today}</div>
+        <div className="font-mono text-[15px] text-ink-3">{today}</div>
 
-        <Link href="/dashboard" style={{
-          fontSize: 12, color: 'var(--c-ink-muted)', textDecoration: 'none',
-          padding: '6px 12px', border: '1px solid var(--c-border)', borderRadius: 8,
-        }}>← Dashboard</Link>
+        <Link href="/dashboard" className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink-3 transition-colors hover:text-ink">
+          ← Dashboard
+        </Link>
       </header>
 
       {/* Body */}
-      <div style={{ flex: 1, padding: '32px 36px' }}>
+      <div className="flex-1 px-9 py-8">
         {liftLabel && topPct !== null && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20,
-            padding: '14px 20px', borderRadius: 12,
-            background: 'var(--c-surface)', border: '1px solid var(--circle-lime)',
-          }}>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          <div className="mb-5 flex items-center gap-3 rounded-xl border border-accent bg-surface px-5 py-3.5">
+            <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-accent-ink">
               Strength
             </span>
-            <span style={{ fontFamily: 'var(--font-space-grotesk)', fontWeight: 700, fontSize: 18, color: 'var(--c-ink)' }}>
+            <span className="font-display text-lg font-bold text-ink">
               {liftLabel}
             </span>
-            <span className="mono" style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>
+            <span className="font-mono text-sm text-ink-3">
               {strengthSets.map((s) => `${s.sets}×${s.reps} @ ${s.percentage}%`).join('  ·  ')}
             </span>
           </div>
         )}
 
         {((wod?.scaling ?? []) as import('@/app/dashboard/wod/_lib/validation').ScalingTier[]).length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+          <div className="mb-5 flex flex-wrap gap-4">
             {((wod?.scaling ?? []) as import('@/app/dashboard/wod/_lib/validation').ScalingTier[]).map((t, i) => (
-              <div key={i} style={{ flex: '1 1 240px', padding: '12px 16px', borderRadius: 12, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-                <div className="mono" style={{ fontSize: 11, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{t.label}</div>
-                <div style={{ fontSize: 14, color: 'var(--c-ink-2)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{t.description}</div>
+              <div key={i} className="flex-1 basis-60 rounded-xl border border-line bg-surface px-4 py-3">
+                <div className="mb-1 font-mono text-[11px] uppercase tracking-[0.08em] text-accent-ink">{t.label}</div>
+                <div className="whitespace-pre-wrap text-sm leading-normal text-ink-2">{t.description}</div>
               </div>
             ))}
           </div>
         )}
 
         {(!instances || instances.length === 0) && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            height: '60vh', color: 'var(--c-ink-muted)', fontSize: 18,
-            fontFamily: 'var(--font-space-grotesk)',
-          }}>
+          <div className="flex h-[60vh] items-center justify-center font-display text-lg text-ink-3">
             No classes scheduled for today.
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
+        <div className="grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(340px,1fr))]">
           {instances?.map((instance) => {
             const template = instance.class_templates as { name: string } | { name: string }[] | null
             const className = Array.isArray(template) ? template[0]?.name : template?.name
@@ -240,37 +211,29 @@ export default async function WhiteboardPage() {
             const totalBooked = bookings?.length ?? 0
 
             return (
-              <div key={instance.id} style={{
-                background: 'var(--c-surface)',
-                border: '1px solid var(--c-border-strong)',
-                borderRadius: 16, overflow: 'hidden',
-              }}>
+              <div key={instance.id} className="overflow-hidden rounded-2xl border border-line-strong bg-surface">
                 {/* Class header */}
-                <div style={{
-                  padding: '20px 22px',
-                  borderBottom: '1px solid var(--c-border)',
-                  background: 'var(--c-surface-sunk)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <div className="mono" style={{ fontSize: 28, fontWeight: 700, color: 'var(--circle-lime)', letterSpacing: '-0.02em' }}>{time}</div>
-                    <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>
+                <div className="border-b border-line bg-canvas px-[22px] py-5">
+                  <div className="mb-1.5 flex items-baseline justify-between">
+                    <div className="font-mono text-[28px] font-bold tracking-[-0.02em] text-accent-ink">{time}</div>
+                    <div className="font-mono text-xs text-ink-3">
                       {checkedInCount}/{totalBooked} in · cap {instance.capacity}
                     </div>
                   </div>
-                  <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 22, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.015em' }}>
+                  <div className="font-display text-[22px] font-semibold tracking-[-0.015em] text-ink">
                     {className}
                   </div>
                   {coachName && (
-                    <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginTop: 4 }}>
+                    <div className="mt-1 font-mono text-xs text-ink-3">
                       Coach {coachName}
                     </div>
                   )}
                 </div>
 
                 {/* Athletes list */}
-                <div style={{ padding: '14px 22px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className="flex flex-col gap-1.5 px-[22px] pb-[18px] pt-3.5">
                   {(!bookings || bookings.length === 0) && (
-                    <p style={{ fontSize: 13, color: 'var(--c-ink-faint)' }}>No bookings yet.</p>
+                    <p className="text-[13px] text-ink-faint">No bookings yet.</p>
                   )}
                   {bookings?.map((booking) => {
                     const athleteProfile = Array.isArray(booking.profiles) ? booking.profiles[0] : booking.profiles
@@ -287,8 +250,8 @@ export default async function WhiteboardPage() {
                       : null
                     const streak = streakByAthlete.get(booking.athlete_id) ?? 0
                     return (
-                      <div key={booking.athlete_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1 }}>
+                      <div key={booking.athlete_id} className="flex items-center gap-2">
+                        <div className="flex-1">
                           <CheckInButton
                             instanceId={instance.id}
                             athleteId={booking.athlete_id}
@@ -300,13 +263,13 @@ export default async function WhiteboardPage() {
                           />
                         </div>
                         {streak > 0 && (
-                          <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--circle-lime-ink)', whiteSpace: 'nowrap' }}>🔥{streak}</span>
+                          <span className="whitespace-nowrap font-mono text-xs font-bold text-accent-ink">🔥{streak}</span>
                         )}
                         {load && (
-                          <span className="mono" style={{
-                            fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap',
-                            color: oneRm !== null ? 'var(--circle-lime-ink)' : 'var(--c-ink-faint)',
-                          }}>{load}</span>
+                          <span className={cn(
+                            'whitespace-nowrap font-mono text-[15px] font-bold',
+                            oneRm !== null ? 'text-accent-ink' : 'text-ink-faint'
+                          )}>{load}</span>
                         )}
                       </div>
                     )

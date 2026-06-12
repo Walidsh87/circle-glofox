@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 import { checkIn } from '../_actions/check-in'
 import { OverrideModal } from './override-modal'
 import type { MembershipStatus } from '@/lib/membership-status'
@@ -57,42 +58,27 @@ export function CheckInButton({
       <button
         onClick={handleTap}
         disabled={loading || done}
-        style={{
-          width: '100%', borderRadius: 12, padding: '14px 16px',
-          textAlign: 'left', fontWeight: 600, fontSize: 15,
-          cursor: done ? 'default' : 'pointer',
-          background: done ? 'var(--c-ok-soft)' : 'var(--c-surface-alt)',
-          border: `1px solid ${done ? 'var(--c-ok-soft)' : 'var(--c-border)'}`,
-          color: done ? 'var(--c-ok-ink)' : 'var(--c-ink)',
-          fontFamily: 'inherit', transition: 'background 150ms',
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}
+        className={cn(
+          'flex w-full items-center gap-2.5 rounded-xl border px-4 py-3.5 text-left text-[15px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          done
+            ? 'cursor-default border-ok-soft bg-ok-soft text-ok'
+            : 'border-line bg-surface-2 text-ink hover:border-line-strong'
+        )}
       >
-        {done && <span style={{ fontSize: 14 }}>✓</span>}
+        {done && <span className="text-sm">✓</span>}
         {showDot && (
-          <span
-            title={dotTitle}
-            style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: 'var(--c-danger)', flexShrink: 0,
-            }}
-          />
+          <span title={dotTitle} className="h-2 w-2 shrink-0 rounded-full bg-danger" />
         )}
         {showStatusIndicator && hasCredit && (
           <span
-            className="mono"
             title="Booked with a class credit"
-            style={{
-              fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-              background: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)',
-              textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
-            }}
+            className="shrink-0 rounded bg-accent-soft px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] text-accent-ink"
           >
             Pack
           </span>
         )}
-        <span style={{ flex: 1 }}>{athleteName}</span>
-        {loading && <span style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>…</span>}
+        <span className="flex-1">{athleteName}</span>
+        {loading && <span className="text-[11px] text-ink-faint">…</span>}
       </button>
       <OverrideModal
         open={modalOpen}

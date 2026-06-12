@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { cn } from '@/lib/utils'
 import { toggleReminders } from '../_actions/toggle-reminders'
 
 export function RemindersToggle({ initialEnabled }: { initialEnabled: boolean }) {
@@ -24,20 +25,13 @@ export function RemindersToggle({ initialEnabled }: { initialEnabled: boolean })
       type="button"
       onClick={handleClick}
       disabled={pending}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 10,
-        padding: '6px 10px', borderRadius: 999,
-        border: '1px solid var(--c-border)',
-        background: enabled ? 'var(--c-ok-soft)' : 'var(--c-surface-alt)',
-        cursor: pending ? 'not-allowed' : 'pointer',
-        fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
-        color: enabled ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)',
-      }}
+      aria-pressed={enabled}
+      className={cn(
+        'inline-flex items-center gap-2.5 rounded-full border border-line px-2.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed',
+        enabled ? 'bg-ok-soft text-ok' : 'bg-surface-2 text-ink-3'
+      )}
     >
-      <span style={{
-        width: 8, height: 8, borderRadius: '50%',
-        background: enabled ? 'var(--c-ok-ink)' : 'var(--c-ink-faint)',
-      }} />
+      <span className={cn('h-2 w-2 rounded-full', enabled ? 'bg-ok' : 'bg-ink-faint')} />
       {enabled ? 'ON' : 'OFF'}
     </button>
   )

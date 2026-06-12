@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { markPaid, markUnpaid } from '../_actions/mark-paid'
 import { createCheckout } from '../_actions/create-checkout'
+import { cn } from '@/lib/utils'
 
 type Props = {
   membershipId: string
@@ -10,6 +11,9 @@ type Props = {
   hasStripePlan: boolean
   stripeConnected: boolean
 }
+
+const smallBtn =
+  'h-8 rounded-md px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50'
 
 export function PaymentActions({ membershipId, currentStatus, hasStripePlan, stripeConnected }: Props) {
   const [loading, setLoading] = useState(false)
@@ -36,21 +40,12 @@ export function PaymentActions({ membershipId, currentStatus, hasStripePlan, str
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+    <div className="flex items-center justify-end gap-1.5">
       {stripeConnected && hasStripePlan && !checkoutUrl && (
         <button
           onClick={handleSendLink}
           disabled={loading}
-          style={{
-            height: 30, padding: '0 12px',
-            background: 'var(--circle-lime-soft)',
-            border: '1px solid var(--circle-lime)',
-            borderRadius: 6, cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: 12, fontWeight: 600,
-            color: 'var(--circle-lime-ink)',
-            fontFamily: 'inherit',
-            opacity: loading ? 0.5 : 1,
-          }}
+          className={cn(smallBtn, 'border border-accent bg-accent-soft text-accent-ink')}
         >
           {loading ? '…' : 'Send link'}
         </button>
@@ -58,12 +53,7 @@ export function PaymentActions({ membershipId, currentStatus, hasStripePlan, str
       {checkoutUrl && (
         <button
           onClick={handleCopy}
-          style={{
-            height: 30, padding: '0 12px',
-            background: 'var(--c-ok-soft)', border: '1px solid var(--c-ok-ink)',
-            borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            color: 'var(--c-ok-ink)', fontFamily: 'inherit',
-          }}
+          className={cn(smallBtn, 'border border-ok bg-ok-soft text-ok')}
           title={checkoutUrl}
         >
           Copy link ✓
@@ -72,16 +62,7 @@ export function PaymentActions({ membershipId, currentStatus, hasStripePlan, str
       <button
         onClick={handleToggle}
         disabled={loading}
-        style={{
-          height: 30, padding: '0 12px',
-          background: 'transparent',
-          border: '1px solid var(--c-border)',
-          borderRadius: 6, cursor: loading ? 'not-allowed' : 'pointer',
-          fontSize: 12.5, fontWeight: 500,
-          color: isPaid ? 'var(--c-ink-muted)' : 'var(--c-ok-ink)',
-          fontFamily: 'inherit', transition: 'opacity 120ms',
-          opacity: loading ? 0.5 : 1,
-        }}
+        className={cn(smallBtn, 'border border-line bg-transparent font-medium', isPaid ? 'text-ink-3' : 'text-ok')}
       >
         {loading ? '…' : isPaid ? 'Mark unpaid' : 'Mark paid'}
       </button>

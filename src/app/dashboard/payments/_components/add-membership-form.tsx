@@ -13,7 +13,8 @@ function SubmitButton() {
 type Athlete = { id: string; full_name: string }
 type Plan = { id: string; name: string; monthly_price_aed: number | null; provider_plan_ref: string | null; is_trial: boolean; trial_days: number | null }
 
-const cls = 'rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
+const cls =
+  'rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function AddMembershipForm({ athletes, stripeConnected, plans, athletesWithTrials }: { athletes: Athlete[]; stripeConnected: boolean; plans: Plan[]; athletesWithTrials: string[] }) {
   const [state, formAction] = useFormState(saveMembership, { error: null })
@@ -63,12 +64,12 @@ export function AddMembershipForm({ athletes, stripeConnected, plans, athletesWi
       <input name="monthlyPrice" type="number" min={0} step={0.01} placeholder="Price (AED)" value={monthlyPrice} onChange={(e) => setMonthlyPrice(e.target.value)} className={cls} />
       <input name="startDate" type="date" required defaultValue={today} className={cls} />
       {stripeConnected && (
-        <input name="stripePriceId" type="text" placeholder="Stripe Price ID (optional, e.g. price_...)" value={stripePriceId} onChange={(e) => setStripePriceId(e.target.value)} className={`col-span-2 sm:col-span-4 font-mono ${cls}`} />
+        <input name="stripePriceId" type="text" placeholder="Stripe Price ID (optional, e.g. price_...)" value={stripePriceId} onChange={(e) => setStripePriceId(e.target.value)} className={`col-span-2 font-mono sm:col-span-4 ${cls}`} />
       )}
-      {showTrialWarning && <p className="col-span-2 sm:col-span-4 text-sm" style={{ color: 'var(--c-warn-ink)' }}>⚠️ This athlete has had a trial before.</p>}
-      <div className="col-span-2 sm:col-span-4 flex items-center gap-3">
+      {showTrialWarning && <p className="col-span-2 text-sm text-warn sm:col-span-4">⚠️ This athlete has had a trial before.</p>}
+      <div className="col-span-2 flex items-center gap-3 sm:col-span-4">
         <SubmitButton />
-        {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+        {state.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
       </div>
     </form>
   )

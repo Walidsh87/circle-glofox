@@ -1,13 +1,19 @@
 import { requirePage } from '@/lib/auth/page-guards'
+import { redirect } from 'next/navigation'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { cn } from '@/lib/utils'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import { InboxPoller } from '../inbox/_components/inbox-poller'
 import { Composer } from '../inbox/_components/composer'
 import { markRead } from '../inbox/_actions/mark-read'
 
 export default async function MessagesPage() {
-  const { supabase, user, profile, boxName } = await requirePage()
+  const { supabase, user, profile, boxName, box } = await requirePage()
+  // Staff messaging home is the inbox — without this, the sidebar entry lets
+  // staff open a conversation with THEMSELVES (Composer self-targets).
+  if ((ALL_STAFF_ROLES as readonly string[]).includes(profile.role)) redirect('/dashboard/inbox')
   const gymName = boxName || 'the gym'
+  const tz = box.timezone ?? 'Asia/Dubai'
 
   const { data: conv } = await supabase.from('conversations').select('id').eq('member_id', user.id).maybeSingle()
   let messages: { id: string; sender_role: string; body: string; created_at: string }[] = []
@@ -40,7 +46,7 @@ export default async function MessagesPage() {
                 {m.body}
               </div>
               <div className={cn('mt-0.5 font-mono text-[10.5px] text-ink-3', mine ? 'text-right' : 'text-left')}>
-                {mine ? 'You' : gymName} · {new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                {mine ? 'You' : gymName} · {new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz })}
               </div>
             </div>
           )

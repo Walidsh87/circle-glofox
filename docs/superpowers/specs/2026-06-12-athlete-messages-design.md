@@ -1,5 +1,7 @@
 # Athlete Messages — member side of the unified inbox (#83) — Design
 
+> **Execution correction (same day):** the "dead link / page never built" premise below was WRONG — `/dashboard/messages` shipped with #40 (commit `873df77`, T8) and was UI-migrated in B3-5b. The page was never verified during this brainstorm. Actual #83 deltas shipped: (1) the push-on-staff-reply hook, (2) staff redirect to `/dashboard/inbox` (staff could previously open a conversation with THEMSELVES via the unconditional sidebar entry), (3) gym-timezone message timestamps (was server TZ). Everything else below describing the page describes what already existed.
+
 **Date:** 2026-06-12
 **Roadmap:** Tier 10 #83 `[G-gap]` DM coach 1:1 (lives inside #40 unified inbox)
 **Discovery that shapes everything:** #40 already shipped the member half of the plumbing — `conversations`/`messages` member RLS policies (select/insert/update incl. self-creating a conversation), the `member_unread` flag, the role-branching `sendMessage` (member branch self-targets, sets `staff_unread`, even revalidates `/dashboard/messages`) and `markRead` (member branch clears `member_unread`), **and the sidebar "Messages" entry pointing at `/dashboard/messages` — which 404s in production today.** #83 = build the page that dead link promises + one push hook. **No migration.**

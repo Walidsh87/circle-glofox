@@ -2,19 +2,10 @@ import { requireProgrammingPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
 import { Sidebar } from '@/components/sidebar'
 import { monthGridDays, prevMonth, nextMonth, monthRange, formatMonth } from './_lib/calendar'
+import { todayInTimezone } from '@/lib/timezone'
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-// Match the rest of the app: "today" is the gym's local date, not server UTC.
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
-  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
-}
-function todayInTimezone(timezone: string): string {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  return new Date(Date.now() + offsetHours * 3_600_000).toISOString().slice(0, 10)
-}
 
 export default async function ProgrammingPage(ctx: { searchParams: Promise<{ month?: string }> }) {
   const searchParams = await ctx.searchParams

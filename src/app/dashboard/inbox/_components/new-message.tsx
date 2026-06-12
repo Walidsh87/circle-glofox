@@ -2,9 +2,15 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { sendMessage } from '../_actions/send-message'
 
 export type MemberOption = { id: string; full_name: string }
+
+const inputClass =
+  'w-full rounded-lg border border-line bg-canvas px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function NewMessage({ members }: { members: MemberOption[] }) {
   const router = useRouter()
@@ -24,23 +30,21 @@ export function NewMessage({ members }: { members: MemberOption[] }) {
     })
   }
 
-  const inputStyle = { padding: '9px 12px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 13.5, color: 'var(--c-ink)' } as const
-
   if (members.length === 0) return null
   if (!open) {
-    return <button onClick={() => setOpen(true)} style={{ padding: '8px 14px', background: '#111', color: '#fff', borderRadius: 8, border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>New message</button>
+    return <Button size="sm" onClick={() => setOpen(true)}>New message</Button>
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 12, background: 'var(--c-surface)', border: '1px solid var(--c-border)', marginBottom: 12 }}>
-      <select style={inputStyle} value={memberId} onChange={(e) => setMemberId(e.target.value)}>
+    <Card className="mb-3 flex flex-col gap-2 p-3">
+      <select className={inputClass} value={memberId} onChange={(e) => setMemberId(e.target.value)}>
         {members.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
       </select>
-      <textarea style={{ ...inputStyle, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} placeholder="Message…" value={body} onChange={(e) => setBody(e.target.value)} />
-      {error && <p style={{ color: 'var(--c-danger)', fontSize: 12.5 }}>{error}</p>}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={onSend} disabled={pending || !body.trim()} style={{ padding: '8px 16px', background: '#111', color: '#fff', borderRadius: 8, border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>Send</button>
-        <button onClick={() => setOpen(false)} style={{ padding: '8px 16px', background: 'transparent', color: 'var(--c-ink)', borderRadius: 8, border: '1px solid var(--c-border)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+      <textarea className={cn(inputClass, 'min-h-[70px] resize-y')} placeholder="Message…" value={body} onChange={(e) => setBody(e.target.value)} />
+      {error && <p role="alert" className="text-[12.5px] text-danger">{error}</p>}
+      <div className="flex gap-2">
+        <Button size="sm" onClick={onSend} disabled={pending || !body.trim()}>Send</Button>
+        <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
       </div>
-    </div>
+    </Card>
   )
 }

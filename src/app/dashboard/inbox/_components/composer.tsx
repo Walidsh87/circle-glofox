@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { sendMessage } from '../_actions/send-message'
 
 export function Composer({ memberId, navigateToThread = false, waHint }: { memberId: string; navigateToThread?: boolean; waHint?: string }) {
@@ -23,20 +24,20 @@ export function Composer({ memberId, navigateToThread = false, waHint }: { membe
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {error && <p style={{ color: 'var(--c-danger)', fontSize: 12.5 }}>{error}</p>}
-      {waHint && <p style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>{waHint}</p>}
-      <div style={{ display: 'flex', gap: 8 }}>
+    <div className="flex flex-col gap-1.5">
+      {error && <p role="alert" className="text-[12.5px] text-danger">{error}</p>}
+      {waHint && <p className="text-[11.5px] text-ink-3">{waHint}</p>}
+      <div className="flex gap-2">
         <input
-          style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)' }}
+          className="flex-1 rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           placeholder="Type a reply…"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend() } }}
         />
-        <button onClick={onSend} disabled={pending || !body.trim()} style={{ padding: '10px 18px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', opacity: pending || !body.trim() ? 0.6 : 1 }}>
+        <Button onClick={onSend} disabled={pending || !body.trim()}>
           {pending ? '…' : 'Send'}
-        </button>
+        </Button>
       </div>
     </div>
   )

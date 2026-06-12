@@ -5,6 +5,7 @@ import { toggleTemplate } from '../_actions/toggle-template'
 import { deleteTemplate } from '../_actions/delete-template'
 import { EditTemplateForm } from './edit-template-form'
 import { Button } from '@/components/ui/button'
+import { Dialog } from '@/components/ui/dialog'
 
 type Coach = { id: string; full_name: string }
 
@@ -47,7 +48,7 @@ export function TemplateActions({
 
   return (
     <>
-      <div className="flex items-center gap-2 justify-end">
+      <div className="flex items-center justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={() => setShowEdit(true)} disabled={loading}>
           Edit
         </Button>
@@ -59,50 +60,24 @@ export function TemplateActions({
           size="sm"
           onClick={handleDelete}
           disabled={loading}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="text-danger hover:bg-danger-soft hover:text-danger"
         >
           Delete
         </Button>
       </div>
 
-      {showEdit && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.45)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 50,
-        }}>
-          <div style={{
-            background: 'var(--c-surface)',
-            border: '1px solid var(--c-border)',
-            borderRadius: 14,
-            padding: '24px',
-            width: 480,
-            maxWidth: '90vw',
-            boxShadow: 'var(--c-shadow-sm)',
-          }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              alignItems: 'center', marginBottom: 18,
-            }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>
-                Edit class template
-              </p>
-              <Button variant="ghost" size="sm" onClick={() => setShowEdit(false)}>✕</Button>
-            </div>
-            <EditTemplateForm
-              templateId={templateId}
-              defaultName={name}
-              defaultWeekday={weekday}
-              defaultStartTime={startTime}
-              defaultCapacity={capacity}
-              defaultCoachId={coachId}
-              coaches={coaches}
-              onSuccess={() => setShowEdit(false)}
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={showEdit} onClose={() => setShowEdit(false)} title="Edit class template" className="max-w-lg">
+        <EditTemplateForm
+          templateId={templateId}
+          defaultName={name}
+          defaultWeekday={weekday}
+          defaultStartTime={startTime}
+          defaultCapacity={capacity}
+          defaultCoachId={coachId}
+          coaches={coaches}
+          onSuccess={() => setShowEdit(false)}
+        />
+      </Dialog>
     </>
   )
 }

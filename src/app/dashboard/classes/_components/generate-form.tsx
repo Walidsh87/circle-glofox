@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { generateInstances } from '../_actions/generate-instances'
 
 export function GenerateForm() {
@@ -25,42 +26,26 @@ export function GenerateForm() {
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <label style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>Start date</label>
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-2">
+        <label className="text-[13px] text-ink-3">Start date</label>
         <input
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          style={{
-            height: 34, padding: '0 10px',
-            border: '1px solid var(--c-border-strong)', borderRadius: 8,
-            background: 'var(--c-surface)', fontSize: 13, color: 'var(--c-ink)',
-            fontFamily: 'inherit', outline: 'none',
-          }}
+          className="h-9 rounded-lg border border-line-strong bg-surface px-2.5 text-[13px] text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
       </div>
-      <button
-        onClick={handleGenerate}
-        disabled={loading || !startDate}
-        style={{
-          height: 34, padding: '0 16px',
-          background: loading || !startDate ? 'var(--c-surface-alt)' : 'var(--circle-lime)',
-          border: 'none', borderRadius: 8,
-          fontSize: 13, fontWeight: 700, cursor: loading || !startDate ? 'not-allowed' : 'pointer',
-          color: loading || !startDate ? 'var(--c-ink-muted)' : 'var(--circle-ink)',
-          fontFamily: 'inherit', transition: 'opacity 120ms',
-        }}
-      >
+      <Button size="sm" onClick={handleGenerate} disabled={loading || !startDate}>
         {loading ? 'Generating…' : 'Generate 7 days'}
-      </button>
+      </Button>
       {result && (
-        <span style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>
+        <span className="text-[13px] text-ink-3">
           {result.created} instance{result.created !== 1 ? 's' : ''} created
           {result.skipped > 0 ? `, ${result.skipped} already existed` : ''}.
         </span>
       )}
-      {error && <span style={{ fontSize: 13, color: 'var(--c-danger)' }}>{error}</span>}
+      {error && <span role="alert" className="text-[13px] text-danger">{error}</span>}
     </div>
   )
 }

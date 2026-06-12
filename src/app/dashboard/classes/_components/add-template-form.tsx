@@ -7,6 +7,9 @@ import { useEffect, useRef } from 'react'
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+const inputClass =
+  'rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
@@ -33,24 +36,14 @@ export function AddTemplateForm({ coaches }: { coaches: Coach[] }) {
         type="text"
         required
         placeholder="Class name (e.g. CrossFit 6 AM)"
-        className="sm:col-span-2 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className={`${inputClass} sm:col-span-2`}
       />
-      <select
-        name="weekday"
-        required
-        className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-      >
+      <select name="weekday" required className={inputClass}>
         {WEEKDAYS.map((day, i) => (
           <option key={i} value={i}>{day}</option>
         ))}
       </select>
-      <input
-        name="startTime"
-        type="time"
-        required
-        defaultValue="06:00"
-        className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-      />
+      <input name="startTime" type="time" required defaultValue="06:00" className={inputClass} />
       <input
         name="capacity"
         type="number"
@@ -58,21 +51,18 @@ export function AddTemplateForm({ coaches }: { coaches: Coach[] }) {
         max={100}
         defaultValue={12}
         placeholder="Capacity"
-        className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className={inputClass}
       />
-      <select
-        name="coachId"
-        className="rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-      >
+      <select name="coachId" className={inputClass}>
         <option value="">No coach</option>
         {coaches.map((c) => (
           <option key={c.id} value={c.id}>{c.full_name}</option>
         ))}
       </select>
       <input name="durationMinutes" type="hidden" value={60} />
-      <div className="col-span-2 sm:col-span-6 flex items-center gap-3">
+      <div className="col-span-2 flex items-center gap-3 sm:col-span-6">
         <SubmitButton />
-        {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+        {state.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
       </div>
     </form>
   )

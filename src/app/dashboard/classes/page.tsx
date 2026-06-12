@@ -1,5 +1,9 @@
 import { requirePage } from '@/lib/auth/page-guards'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Table, Th, Td } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 import { AddTemplateForm } from './_components/add-template-form'
 import { TemplateActions } from './_components/template-actions'
 import { GenerateForm } from './_components/generate-form'
@@ -34,109 +38,79 @@ export default async function ClassesPage() {
   ])
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="classes" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)',
-          display: 'flex', alignItems: 'center', padding: '0 32px',
-          background: 'var(--c-surface)', flexShrink: 0, gap: 12,
-        }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
-            Class Schedule
-          </h1>
-          <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>
-            {templates?.length ?? 0} templates
-          </span>
-        </header>
-
-        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          {isStaff && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--c-shadow-sm)' }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Add class template</p>
-                <AddTemplateForm coaches={coaches ?? []} />
-              </div>
-              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--c-shadow-sm)' }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Generate instances</p>
-                <GenerateForm />
-              </div>
-            </div>
-          )}
-
-          <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-surface-sunk)' }}>
-                  <Th>Class</Th>
-                  <Th>Day</Th>
-                  <Th>Time</Th>
-                  <Th>Cap</Th>
-                  <Th>Coach</Th>
-                  <Th>Status</Th>
-                  {isStaff && <th style={{ padding: '10px 16px' }} />}
-                </tr>
-              </thead>
-              <tbody>
-                {templates?.map((t) => {
-                  const coach = t.profiles as { full_name: string } | { full_name: string }[] | null
-                  const coachName = Array.isArray(coach) ? coach[0]?.full_name : coach?.full_name
-                  return (
-                    <tr key={t.id} style={{ borderBottom: '1px solid var(--c-divider)', opacity: t.active ? 1 : 0.5 }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--c-ink)' }}>{t.name}</td>
-                      <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }} className="mono">{WEEKDAYS[t.weekday]}</td>
-                      <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }} className="mono">{formatTime(t.start_time)}</td>
-                      <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }} className="mono">{t.capacity}</td>
-                      <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{coachName ?? '—'}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center',
-                          padding: '2px 8px', borderRadius: 999, fontSize: 11.5, fontWeight: 500,
-                          background: t.active ? 'var(--c-ok-soft)' : 'var(--c-surface-alt)',
-                          color: t.active ? 'var(--c-ok-ink)' : 'var(--c-ink-muted)',
-                        }}>{t.active ? 'Active' : 'Inactive'}</span>
-                      </td>
-                      {isStaff && (
-                        <td style={{ padding: '12px 16px' }}>
-                          <TemplateActions
-                            templateId={t.id}
-                            active={t.active}
-                            name={t.name}
-                            weekday={t.weekday}
-                            startTime={t.start_time}
-                            capacity={t.capacity}
-                            coachId={t.coach_id}
-                            coaches={coaches ?? []}
-                          />
-                        </td>
-                      )}
-                    </tr>
-                  )
-                })}
-                {(!templates || templates.length === 0) && (
-                  <tr>
-                    <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
-                      No class templates yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+    <DashboardShell
+      active="classes"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Class Schedule"
+      actions={<span className="font-mono text-xs text-ink-3">{templates?.length ?? 0} templates</span>}
+    >
+      {isStaff && (
+        <div className="mb-5 grid gap-3.5 lg:grid-cols-2">
+          <Card className="p-5">
+            <p className="mb-3 text-[13px] font-semibold text-ink">Add class template</p>
+            <AddTemplateForm coaches={coaches ?? []} />
+          </Card>
+          <Card className="p-5">
+            <p className="mb-3 text-[13px] font-semibold text-ink">Generate instances</p>
+            <GenerateForm />
+          </Card>
         </div>
-      </div>
-    </div>
-  )
-}
+      )}
 
-function Th({ children }: { children: React.ReactNode }) {
-  return (
-    <th style={{
-      padding: '10px 16px', textAlign: 'left',
-      fontFamily: 'var(--font-geist-mono)', fontSize: 10.5,
-      fontWeight: 500, color: 'var(--c-ink-muted)',
-      textTransform: 'uppercase', letterSpacing: '0.06em',
-    }}>{children}</th>
+      <Table>
+        <thead>
+          <tr className="bg-surface-2">
+            <Th>Class</Th>
+            <Th>Day</Th>
+            <Th>Time</Th>
+            <Th>Cap</Th>
+            <Th>Coach</Th>
+            <Th>Status</Th>
+            {isStaff && <Th />}
+          </tr>
+        </thead>
+        <tbody>
+          {templates?.map((t) => {
+            const coach = t.profiles as { full_name: string } | { full_name: string }[] | null
+            const coachName = Array.isArray(coach) ? coach[0]?.full_name : coach?.full_name
+            return (
+              <tr key={t.id} className={cn('last:[&>td]:border-0', !t.active && 'opacity-50')}>
+                <Td className="font-semibold">{t.name}</Td>
+                <Td className="mono text-ink-3">{WEEKDAYS[t.weekday]}</Td>
+                <Td className="mono text-ink-3">{formatTime(t.start_time)}</Td>
+                <Td className="mono text-ink-3">{t.capacity}</Td>
+                <Td className="text-ink-3">{coachName ?? '—'}</Td>
+                <Td>
+                  <Badge tone={t.active ? 'ok' : 'neutral'}>{t.active ? 'Active' : 'Inactive'}</Badge>
+                </Td>
+                {isStaff && (
+                  <Td>
+                    <TemplateActions
+                      templateId={t.id}
+                      active={t.active}
+                      name={t.name}
+                      weekday={t.weekday}
+                      startTime={t.start_time}
+                      capacity={t.capacity}
+                      coachId={t.coach_id}
+                      coaches={coaches ?? []}
+                    />
+                  </Td>
+                )}
+              </tr>
+            )
+          })}
+          {(!templates || templates.length === 0) && (
+            <tr>
+              <td colSpan={7} className="px-4 py-10 text-center text-[13px] text-ink-3">
+                No class templates yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
+    </DashboardShell>
   )
 }

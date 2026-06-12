@@ -7,6 +7,10 @@ import { useEffect } from 'react'
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+const inputClass =
+  'w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const labelClass = 'mb-1 block text-xs font-medium text-ink-3'
+
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
@@ -46,39 +50,24 @@ export function EditTemplateForm({
     if (state.saved) onSuccess()
   }, [state.saved, onSuccess])
 
-  const inputStyle = {
-    width: '100%',
-    borderRadius: 8,
-    border: '1px solid var(--c-border)',
-    background: 'var(--c-background)',
-    padding: '8px 12px',
-    fontSize: 13,
-    outline: 'none',
-    color: 'var(--c-ink)',
-  }
-
   return (
-    <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <form action={formAction} className="flex flex-col gap-3">
       <div>
-        <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--c-ink-muted)', display: 'block', marginBottom: 4 }}>
-          Class name
-        </label>
+        <label className={labelClass}>Class name</label>
         <input
           name="name"
           type="text"
           required
           defaultValue={defaultName}
           placeholder="e.g. CrossFit 6 AM"
-          style={inputStyle}
+          className={inputClass}
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div className="grid grid-cols-2 gap-2.5">
         <div>
-          <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--c-ink-muted)', display: 'block', marginBottom: 4 }}>
-            Day
-          </label>
-          <select name="weekday" required defaultValue={defaultWeekday} style={inputStyle}>
+          <label className={labelClass}>Day</label>
+          <select name="weekday" required defaultValue={defaultWeekday} className={inputClass}>
             {WEEKDAYS.map((day, i) => (
               <option key={i} value={i}>{day}</option>
             ))}
@@ -86,24 +75,14 @@ export function EditTemplateForm({
         </div>
 
         <div>
-          <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--c-ink-muted)', display: 'block', marginBottom: 4 }}>
-            Start time
-          </label>
-          <input
-            name="startTime"
-            type="time"
-            required
-            defaultValue={defaultStartTime}
-            style={inputStyle}
-          />
+          <label className={labelClass}>Start time</label>
+          <input name="startTime" type="time" required defaultValue={defaultStartTime} className={inputClass} />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div className="grid grid-cols-2 gap-2.5">
         <div>
-          <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--c-ink-muted)', display: 'block', marginBottom: 4 }}>
-            Capacity
-          </label>
+          <label className={labelClass}>Capacity</label>
           <input
             name="capacity"
             type="number"
@@ -111,15 +90,13 @@ export function EditTemplateForm({
             max={100}
             required
             defaultValue={defaultCapacity}
-            style={inputStyle}
+            className={inputClass}
           />
         </div>
 
         <div>
-          <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--c-ink-muted)', display: 'block', marginBottom: 4 }}>
-            Coach
-          </label>
-          <select name="coachId" defaultValue={defaultCoachId ?? ''} style={inputStyle}>
+          <label className={labelClass}>Coach</label>
+          <select name="coachId" defaultValue={defaultCoachId ?? ''} className={inputClass}>
             <option value="">No coach</option>
             {coaches.map((c) => (
               <option key={c.id} value={c.id}>{c.full_name}</option>
@@ -128,11 +105,9 @@ export function EditTemplateForm({
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+      <div className="mt-1 flex items-center gap-2.5">
         <SubmitButton />
-        {state.error && (
-          <p style={{ fontSize: 12, color: 'var(--c-destructive)' }}>{state.error}</p>
-        )}
+        {state.error && <p role="alert" className="text-xs text-danger">{state.error}</p>}
       </div>
     </form>
   )

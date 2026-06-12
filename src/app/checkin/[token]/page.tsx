@@ -22,10 +22,10 @@ type BookingRow = {
 
 function Shell({ boxName, children }: { boxName: string; children: React.ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)', display: 'flex', justifyContent: 'center', padding: '40px 20px' }}>
-      <div style={{ width: '100%', maxWidth: 460 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 26, fontFamily: 'var(--font-space-grotesk)', fontWeight: 700, fontSize: 17, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--c-ink)' }}>
-          <CircleMark size={22} />
+    <div className="theme-dark flex min-h-screen justify-center bg-canvas px-5 py-10">
+      <div className="w-full max-w-[460px]">
+        <div className="mb-[26px] flex items-center gap-[9px] font-display text-[17px] font-bold uppercase tracking-[0.04em] text-ink">
+          <CircleMark size={22} onDark />
           <span>{boxName}</span>
         </div>
         {children}
@@ -49,15 +49,20 @@ export default async function CheckinPage(ctx: { params: Promise<{ token: string
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return <GymLoginForm gymName={box.name} gymSlug={box.slug ?? ''} redirectTo={`/checkin/${token}`} />
+    // Kiosk is pinned dark even for the login step (spec: check-in always dark).
+    return (
+      <div className="theme-dark" style={{ display: 'contents' }}>
+        <GymLoginForm gymName={box.name} gymSlug={box.slug ?? ''} redirectTo={`/checkin/${token}`} />
+      </div>
+    )
   }
 
   const { data: profile } = await supabase.from('profiles').select('box_id, full_name').eq('id', user.id).single()
   if (!profile || profile.box_id !== box.id) {
     return (
       <Shell boxName={box.name}>
-        <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 24, color: 'var(--c-ink)', marginBottom: 8 }}>Wrong gym</h1>
-        <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>This QR belongs to another gym.</p>
+        <h1 className="mb-2 font-display text-2xl text-ink">Wrong gym</h1>
+        <p className="text-sm text-ink-3">This QR belongs to another gym.</p>
       </Shell>
     )
   }
@@ -90,33 +95,35 @@ export default async function CheckinPage(ctx: { params: Promise<{ token: string
 
   return (
     <Shell boxName={box.name}>
-      <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 26, letterSpacing: '-0.02em', color: 'var(--c-ink)', marginBottom: 4 }}>
+      <h1 className="mb-1 font-display text-[26px] tracking-[-0.02em] text-ink">
         Hi {profile.full_name?.split(' ')[0] ?? 'there'} 👋
       </h1>
-      <p style={{ fontSize: 14, color: 'var(--c-ink-muted)', marginBottom: 22 }}>Tap to check into today&apos;s class.</p>
+      <p className="mb-[22px] text-sm text-ink-3">Tap to check into today&apos;s class.</p>
 
       {bookings.length === 0 ? (
-        <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '28px 22px', textAlign: 'center' }}>
-          <p style={{ fontSize: 14.5, color: 'var(--c-ink)', fontWeight: 600, marginBottom: 6 }}>Nothing booked today</p>
-          <p style={{ fontSize: 13, color: 'var(--c-ink-muted)', marginBottom: 16 }}>Book a class first, then scan again to check in.</p>
-          <Link href="/dashboard/schedule" style={{ display: 'inline-block', padding: '10px 18px', borderRadius: 10, background: 'var(--circle-lime)', color: 'var(--circle-ink)', fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>Book a class</Link>
+        <div className="rounded-[14px] border border-line bg-surface px-[22px] py-7 text-center">
+          <p className="mb-1.5 text-[14.5px] font-semibold text-ink">Nothing booked today</p>
+          <p className="mb-4 text-[13px] text-ink-3">Book a class first, then scan again to check in.</p>
+          <Link href="/dashboard/schedule" className="inline-block rounded-[10px] bg-accent px-[18px] py-2.5 text-[13.5px] font-bold text-accent-contrast transition-colors hover:bg-accent-hover">
+            Book a class
+          </Link>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
           {bookings.map((b) => (
-            <div key={b.instanceId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '16px 18px' }}>
+            <div key={b.instanceId} className="flex items-center justify-between gap-3 rounded-[14px] border border-line bg-surface px-[18px] py-4">
               <div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-ink)' }}>{b.name}</div>
-                <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginTop: 2 }}>{localTime(b.startsAt, offset)}</div>
+                <div className="text-[15px] font-semibold text-ink">{b.name}</div>
+                <div className="mt-0.5 font-mono text-xs text-ink-3">{localTime(b.startsAt, offset)}</div>
               </div>
               {b.checkedIn ? (
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>✓ Checked in</span>
+                <span className="text-[13.5px] font-bold text-accent-ink">✓ Checked in</span>
               ) : b.window === 'open' ? (
                 <CheckInButton instanceId={b.instanceId} />
               ) : b.window === 'early' ? (
-                <span style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>Opens at {localTime(new Date(new Date(b.startsAt).getTime() - 60 * 60_000).toISOString(), offset)}</span>
+                <span className="text-[12.5px] text-ink-3">Opens at {localTime(new Date(new Date(b.startsAt).getTime() - 60 * 60_000).toISOString(), offset)}</span>
               ) : (
-                <span style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>Closed</span>
+                <span className="text-[12.5px] text-ink-3">Closed</span>
               )}
             </div>
           ))}

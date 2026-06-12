@@ -18,6 +18,8 @@ import { SkillsEditor } from './_components/skills-editor'
 import { MemberFollowups } from './_components/member-followups'
 import { MyDetailsCard } from './_components/my-details-card'
 import { SelfAgreementsCard } from './_components/self-agreements-card'
+import { ParqCard } from './_components/parq-card'
+import { flaggedQuestions } from '@/lib/parq'
 import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_components/task-item'
 import { ReferCard } from './_components/refer-card'
 import { ChangePasswordCard } from './_components/change-password-card'
@@ -276,6 +278,26 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     termsDoc = gt as typeof termsDoc
   }
 
+  // PAR-Q (#70): latest response — staff card + athlete self view.
+  type ParqResponseData = { parq_version: number; answers: boolean[]; has_yes: boolean; signed_at: string; reviewed_at: string | null; reviewed_by: string | null }
+  let parqResponse: ParqResponseData | null = null
+  let parqDoc: { questions: string[]; version: number } | null = null
+  if (member.role === 'athlete') {
+    const [{ data: pr }, { data: pd }] = await Promise.all([
+      supabase
+        .from('parq_responses')
+        .select('parq_version, answers, has_yes, signed_at, reviewed_at, reviewed_by')
+        .eq('athlete_id', member.id)
+        .eq('box_id', viewer.box_id)
+        .order('parq_version', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from('gym_parq').select('questions, version').eq('box_id', viewer.box_id).maybeSingle(),
+    ])
+    parqResponse = pr as ParqResponseData | null
+    parqDoc = pd ? { questions: ((pd as { questions: unknown }).questions as string[]) ?? [], version: (pd as { version: number }).version } : null
+  }
+
   // Onboarding/offboarding checklist (#38): stage-driven, staff-only.
   const doneIds = new Set(((progRows ?? []) as { item_id: string }[]).map((p) => p.item_id))
   const checklist = mergeChecklist((ciRows ?? []) as { id: string; label: string }[], doneIds)
@@ -451,7 +473,9 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
 
         {isSelf && viewer.role === 'athlete' && (
           <Section label="Agreements">
-            <SelfAgreementsCard waiverSig={waiverSig} termsSig={termsSig} waiverText={waiverText} termsDoc={termsDoc} />
+            <SelfAgreementsCard waiverSig={waiverSig} termsSig={termsSig} waiverText={waiverText} termsDoc={termsDoc}
+              parqResponse={parqResponse ? { parq_version: parqResponse.parq_version, answers: parqResponse.answers, signed_at: parqResponse.signed_at } : null}
+              parqDoc={parqDoc} />
           </Section>
         )}
 
@@ -481,6 +505,23 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               : <div className="text-[13px] text-ink-3">—</div>}
           </div>
         </Section>
+
+        {isStaff && member.role === 'athlete' && (
+          <Section label="PAR-Q">
+            <ParqCard
+              athleteId={member.id}
+              response={parqResponse ? {
+                parqVersion: parqResponse.parq_version,
+                signedAt: parqResponse.signed_at,
+                hasYes: parqResponse.has_yes,
+                reviewedAt: parqResponse.reviewed_at,
+                reviewedByName: parqResponse.reviewed_by ? (staffNameById.get(parqResponse.reviewed_by) ?? 'Staff') : null,
+              } : null}
+              flagged={parqResponse && parqDoc ? flaggedQuestions(parqDoc.questions, parqResponse.answers) : []}
+              currentVersion={parqDoc?.version ?? 1}
+            />
+          </Section>
+        )}
 
         {/* 1RMs + Recent Scores */}
         <div className="mb-4 grid gap-4 md:grid-cols-2">

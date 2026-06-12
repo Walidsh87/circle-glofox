@@ -22,11 +22,13 @@ function Doc({ title, status, content }: { title: string; status: React.ReactNod
   )
 }
 
-export function SelfAgreementsCard({ waiverSig, termsSig, waiverText, termsDoc }: {
+export function SelfAgreementsCard({ waiverSig, termsSig, waiverText, termsDoc, parqResponse, parqDoc }: {
   waiverSig: Sig
   termsSig: TermsSig
   waiverText: string | null
   termsDoc: { content: string; version: number } | null
+  parqResponse: { parq_version: number; answers: boolean[]; signed_at: string } | null
+  parqDoc: { questions: string[]; version: number } | null
 }) {
   return (
     <div>
@@ -43,6 +45,15 @@ export function SelfAgreementsCard({ waiverSig, termsSig, waiverText, termsDoc }
           ? <>Signed v{termsSig.terms_version} · {fmt(termsSig.signed_at)}{termsDoc && termsDoc.version > termsSig.terms_version ? <span className="block text-[11px]">Updated since you signed (current v{termsDoc.version})</span> : null}</>
           : 'Not signed'}
         content={termsDoc?.content ?? null}
+      />
+      <Doc
+        title="PAR-Q (medical readiness)"
+        status={parqResponse
+          ? <>Answered v{parqResponse.parq_version} · {fmt(parqResponse.signed_at)}{parqDoc && parqDoc.version > parqResponse.parq_version ? <span className="block text-[11px]">Updated since you answered (current v{parqDoc.version})</span> : null}</>
+          : <Link href="/dashboard/sign-waiver" className="font-semibold text-warn transition-colors hover:text-ink">Not completed — answer now →</Link>}
+        content={parqResponse && parqDoc
+          ? parqDoc.questions.map((q, i) => `${q}\n→ ${parqResponse.answers[i] ? 'Yes' : 'No'}`).join('\n\n')
+          : null}
       />
     </div>
   )

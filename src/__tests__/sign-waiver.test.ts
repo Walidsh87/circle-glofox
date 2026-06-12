@@ -63,4 +63,19 @@ describe('validateAgreements', () => {
   test('accepts when both checked and name matches', () => {
     expect(validateAgreements(true, true, 'Ahmed Ali', 'Ahmed Ali', false, false)).toBeNull()
   })
+
+  test('parqDue alone still requires the typed name', () => {
+    expect(validateAgreements(false, false, '', 'Ahmed Ali', true, true, true))
+      .toBe('Please type your full legal name.')
+  })
+
+  test('parqDue alone passes with a matching name', () => {
+    expect(validateAgreements(false, false, 'Ahmed Ali', 'Ahmed Ali', true, true, true))
+      .toBeNull()
+  })
+
+  test('both signed and no parq due needs nothing (back-compat)', () => {
+    expect(validateAgreements(false, false, '', 'Ahmed Ali', true, true, false))
+      .toBeNull()
+  })
 })

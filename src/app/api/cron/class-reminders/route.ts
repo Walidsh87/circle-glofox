@@ -2,14 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { buildDigestPushes, sendPushTo, type DigestRow } from '@/lib/push'
+import { TIMEZONE_OFFSETS } from '@/lib/timezone'
 
 export const dynamic = 'force-dynamic'
-
-// Gulf timezones have no DST — fixed offsets, house convention.
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
-  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
-}
 
 type Embedded<T> = T | T[] | null
 function one<T>(v: Embedded<T>): T | null {

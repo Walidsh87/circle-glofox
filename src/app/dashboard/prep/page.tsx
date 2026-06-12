@@ -7,21 +7,14 @@ import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { lastAttendedByAthlete, relativeDay } from './_lib/roster'
 import { CoachNote } from './_components/coach-note'
+import { TIMEZONE_OFFSETS, todayInTimezone } from '@/lib/timezone'
 
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
-  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
-}
 function todayWindow(timezone: string): { start: string; end: string } {
   const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
   const localDate = new Date(Date.now() + offsetHours * 3_600_000).toISOString().slice(0, 10)
   const sign = offsetHours >= 0 ? '+' : '-'
   const offset = `${sign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`
   return { start: `${localDate}T00:00:00${offset}`, end: `${localDate}T23:59:59${offset}` }
-}
-function todayLocalDate(timezone: string): string {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  return new Date(Date.now() + offsetHours * 3_600_000).toISOString().slice(0, 10)
 }
 function fmtTime(startsAt: string, timezone: string): string {
   return new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(startsAt))
@@ -34,7 +27,7 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
   const { supabase, profile, boxName, box } = await requireStaffPage()
   const timezone = box.timezone ?? 'Asia/Dubai'
   const { start, end } = todayWindow(timezone)
-  const todayIso = todayLocalDate(timezone)
+  const todayIso = todayInTimezone(timezone)
   const nowIso = new Date().toISOString()
 
   const { data: instances } = await supabase

@@ -6,27 +6,13 @@ import { ScoreSection } from './_components/score-section'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { loadForPercent } from '@/lib/percentage'
 import type { StrengthSet } from './_lib/validation'
-
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai':   4,
-  'Asia/Muscat':  4,
-  'Asia/Riyadh':  3,
-  'Asia/Qatar':   3,
-  'Asia/Kuwait':  3,
-  'Asia/Bahrain': 3,
-}
+import { todayInTimezone } from '@/lib/timezone'
 
 const SCORING_LABELS: Record<string, string> = {
   time:        'For Time',
   rounds_reps: 'AMRAP (rounds + reps)',
   load_kg:     'Max Load (kg)',
   amrap:       'AMRAP (total reps)',
-}
-
-function todayInTimezone(timezone: string): string {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  const localMs = Date.now() + offsetHours * 60 * 60 * 1000
-  return new Date(localMs).toISOString().slice(0, 10)
 }
 
 function prevDay(date: string): string {

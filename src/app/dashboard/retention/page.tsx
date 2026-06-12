@@ -6,15 +6,7 @@ import { scoreMember } from './_lib/risk'
 import { lastCheckInByAthlete, daysBetween } from './_lib/aggregate'
 import { MarkContacted } from './_components/mark-contacted'
 import { DownloadCsvButton } from '@/components/download-csv-button'
-
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
-  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
-}
-function todayLocalDate(timezone: string): string {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  return new Date(Date.now() + offsetHours * 3_600_000).toISOString().slice(0, 10)
-}
+import { todayInTimezone } from '@/lib/timezone'
 
 const SNOOZE_DAYS = 14
 
@@ -28,7 +20,7 @@ type MembershipRowFull = {
 export default async function RetentionPage() {
   const { supabase, profile, boxName, box } = await requireStaffPage()
   const timezone = box.timezone ?? 'Asia/Dubai'
-  const todayIso = todayLocalDate(timezone)
+  const todayIso = todayInTimezone(timezone)
   const nowIso = new Date().toISOString()
 
   // Members = athletes with >=1 membership record.

@@ -1,15 +1,7 @@
 import { requirePage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { currentStreakWeeks, totalCheckins, currentMilestone } from '@/lib/consistency'
-
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
-  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
-}
-function todayInTimezone(timezone: string) {
-  const offset = TIMEZONE_OFFSETS[timezone] ?? 4
-  return new Date(Date.now() + offset * 3600000).toISOString().slice(0, 10)
-}
+import { todayInTimezone } from '@/lib/timezone'
 
 export default async function CommittedClubPage() {
   const { supabase, profile, boxName } = await requirePage()

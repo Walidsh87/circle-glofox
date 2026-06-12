@@ -6,14 +6,9 @@ import { GymLoginForm } from '@/app/[gymSlug]/_components/gym-login-form'
 import { CircleMark } from '@/components/circle-mark'
 import { checkInWindow } from '@/lib/self-checkin'
 import { CheckInButton } from '../_components/check-in-button'
+import { TIMEZONE_OFFSETS } from '@/lib/timezone'
 
 export const dynamic = 'force-dynamic'
-
-// Gulf timezones have no DST — a fixed-offset map is the house convention (see /tv/[token]).
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
-  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
-}
 
 function localTime(iso: string, offsetHours: number): string {
   return new Date(new Date(iso).getTime() + offsetHours * 3_600_000).toISOString().slice(11, 16)

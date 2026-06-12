@@ -2,16 +2,7 @@
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
-
-// GCC timezones have no DST — fixed offsets are safe
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai':   4,
-  'Asia/Muscat':  4,
-  'Asia/Riyadh':  3,
-  'Asia/Qatar':   3,
-  'Asia/Kuwait':  3,
-  'Asia/Bahrain': 3,
-}
+import { TIMEZONE_OFFSETS } from '@/lib/timezone'
 
 function utcDayOfWeek(dateStr: string): number {
   return new Date(dateStr + 'T00:00:00Z').getUTCDay()

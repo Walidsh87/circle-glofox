@@ -2,15 +2,7 @@ import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { Sidebar } from '@/components/sidebar'
 import { Sparkline } from './_components/sparkline'
 import { computeKpis, type MembershipRow } from './_lib/metrics'
-
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
-  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
-}
-function todayInTimezone(timezone: string) {
-  const offset = TIMEZONE_OFFSETS[timezone] ?? 4
-  return new Date(Date.now() + offset * 3600000).toISOString().slice(0, 10)
-}
+import { todayInTimezone } from '@/lib/timezone'
 
 const fmtAed = (n: number) => `${Math.round(n).toLocaleString()} AED`
 

@@ -5,19 +5,12 @@ import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { sortLeaderboard } from '../_lib/leaderboard'
 import { AutoRefresh } from '../_components/auto-refresh'
+import { todayInTimezone } from '@/lib/timezone'
 
 export const dynamic = 'force-dynamic'
 
 const SCORING_LABEL: Record<string, string> = { time: 'For Time', rounds_reps: 'Rounds + Reps', load_kg: 'Max Load', amrap: 'AMRAP' }
 
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai': 4, 'Asia/Muscat': 4, 'Asia/Riyadh': 3,
-  'Asia/Qatar': 3, 'Asia/Kuwait': 3, 'Asia/Bahrain': 3,
-}
-function todayLocalDate(timezone: string): string {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  return new Date(Date.now() + offsetHours * 3_600_000).toISOString().slice(0, 10)
-}
 function formatScore(value: number, scoringType: string): string {
   if (scoringType === 'time') {
     const m = Math.floor(value / 60)
@@ -48,7 +41,7 @@ export default async function TvBoardPage(ctx: { params: Promise<{ token: string
   if (!box) notFound()
 
   const timezone = box.timezone ?? 'Asia/Dubai'
-  const todayIso = todayLocalDate(timezone)
+  const todayIso = todayInTimezone(timezone)
 
   const { data: wod } = await service
     .from('workouts')

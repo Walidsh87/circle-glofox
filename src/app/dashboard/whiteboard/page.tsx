@@ -7,15 +7,7 @@ import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { loadForPercent } from '@/lib/percentage'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { currentStreakWeeks } from '@/lib/consistency'
-
-const TIMEZONE_OFFSETS: Record<string, number> = {
-  'Asia/Dubai':   4,
-  'Asia/Muscat':  4,
-  'Asia/Riyadh':  3,
-  'Asia/Qatar':   3,
-  'Asia/Kuwait':  3,
-  'Asia/Bahrain': 3,
-}
+import { TIMEZONE_OFFSETS } from '@/lib/timezone'
 
 function todayWindow(timezone: string): { start: string; end: string } {
   const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4

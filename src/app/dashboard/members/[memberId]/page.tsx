@@ -24,6 +24,9 @@ import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_componen
 import { ReferCard } from './_components/refer-card'
 import { ChangePasswordCard } from './_components/change-password-card'
 import { MfaCard } from './_components/mfa-card'
+import { MembershipCard } from './_components/membership-card'
+import { createServiceClient } from '@/lib/supabase/service'
+import { pendingPlanChangeTo } from '@/lib/plan-change'
 import { ensureReferralCode } from '@/app/dashboard/referrals/_actions/ensure-referral-code'
 import { referralLink } from '@/lib/referrals'
 import { env } from '@/env'
@@ -299,6 +302,21 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     parqDoc = pd ? { questions: ((pd as { questions: unknown }).questions as string[]) ?? [], version: (pd as { version: number }).version } : null
   }
 
+  // Self-serve plan change (#76): plan catalog + pending request, own athlete view.
+  let planCatalog: { id: string; name: string; monthly_price_aed: number | null }[] = []
+  let planChangePendingTo: string | null = null
+  if (isSelf && viewer.role === 'athlete') {
+    const service = createServiceClient()
+    const [{ data: planRows }, { data: openTasks }] = await Promise.all([
+      service.from('membership_plans').select('id, name, monthly_price_aed, is_trial').eq('box_id', viewer.box_id).eq('active', true).order('monthly_price_aed'),
+      service.from('follow_up_tasks').select('title').eq('box_id', viewer.box_id).eq('member_id', user.id).eq('done', false),
+    ])
+    planCatalog = ((planRows ?? []) as { id: string; name: string; monthly_price_aed: number | null; is_trial: boolean }[])
+      .filter((p) => !p.is_trial)
+      .map(({ id, name, monthly_price_aed }) => ({ id, name, monthly_price_aed }))
+    planChangePendingTo = pendingPlanChangeTo(((openTasks ?? []) as { title: string }[]).map((t) => t.title))
+  }
+
   // Onboarding/offboarding checklist (#38): stage-driven, staff-only.
   const doneIds = new Set(((progRows ?? []) as { item_id: string }[]).map((p) => p.item_id))
   const checklist = mergeChecklist((ciRows ?? []) as { id: string; label: string }[], doneIds)
@@ -473,6 +491,17 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         {isSelf && (
           <Section label="My details">
             <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: member.emergency_contact_name, emergencyContactPhone: member.emergency_contact_phone, bloodType: member.blood_type, allergies: member.allergies }} />
+          </Section>
+        )}
+
+        {isSelf && viewer.role === 'athlete' && (
+          <Section label="Membership">
+            <MembershipCard
+              currentPlanName={activeMembership?.plan_name ?? null}
+              currentPriceAed={activeMembership?.monthly_price_aed ?? null}
+              plans={planCatalog}
+              pendingTo={planChangePendingTo}
+            />
           </Section>
         )}
 

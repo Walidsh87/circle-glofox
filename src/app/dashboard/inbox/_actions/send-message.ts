@@ -1,10 +1,12 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { validateMessage, messagePreview, withinSessionWindow } from '@/lib/inbox'
 import { normalizeUaePhone } from '@/lib/sms'
 import { sendWhatsAppText } from '@/lib/twilio'
+import { sendPushTo } from '@/lib/push'
 
 export async function sendMessage(memberId: string, body: string): Promise<{ error: string | null; conversationId?: string }> {
   const supabase = await createClient()
@@ -59,6 +61,16 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
     body: text,
   })
   if (mErr) return { error: mErr.message }
+
+  // Staff replies nudge the member's phone (#22 infra: no-ops without VAPID, never throws).
+  if (isStaff) {
+    const service = createServiceClient()
+    await sendPushTo(service, targetMemberId, {
+      title: 'New message from the gym',
+      body: messagePreview(text),
+      url: '/dashboard/messages',
+    })
+  }
 
   revalidatePath('/dashboard/inbox')
   revalidatePath('/dashboard/messages')

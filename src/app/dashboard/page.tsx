@@ -1,4 +1,5 @@
 import { requirePage } from '@/lib/auth/page-guards'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import Link from 'next/link'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { Card, StatCard } from '@/components/ui/card'
@@ -15,7 +16,7 @@ export default async function DashboardPage() {
 
   const hasPassword = user.user_metadata?.has_password === true
   const isOwner = profile.role === 'owner'
-  const isStaff = ['owner', 'coach'].includes(profile.role)
+  const isStaff = (ALL_STAFF_ROLES as readonly string[]).includes(profile.role)
 
   const { data: box } = await supabase.from('boxes').select('timezone').eq('id', profile.box_id).single()
   const timezone = box?.timezone ?? 'Asia/Dubai'

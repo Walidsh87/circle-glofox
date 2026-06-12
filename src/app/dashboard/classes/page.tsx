@@ -1,4 +1,5 @@
 import { requirePage } from '@/lib/auth/page-guards'
+import { PROGRAMMING_ROLES } from '@/lib/auth/roles'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,7 +21,7 @@ function formatTime(time: string) {
 export default async function ClassesPage() {
   const { supabase, profile, boxName } = await requirePage()
 
-  const isStaff = ['owner', 'coach'].includes(profile.role)
+  const isStaff = (PROGRAMMING_ROLES as readonly string[]).includes(profile.role)
 
   const [{ data: templates }, { data: coaches }] = await Promise.all([
     supabase

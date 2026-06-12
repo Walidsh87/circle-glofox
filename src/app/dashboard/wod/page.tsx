@@ -1,4 +1,5 @@
 import { requirePage } from '@/lib/auth/page-guards'
+import { PROGRAMMING_ROLES } from '@/lib/auth/roles'
 import Link from 'next/link'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { Card } from '@/components/ui/card'
@@ -91,7 +92,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
   const { data: box } = await supabase.from('boxes').select('timezone').eq('id', profile.box_id).single()
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const today = todayInTimezone(timezone)
-  const isStaff = ['owner', 'coach'].includes(profile.role)
+  const isStaff = (PROGRAMMING_ROLES as readonly string[]).includes(profile.role)
 
   // Athletes can only view the current week
   const wStart = weekStart(today)

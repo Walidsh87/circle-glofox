@@ -96,7 +96,7 @@ function Section({ label, children, className }: { label: string; children: Reac
 export default async function MemberProfilePage(ctx: { params: Promise<{ memberId: string }> }) {
   const params = await ctx.params
   const { supabase, user, profile: viewer, boxName, box } = await requirePage()
-  if (!['owner', 'coach'].includes(viewer.role) && user.id !== params.memberId) redirect('/dashboard')
+  if (!(ALL_STAFF_ROLES as readonly string[]).includes(viewer.role) && user.id !== params.memberId) redirect('/dashboard')
 
   const boxSlug = box.slug
   const isSelf = user.id === params.memberId
@@ -338,7 +338,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         </span>
       }
       actions={
-        ['owner', 'coach'].includes(viewer.role) ? (
+        (ALL_STAFF_ROLES as readonly string[]).includes(viewer.role) ? (
           <EditMemberForm
             memberId={member.id}
             fullName={member.full_name}

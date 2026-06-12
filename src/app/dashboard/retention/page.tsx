@@ -1,6 +1,8 @@
 import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
 import { getMembershipStatus } from '@/lib/membership-status'
 import { scoreMember } from './_lib/risk'
 import { lastCheckInByAthlete, daysBetween } from './_lib/aggregate'
@@ -82,39 +84,49 @@ export default async function RetentionPage() {
   const atRiskCsvRows = cards.map((c) => [c.name, c.tier, c.reasons.join('; ')])
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="retention" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0, gap: 12 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Retention</h1>
-          <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{cards.length} to reach out</span>
+    <DashboardShell
+      active="retention"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Retention"
+      actions={
+        <>
+          <span className="font-mono text-xs text-ink-3">{cards.length} to reach out</span>
           <DownloadCsvButton filename="at-risk.csv" headers={['Name', 'Tier', 'Reasons']} rows={atRiskCsvRows} />
-        </header>
-
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          {cards.length === 0 ? (
-            <div style={{ maxWidth: 640, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '48px 24px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 14 }}>
-              No at-risk members right now 🎉
+        </>
+      }
+    >
+      {cards.length === 0 ? (
+        <EmptyState className="max-w-2xl" title="No at-risk members right now 🎉" />
+      ) : (
+        <div className="flex max-w-3xl flex-col gap-2">
+          {cards.map((c) => (
+            <div
+              key={c.athleteId}
+              className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3.5 shadow-card"
+            >
+              <Badge tone={c.tier === 'high' ? 'danger' : 'warn'} className="font-mono uppercase">
+                {c.tier}
+              </Badge>
+              <Link
+                href={`/dashboard/members/${c.athleteId}`}
+                className="text-sm font-semibold text-ink transition-colors hover:text-accent-ink"
+              >
+                {c.name}
+              </Link>
+              <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                {c.reasons.map((r, i) => (
+                  <span key={i} className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-ink-3">
+                    {r}
+                  </span>
+                ))}
+              </div>
+              <MarkContacted athleteId={c.athleteId} />
             </div>
-          ) : (
-            <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {cards.map((c) => (
-                <div key={c.athleteId} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '14px 16px', boxShadow: 'var(--c-shadow-sm)' }}>
-                  <span className="mono" style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase', flexShrink: 0, background: c.tier === 'high' ? 'var(--c-danger-soft)' : 'var(--c-warn-soft)', color: c.tier === 'high' ? 'var(--c-danger-ink)' : 'var(--c-warn-ink)' }}>{c.tier}</span>
-                  <Link href={`/dashboard/members/${c.athleteId}`} style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)', textDecoration: 'none' }}>{c.name}</Link>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-                    {c.reasons.map((r, i) => (
-                      <span key={i} className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', background: 'var(--c-surface-alt)', borderRadius: 5, padding: '2px 7px' }}>{r}</span>
-                    ))}
-                  </div>
-                  <MarkContacted athleteId={c.athleteId} />
-                </div>
-              ))}
-            </div>
-          )}
+          ))}
         </div>
-      </div>
-    </div>
+      )}
+    </DashboardShell>
   )
 }

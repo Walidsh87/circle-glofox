@@ -10,7 +10,7 @@ export function Sparkline({ values, width = 220, height = 44 }: { values: number
     .join(' ')
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', overflow: 'visible' }}>
-      <polyline points={pts} fill="none" stroke="var(--circle-lime)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={pts} fill="none" stroke="var(--accent-ink)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
 }

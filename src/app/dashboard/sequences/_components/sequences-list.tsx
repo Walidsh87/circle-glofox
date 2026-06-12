@@ -2,6 +2,8 @@
 
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { triggerLabel } from '@/app/dashboard/automations/_lib/automation-copy'
 import { toggleSequence } from '../_actions/toggle-sequence'
 import { deleteSequence } from '../_actions/delete-sequence'
@@ -18,12 +20,15 @@ export type SequenceRow = {
   sent_count: number
 }
 
+const actionBtn =
+  'rounded-md border border-line px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
+
 export function SequencesList({ rows }: { rows: SequenceRow[] }) {
   const router = useRouter()
   const [pending, start] = useTransition()
 
   if (rows.length === 0) {
-    return <p style={{ fontSize: 13.5, color: 'var(--c-ink-muted)' }}>No sequences yet. Build a multi-step drip — a welcome series, win-back, or trial nudge. (If you also run a single Automation for the same moment, members get both.)</p>
+    return <p className="text-[13.5px] text-ink-3">No sequences yet. Build a multi-step drip — a welcome series, win-back, or trial nudge. (If you also run a single Automation for the same moment, members get both.)</p>
   }
 
   function onToggle(id: string, enabled: boolean) {
@@ -35,16 +40,32 @@ export function SequencesList({ rows }: { rows: SequenceRow[] }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {rows.map((s) => (
-        <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>{s.name}</div>
-            <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{triggerLabel(s.trigger_type, s.trigger_days)} · {s.step_count} steps · {s.active_count} active · {s.sent_count} sent</div>
+        <div key={s.id} className="flex items-center gap-3 rounded-[10px] border border-line bg-surface px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-ink">{s.name}</div>
+            <div className="font-mono text-xs text-ink-3">
+              {triggerLabel(s.trigger_type, s.trigger_days)} · {s.step_count} steps · {s.active_count} active · {s.sent_count} sent
+            </div>
           </div>
-          <button onClick={() => onToggle(s.id, !s.enabled)} disabled={pending} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', background: s.enabled ? 'var(--circle-lime-soft)' : 'transparent', color: s.enabled ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{s.enabled ? 'On' : 'Off'}</button>
-          <a href={`/dashboard/sequences/${s.id}`} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', color: 'var(--c-ink)', textDecoration: 'none', fontSize: 12.5 }}>Edit</a>
-          <button onClick={() => onDelete(s.id)} disabled={pending} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'transparent', color: 'var(--c-danger)', cursor: 'pointer', fontSize: 12.5 }}>Delete</button>
+          <button
+            onClick={() => onToggle(s.id, !s.enabled)}
+            disabled={pending}
+            className={cn(actionBtn, 'font-semibold', s.enabled ? 'bg-accent-soft text-accent-ink' : 'bg-transparent text-ink-3')}
+          >
+            {s.enabled ? 'On' : 'Off'}
+          </button>
+          <Link href={`/dashboard/sequences/${s.id}`} className={cn(actionBtn, 'text-ink hover:border-line-strong')}>
+            Edit
+          </Link>
+          <button
+            onClick={() => onDelete(s.id)}
+            disabled={pending}
+            className={cn(actionBtn, 'bg-transparent text-danger hover:border-danger')}
+          >
+            Delete
+          </button>
         </div>
       ))}
     </div>

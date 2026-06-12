@@ -3,6 +3,14 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { getProviderForBox } from '@/lib/psp'
 import { verifyPortalToken } from '@/lib/portal-token'
+import { portalErrorHtml } from '@/lib/portal-html'
+
+function htmlError(title: string, message: string, status: number): NextResponse {
+  return new NextResponse(portalErrorHtml(title, message), {
+    status,
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  })
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +40,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
       verification.reason === 'expired'
         ? 'This payment update link has expired. Please contact your gym for a new one.'
         : 'This link is invalid. Please contact your gym for a new one.'
-    return NextResponse.json({ error: message }, { status })
+    return htmlError(verification.reason === 'expired' ? 'Link expired' : 'Invalid link', message, status)
   }
 
   const { data: membership } = await service
@@ -51,10 +59,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
         user_agent: userAgent,
       })
     }
-    return NextResponse.json(
-      { error: 'No payment method on file for this membership.' },
-      { status: 404 },
-    )
+    return htmlError('No payment method on file', 'No payment method on file for this membership.', 404)
   }
 
   const { data: box } = await service
@@ -81,9 +86,6 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
     return NextResponse.redirect(session.url, { status: 302 })
   } catch (e) {
     console.error('portal session creation failed:', e)
-    return NextResponse.json(
-      { error: 'Could not start portal session. Please contact your gym.' },
-      { status: 500 },
-    )
+    return htmlError('Something went wrong', 'Could not start portal session. Please contact your gym.', 500)
   }
 }

@@ -53,7 +53,13 @@ export function MfaVerifyForm() {
     return (
       <div className="text-sm text-ink-2">
         No authenticator is set up for this account anymore.{' '}
-        <a href="/dashboard" className="font-semibold text-ink underline">Continue to dashboard →</a>
+        <button
+          type="button"
+          onClick={() => { window.location.href = '/dashboard' }}
+          className="font-semibold text-ink underline"
+        >
+          Continue to dashboard →
+        </button>
       </div>
     )
   }

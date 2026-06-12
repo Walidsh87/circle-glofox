@@ -156,7 +156,7 @@ export function Sidebar({
             <CircleMark size={20} />
             <span>Circle</span>
           </div>
-          <span className="mono rounded border border-line px-1.5 py-px text-[10px] text-ink-3">
+          <span className="font-mono rounded border border-line px-1.5 py-px text-[10px] text-ink-3">
             v1.0
           </span>
         </div>
@@ -170,14 +170,14 @@ export function Sidebar({
             <div className="truncate text-[13px] font-semibold text-ink">
               {boxName || 'My Gym'}
             </div>
-            <div className="mono text-xs capitalize text-ink-3">{userRole}</div>
+            <div className="font-mono text-xs capitalize text-ink-3">{userRole}</div>
           </div>
         </div>
 
         {/* Nav groups */}
         {groups.map((group) => (
           <div key={group.section} className="flex flex-col gap-0.5">
-            <div className="mono px-2.5 pb-1.5 pt-0.5 text-xs uppercase tracking-[0.1em] text-ink-3">
+            <div className="font-mono px-2.5 pb-1.5 pt-0.5 text-xs uppercase tracking-[0.1em] text-ink-3">
               {group.section}
             </div>
             {group.items.map((item) => {
@@ -199,7 +199,7 @@ export function Sidebar({
                   {item.badge && (
                     <span
                       className={cn(
-                        'mono rounded px-1 py-px text-[10px] font-semibold',
+                        'font-mono rounded px-1 py-px text-[10px] font-semibold',
                         item.badgeVariant === 'lime'
                           ? 'bg-accent-soft text-accent-ink'
                           : 'bg-danger-soft text-danger'
@@ -221,7 +221,7 @@ export function Sidebar({
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12.5px] font-semibold text-ink">{userName}</div>
-            <div className="mono text-xs capitalize text-ink-3">{userRole}</div>
+            <div className="font-mono text-xs capitalize text-ink-3">{userRole}</div>
           </div>
           <ThemeToggle />
           <button

@@ -11,7 +11,10 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-hanken)", "ui-sans-serif", "system-ui", "sans-serif"],
         display: ["var(--font-fraunces)", "Georgia", "serif"],
-        mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
+        mono: [
+          ["var(--font-geist-mono)", "ui-monospace", "monospace"],
+          { fontFeatureSettings: '"tnum" 1, "zero" 1' },
+        ],
       },
       colors: {
         canvas: "var(--bg)",

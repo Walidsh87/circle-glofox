@@ -141,7 +141,7 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
                       {r.ptRate !== null ? r.ptRate : '—'}
                     </Td>
                     <Td className="text-right">{r.ptCount}</Td>
-                    <Td className="mono text-right font-bold">{r.hasRate ? r.payAed.toFixed(2) : '—'}</Td>
+                    <Td className="font-mono text-right font-bold">{r.hasRate ? r.payAed.toFixed(2) : '—'}</Td>
                     <Td>
                       <PayRateEditor coachId={r.coachId} baseType={r.baseType} baseRate={r.baseRate} ptRate={r.ptRate} />
                     </Td>
@@ -153,7 +153,7 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
                   <Td className="text-right font-bold">{report.totals.classesTaught}</Td>
                   <Td></Td>
                   <Td className="text-right font-bold">{report.totals.ptCount}</Td>
-                  <Td className="mono text-right font-bold">{report.totals.payAed.toFixed(2)}</Td>
+                  <Td className="font-mono text-right font-bold">{report.totals.payAed.toFixed(2)}</Td>
                   <Td></Td>
                 </tr>
               </tbody>

@@ -49,9 +49,9 @@ export default async function PackagesPage() {
             <tr key={p.id} className={cn('last:[&>td]:border-0', !p.active && 'opacity-50')}>
               <Td className="font-semibold">{p.name}</Td>
               <Td className="text-ink-3">{TYPE_LABEL[p.type] ?? p.type}</Td>
-              <Td className="mono text-ink-3">{p.credit_count}</Td>
-              <Td className="mono text-ink-3">{Number(p.price_aed).toFixed(2)} AED</Td>
-              <Td className="mono text-ink-3">{p.expiry_days ? `${p.expiry_days}d` : '—'}</Td>
+              <Td className="font-mono text-ink-3">{p.credit_count}</Td>
+              <Td className="font-mono text-ink-3">{Number(p.price_aed).toFixed(2)} AED</Td>
+              <Td className="font-mono text-ink-3">{p.expiry_days ? `${p.expiry_days}d` : '—'}</Td>
               <Td>
                 <Badge tone={p.active ? 'ok' : 'neutral'}>{p.active ? 'Active' : 'Inactive'}</Badge>
               </Td>

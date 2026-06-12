@@ -153,12 +153,6 @@
   border-color: var(--circle-lime);
 }
 
-/* Mono numbers */
-.mono, [data-mono] {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-feature-settings: "tnum" 1, "zero" 1;
-}
-
 /* Motion — prefers-reduced-motion kills all durations */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

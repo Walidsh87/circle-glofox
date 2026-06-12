@@ -66,7 +66,7 @@ export default async function ChurnReportPage() {
                 <Td className={t.joined > 0 ? 'text-right text-ok' : 'text-right'}>{t.joined}</Td>
                 <Td className={t.churned > 0 ? 'text-right text-danger' : 'text-right'}>{t.churned}</Td>
                 <Td className="text-right font-semibold">{t.net > 0 ? `+${t.net}` : t.net}</Td>
-                <Td className="mono text-right font-bold">{fmtRate(t.churnRate)}</Td>
+                <Td className="font-mono text-right font-bold">{fmtRate(t.churnRate)}</Td>
               </tr>
             ))}
           </tbody>

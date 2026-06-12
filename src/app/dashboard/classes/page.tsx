@@ -78,9 +78,9 @@ export default async function ClassesPage() {
             return (
               <tr key={t.id} className={cn('last:[&>td]:border-0', !t.active && 'opacity-50')}>
                 <Td className="font-semibold">{t.name}</Td>
-                <Td className="mono text-ink-3">{WEEKDAYS[t.weekday]}</Td>
-                <Td className="mono text-ink-3">{formatTime(t.start_time)}</Td>
-                <Td className="mono text-ink-3">{t.capacity}</Td>
+                <Td className="font-mono text-ink-3">{WEEKDAYS[t.weekday]}</Td>
+                <Td className="font-mono text-ink-3">{formatTime(t.start_time)}</Td>
+                <Td className="font-mono text-ink-3">{t.capacity}</Td>
                 <Td className="text-ink-3">{coachName ?? '—'}</Td>
                 <Td>
                   <Badge tone={t.active ? 'ok' : 'neutral'}>{t.active ? 'Active' : 'Inactive'}</Badge>

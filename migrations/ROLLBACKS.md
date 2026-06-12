@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`060` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`061` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,17 @@ Reverse procedures for migrations `008`–`060` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 061_parq
+```sql
+DROP TRIGGER IF EXISTS gym_parq_bump ON gym_parq;
+DROP TRIGGER IF EXISTS boxes_create_parq ON boxes;
+DROP FUNCTION IF EXISTS bump_gym_parq_updated_at();
+DROP FUNCTION IF EXISTS create_default_parq();
+DROP FUNCTION IF EXISTS default_parq_questions();
+DROP TABLE IF EXISTS parq_responses;   -- ⚠️ athlete medical answers
+DROP TABLE IF EXISTS gym_parq;
+```
 
 ### 060_push_subscriptions
 ```sql

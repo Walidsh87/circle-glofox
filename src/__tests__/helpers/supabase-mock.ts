@@ -17,6 +17,7 @@ export function makeSupabaseMock(opts: {
   user?: { id: string } | null
   results?: Record<string, MockResult | MockResult[]>
   rpc?: MockResult
+  adminFactors?: { id: string }[]
 }) {
   const results = opts.results ?? {}
   const builders: Record<string, ReturnType<typeof makeBuilder>> = {}
@@ -46,6 +47,10 @@ export function makeSupabaseMock(opts: {
       admin: {
         deleteUser: vi.fn(() => Promise.resolve({ error: null })),
         createUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'new1' } }, error: null })),
+        mfa: {
+          listFactors: vi.fn(() => Promise.resolve({ data: { factors: opts.adminFactors ?? [] }, error: null })),
+          deleteFactor: vi.fn(() => Promise.resolve({ data: null, error: null })),
+        },
       },
     },
     from: vi.fn((table: string) => (builders[table] ??= makeBuilder(table))),

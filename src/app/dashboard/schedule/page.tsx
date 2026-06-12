@@ -1,5 +1,6 @@
 import { requirePage } from '@/lib/auth/page-guards'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { cn } from '@/lib/utils'
 import { BookingButton } from './_components/booking-button'
 import { waitlistPosition } from './_lib/waitlist'
 import { env } from '@/env'
@@ -62,110 +63,90 @@ export default async function SchedulePage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="schedule" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)',
-          display: 'flex', alignItems: 'center', padding: '0 32px',
-          background: 'var(--c-surface)', flexShrink: 0,
-        }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>
-            Book a Class
-          </h1>
-        </header>
-
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 640 }}>
-            <CalendarSyncCard feedUrl={feedUrl} />
-            <PushCard vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
-          </div>
-          {grouped.size === 0 && (
-            <div style={{
-              background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-              borderRadius: 14, padding: '48px 24px', textAlign: 'center',
-              color: 'var(--c-ink-muted)', fontSize: 13,
-            }}>
-              No upcoming classes. Generate instances from the Class Schedule page.
-            </div>
-          )}
-
-          <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 24 }}>
-            {Array.from(grouped.entries()).map(([, dayInstances]) => {
-              const first = dayInstances![0]
-              const { dayLabel } = formatDateTime(first.starts_at, timezone)
-              return (
-                <div key={dayLabel}>
-                  <div className="mono" style={{
-                    fontSize: 10.5, fontWeight: 600, color: 'var(--c-ink-muted)',
-                    textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10,
-                  }}>{dayLabel}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {dayInstances!.map((instance) => {
-                      const { time } = formatDateTime(instance.starts_at, timezone)
-                      const bookings = instance.bookings as { athlete_id: string; profiles: { full_name: string } | { full_name: string }[] | null }[] | null
-                      const bookedCount = bookings?.length ?? 0
-                      const isFull = bookedCount >= instance.capacity
-                      const isBooked = bookedInstanceIds.has(instance.id)
-                      const template = instance.class_templates as { name: string } | { name: string }[] | null
-                      const className = Array.isArray(template) ? template[0]?.name : template?.name
-                      const coach = instance.profiles as { full_name: string } | { full_name: string }[] | null
-                      const coachName = Array.isArray(coach) ? coach[0]?.full_name : coach?.full_name
-                      const pct = Math.min((bookedCount / instance.capacity) * 100, 100)
-
-                      return (
-                        <div key={instance.id} style={{
-                          background: isBooked ? 'var(--circle-lime-soft)' : 'var(--c-surface)',
-                          border: `1px solid ${isBooked ? 'var(--circle-lime)' : isFull ? 'var(--c-danger)' : 'var(--c-border)'}`,
-                          borderRadius: 12, padding: '14px 18px',
-                          display: 'flex', alignItems: 'center', gap: 16,
-                          boxShadow: 'var(--c-shadow-sm)',
-                        }}>
-                          <div className="mono" style={{
-                            fontSize: 20, fontWeight: 500, color: 'var(--c-ink)',
-                            letterSpacing: '-0.01em', flexShrink: 0, width: 52,
-                          }}>{time}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-ink)' }}>{className}</div>
-                            <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 2 }}>
-                              {coachName ?? 'No coach'}
-                            </div>
-                            {/* Capacity bar */}
-                            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <div style={{ flex: 1, height: 4, background: 'var(--c-surface-alt)', borderRadius: 2, overflow: 'hidden' }}>
-                                <div style={{ width: `${pct}%`, height: '100%', background: isFull ? 'var(--c-danger)' : 'var(--circle-lime)', borderRadius: 2 }} />
-                              </div>
-                              <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', flexShrink: 0 }}>
-                                {bookedCount}/{instance.capacity}
-                              </span>
-                            </div>
-                            {rosterPublic && bookedCount > 0 && (
-                              <details style={{ marginTop: 6 }}>
-                                <summary style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', cursor: 'pointer' }}>Who&apos;s coming ({bookedCount})</summary>
-                                <p style={{ fontSize: 12, color: 'var(--c-ink-2)', margin: '4px 0 0' }}>
-                                  {rosterFirstNames((bookings ?? []).map((b) => { const p = b.profiles; return Array.isArray(p) ? (p[0]?.full_name ?? null) : (p?.full_name ?? null) })).join(', ')}
-                                </p>
-                              </details>
-                            )}
-                          </div>
-                          <div style={{ flexShrink: 0 }}>
-                            {(() => {
-                              const entries = waitlistByInstance.get(instance.id) ?? []
-                              const pos = waitlistPosition(entries, user.id)
-                              return <BookingButton instanceId={instance.id} isBooked={isBooked} isFull={isFull} isWaitlisted={pos !== null} waitlistPosition={pos} />
-                            })()}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+    <DashboardShell
+      active="schedule"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Book a Class"
+    >
+      <div className="max-w-[640px]">
+        <CalendarSyncCard feedUrl={feedUrl} />
+        <PushCard vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
       </div>
-    </div>
+      {grouped.size === 0 && (
+        <div className="max-w-[640px] rounded-[14px] border border-line bg-surface px-6 py-12 text-center text-[13px] text-ink-3">
+          No upcoming classes. Generate instances from the Class Schedule page.
+        </div>
+      )}
+
+      <div className="flex max-w-[640px] flex-col gap-6">
+        {Array.from(grouped.entries()).map(([, dayInstances]) => {
+          const first = dayInstances![0]
+          const { dayLabel } = formatDateTime(first.starts_at, timezone)
+          return (
+            <div key={dayLabel}>
+              <div className="mb-2.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-ink-3">{dayLabel}</div>
+              <div className="flex flex-col gap-2">
+                {dayInstances!.map((instance) => {
+                  const { time } = formatDateTime(instance.starts_at, timezone)
+                  const bookings = instance.bookings as { athlete_id: string; profiles: { full_name: string } | { full_name: string }[] | null }[] | null
+                  const bookedCount = bookings?.length ?? 0
+                  const isFull = bookedCount >= instance.capacity
+                  const isBooked = bookedInstanceIds.has(instance.id)
+                  const template = instance.class_templates as { name: string } | { name: string }[] | null
+                  const className = Array.isArray(template) ? template[0]?.name : template?.name
+                  const coach = instance.profiles as { full_name: string } | { full_name: string }[] | null
+                  const coachName = Array.isArray(coach) ? coach[0]?.full_name : coach?.full_name
+                  const pct = Math.min((bookedCount / instance.capacity) * 100, 100)
+
+                  return (
+                    <div
+                      key={instance.id}
+                      className={cn(
+                        'flex items-center gap-4 rounded-xl border px-4 py-3.5 shadow-card',
+                        isBooked ? 'border-accent bg-accent-soft' : isFull ? 'border-danger bg-surface' : 'border-line bg-surface'
+                      )}
+                    >
+                      <div className="w-[52px] shrink-0 font-mono text-xl font-medium tracking-[-0.01em] text-ink">{time}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-ink">{className}</div>
+                        <div className="mt-0.5 font-mono text-[11.5px] text-ink-3">
+                          {coachName ?? 'No coach'}
+                        </div>
+                        {/* Capacity bar */}
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="h-1 flex-1 overflow-hidden rounded-sm bg-surface-2">
+                            <div className={cn('h-full rounded-sm', isFull ? 'bg-danger' : 'bg-accent')} style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="shrink-0 font-mono text-[11px] text-ink-3">
+                            {bookedCount}/{instance.capacity}
+                          </span>
+                        </div>
+                        {rosterPublic && bookedCount > 0 && (
+                          <details className="mt-1.5">
+                            <summary className="cursor-pointer text-[11.5px] text-ink-3">Who&apos;s coming ({bookedCount})</summary>
+                            <p className="mt-1 text-xs text-ink-2">
+                              {rosterFirstNames((bookings ?? []).map((b) => { const p = b.profiles; return Array.isArray(p) ? (p[0]?.full_name ?? null) : (p?.full_name ?? null) })).join(', ')}
+                            </p>
+                          </details>
+                        )}
+                      </div>
+                      <div className="shrink-0">
+                        {(() => {
+                          const entries = waitlistByInstance.get(instance.id) ?? []
+                          const pos = waitlistPosition(entries, user.id)
+                          return <BookingButton instanceId={instance.id} isBooked={isBooked} isFull={isFull} isWaitlisted={pos !== null} waitlistPosition={pos} />
+                        })()}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </DashboardShell>
   )
 }

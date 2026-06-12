@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { setCalendarToken } from '../_actions/set-calendar-token'
 
-const btn: React.CSSProperties = { height: 32, padding: '0 12px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 12, fontWeight: 600, color: 'var(--c-ink-2)', cursor: 'pointer', fontFamily: 'inherit' }
+const btn =
+  'h-8 rounded-lg border border-line-strong bg-surface px-3 text-xs font-semibold text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
 
 export function CalendarSyncCard({ feedUrl }: { feedUrl: string | null }) {
   const router = useRouter()
@@ -26,26 +28,38 @@ export function CalendarSyncCard({ feedUrl }: { feedUrl: string | null }) {
   }
 
   return (
-    <details style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '12px 16px', marginBottom: 20, boxShadow: 'var(--c-shadow-sm)' }}>
-      <summary style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', cursor: 'pointer' }}>📅 Sync to your calendar</summary>
-      <div style={{ marginTop: 10 }}>
-        <p style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+    <details className="mb-5 rounded-xl border border-line bg-surface px-4 py-3 shadow-card">
+      <summary className="cursor-pointer text-[13px] font-semibold text-ink">📅 Sync to your calendar</summary>
+      <div className="mt-2.5">
+        <p className="mb-2.5 text-xs leading-normal text-ink-3">
           Subscribe once and your booked classes appear in Google, Apple, or Outlook — cancellations disappear automatically. Keep the link private; regenerate to revoke it.
         </p>
         {feedUrl ? (
           <>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input readOnly value={feedUrl} onFocus={(e) => e.target.select()} style={{ flex: 1, height: 32, padding: '0 10px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface-alt)', color: 'var(--c-ink-2)', fontSize: 11.5, fontFamily: 'var(--font-geist-mono, monospace)' }} />
-              <button type="button" onClick={copy} style={btn}>{copied ? 'Copied' : 'Copy'}</button>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={feedUrl}
+                onFocus={(e) => e.target.select()}
+                className="h-8 flex-1 rounded-lg border border-line-strong bg-surface-2 px-2.5 font-mono text-[11.5px] text-ink-2 outline-none"
+              />
+              <button type="button" onClick={copy} className={btn}>{copied ? 'Copied' : 'Copy'}</button>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-              <button type="button" disabled={pending} onClick={() => act('generate')} style={btn}>Regenerate</button>
-              <button type="button" disabled={pending} onClick={() => act('disable')} style={{ ...btn, color: 'var(--c-danger)' }}>Disable</button>
-              <span style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>Calendar app → add calendar → “From URL”.</span>
+            <div className="mt-2 flex items-center gap-2">
+              <button type="button" disabled={pending} onClick={() => act('generate')} className={btn}>Regenerate</button>
+              <button type="button" disabled={pending} onClick={() => act('disable')} className={cn(btn, 'text-danger hover:text-danger')}>Disable</button>
+              <span className="text-[11.5px] text-ink-3">Calendar app → add calendar → “From URL”.</span>
             </div>
           </>
         ) : (
-          <button type="button" disabled={pending} onClick={() => act('generate')} style={{ ...btn, background: 'var(--circle-lime)', border: 'none', color: 'var(--circle-ink)', fontWeight: 700 }}>Enable calendar feed</button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => act('generate')}
+            className="h-8 rounded-lg bg-accent px-3 text-xs font-bold text-accent-contrast transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+          >
+            Enable calendar feed
+          </button>
         )}
       </div>
     </details>

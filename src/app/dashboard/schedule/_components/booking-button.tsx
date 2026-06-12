@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { bookClass } from '../_actions/book-class'
 import { cancelBooking } from '../_actions/cancel-booking'
 import { joinWaitlist } from '../_actions/join-waitlist'
@@ -54,47 +55,47 @@ export function BookingButton({
   if (isFull && !isBooked) {
     if (isWaitlisted) {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="mono" style={{ fontSize: 11, fontWeight: 600, color: 'var(--c-ink-muted)' }}>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] font-semibold text-ink-3">
             On waitlist · #{waitlistPosition ?? '–'}
           </span>
-          <button onClick={handleLeave} disabled={loading} style={{
-            height: 28, padding: '0 10px', borderRadius: 7, border: '1px solid var(--c-border)',
-            background: 'transparent', fontSize: 12, fontWeight: 600, color: 'var(--c-ink-2)',
-            cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.5 : 1,
-          }}>Leave</button>
+          <button
+            onClick={handleLeave}
+            disabled={loading}
+            className="h-7 rounded-[7px] border border-line bg-transparent px-2.5 text-xs font-semibold text-ink-2 transition-colors hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Leave
+          </button>
         </div>
       )
     }
     return (
-      <button onClick={handleJoin} disabled={loading} style={{
-        height: 30, padding: '0 14px', borderRadius: 7, border: '1px solid var(--c-border-strong)',
-        background: 'var(--c-surface)', fontSize: 12.5, fontWeight: 700, color: 'var(--c-ink-2)',
-        cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.5 : 1,
-      }}>{loading ? '…' : 'Join waitlist'}</button>
+      <button
+        onClick={handleJoin}
+        disabled={loading}
+        className="h-[30px] rounded-[7px] border border-line-strong bg-surface px-3.5 text-[12.5px] font-bold text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {loading ? '…' : 'Join waitlist'}
+      </button>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+    <div className="flex flex-col items-end gap-1">
       <button
         onClick={handleClick}
         disabled={loading}
-        style={{
-          height: 30, padding: '0 14px',
-          background: isBooked ? 'transparent' : 'var(--circle-lime)',
-          border: isBooked ? '1px solid var(--c-border)' : 'none',
-          borderRadius: 7, cursor: loading ? 'not-allowed' : 'pointer',
-          fontSize: 12.5, fontWeight: 700,
-          color: isBooked ? 'var(--c-ink-2)' : 'var(--circle-ink)',
-          fontFamily: 'inherit', transition: 'opacity 120ms',
-          opacity: loading ? 0.5 : 1,
-        }}
+        className={cn(
+          'h-[30px] rounded-[7px] px-3.5 text-[12.5px] font-bold transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50',
+          isBooked
+            ? 'border border-line bg-transparent text-ink-2 hover:border-line-strong'
+            : 'bg-accent text-accent-contrast hover:bg-accent-hover'
+        )}
       >
         {loading ? '…' : isBooked ? 'Cancel' : 'Book'}
       </button>
       {needsCredits && (
-        <Link href="/dashboard/shop" style={{ fontSize: 11, color: 'var(--circle-lime-ink)', textDecoration: 'underline' }}>
+        <Link href="/dashboard/shop" className="text-[11px] text-accent-ink underline">
           Need a class credit — buy a pack
         </Link>
       )}

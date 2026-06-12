@@ -60,31 +60,45 @@ export function PushCard({ vapidPublicKey }: { vapidPublicKey: string | null }) 
 
   if (!vapidPublicKey || state === 'loading' || state === 'unsupported') return null
   return (
-    <details style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '12px 16px', marginBottom: 20, boxShadow: 'var(--c-shadow-sm)' }}>
-      <summary style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', cursor: 'pointer' }}>🔔 Class notifications</summary>
-      <div style={{ marginTop: 10 }}>
+    <details className="mb-5 rounded-xl border border-line bg-surface px-4 py-3 shadow-card">
+      <summary className="cursor-pointer text-[13px] font-semibold text-ink">🔔 Class notifications</summary>
+      <div className="mt-2.5">
         {state === 'ios-install' && (
-          <p style={{ fontSize: 12, color: 'var(--c-ink-muted)', lineHeight: 1.6 }}>
+          <p className="text-xs leading-relaxed text-ink-3">
             On iPhone: open this site in Safari, tap <strong>Share → Add to Home Screen</strong>, then open the Circle app icon and enable notifications here.
           </p>
         )}
-        {state === 'denied' && <p style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>Notifications are blocked for this site — allow them in your browser settings, then reload.</p>}
+        {state === 'denied' && <p className="text-xs text-ink-3">Notifications are blocked for this site — allow them in your browser settings, then reload.</p>}
         {(state === 'ready' || state === 'subscribed') && (
           <>
-            <p style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+            <p className="mb-2.5 text-xs leading-normal text-ink-3">
               Get a push when a waitlist spot opens and a morning reminder on days you have a class booked.
             </p>
             {state === 'ready' ? (
-              <button type="button" disabled={pending} onClick={enable} style={{ height: 32, padding: '0 14px', borderRadius: 8, border: 'none', background: 'var(--circle-lime)', color: 'var(--circle-ink)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Enable notifications</button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={enable}
+                className="h-8 rounded-lg bg-accent px-3.5 text-xs font-bold text-accent-contrast transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              >
+                Enable notifications
+              </button>
             ) : (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>✓ Enabled on this device</span>
-                <button type="button" disabled={pending} onClick={disable} style={{ height: 30, padding: '0 12px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 12, color: 'var(--c-danger)', cursor: 'pointer' }}>Disable</button>
+              <div className="flex items-center gap-2">
+                <span className="text-[12.5px] font-bold text-accent-ink">✓ Enabled on this device</span>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={disable}
+                  className="h-[30px] rounded-lg border border-line-strong bg-surface px-3 text-xs text-danger transition-colors hover:border-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                >
+                  Disable
+                </button>
               </div>
             )}
           </>
         )}
-        {error && <p style={{ fontSize: 12, color: 'var(--c-danger)', marginTop: 8 }}>{error}</p>}
+        {error && <p className="mt-2 text-xs text-danger">{error}</p>}
       </div>
     </details>
   )

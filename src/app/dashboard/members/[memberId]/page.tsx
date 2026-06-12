@@ -25,6 +25,7 @@ import { ReferCard } from './_components/refer-card'
 import { ChangePasswordCard } from './_components/change-password-card'
 import { MfaCard } from './_components/mfa-card'
 import { MembershipCard } from './_components/membership-card'
+import { FamilyCard } from './_components/family-card'
 import { createServiceClient } from '@/lib/supabase/service'
 import { pendingPlanChangeTo } from '@/lib/plan-change'
 import { ensureReferralCode } from '@/app/dashboard/referrals/_actions/ensure-referral-code'
@@ -218,10 +219,10 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     isStaff
       ? supabase.from('member_checklist_progress').select('item_id').eq('box_id', viewer.box_id).eq('member_id', params.memberId)
       : Promise.resolve({ data: [] as { item_id: string }[] }),
-    isManager && member.household_id
+    (isManager || isSelf) && member.household_id
       ? supabase.from('households').select('id, name, primary_athlete_id').eq('id', member.household_id).single()
       : Promise.resolve({ data: null }),
-    isManager && member.household_id
+    (isManager || isSelf) && member.household_id
       ? supabase.from('profiles').select('id, full_name').eq('household_id', member.household_id)
       : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
     isManager
@@ -501,6 +502,17 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               currentPriceAed={activeMembership?.monthly_price_aed ?? null}
               plans={planCatalog}
               pendingTo={planChangePendingTo}
+            />
+          </Section>
+        )}
+
+        {isSelf && viewer.role === 'athlete' && member.household_id && household && (
+          <Section label="My family">
+            <FamilyCard
+              householdName={household.name}
+              members={(householdMembers ?? []) as { id: string; full_name: string | null }[]}
+              primaryId={household.primary_athlete_id}
+              selfId={user.id}
             />
           </Section>
         )}

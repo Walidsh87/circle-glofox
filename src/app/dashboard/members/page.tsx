@@ -1,7 +1,12 @@
 import { requireStaffPage } from '@/lib/auth/page-guards'
 import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { TabNav } from '@/components/ui/tab-nav'
+import { Table, Th, Td } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 import { AddMemberForm } from './_components/add-member-form'
 import { RemoveMemberButton } from './_components/remove-member-button'
 import { AddLeadForm } from './_components/add-lead-form'
@@ -86,171 +91,129 @@ export default async function MembersPage({
   ]
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="members" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Header */}
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)',
-          display: 'flex', alignItems: 'center', padding: '0 32px',
-          background: 'var(--c-surface)', flexShrink: 0, gap: 12,
-        }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
-            People
-          </h1>
-          {isOwner && <DownloadCsvButton filename={csvExport.filename} headers={csvExport.headers} rows={csvExport.rows} />}
-        </header>
-
-        {/* Tab bar */}
-        <div style={{
-          display: 'flex', borderBottom: '1px solid var(--c-border)',
-          background: 'var(--c-surface)', padding: '0 28px', flexShrink: 0,
-        }}>
-          {TABS.map(t => (
-            <Link
-              key={t.key}
-              href={`/dashboard/members?tab=${t.key}`}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 7,
-                padding: '11px 14px',
-                fontSize: 13.5, fontWeight: tab === t.key ? 600 : 400,
-                color: tab === t.key ? 'var(--c-ink)' : 'var(--c-ink-muted)',
-                textDecoration: 'none',
-                borderBottom: tab === t.key ? '2px solid var(--circle-lime)' : '2px solid transparent',
-                marginBottom: -1,
-              }}
-            >
-              {t.label}
-              <span className="mono" style={{
-                fontSize: 10.5, fontWeight: 700,
-                background: tab === t.key ? 'var(--circle-lime-soft)' : 'var(--c-surface-alt)',
-                color: tab === t.key ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)',
-                padding: '1px 6px', borderRadius: 999,
-              }}>{t.count}</span>
-            </Link>
-          ))}
-        </div>
-
-        {/* Content */}
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-
-          {/* ── Leads tab ── */}
-          {tab === 'leads' && (
-            <>
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, padding: '18px 20px', marginBottom: 20,
-                boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Add lead</p>
-                <AddLeadForm />
-              </div>
-              <LeadsList leads={(leads ?? []) as Lead[]} staff={(leadStaff ?? []) as { id: string; full_name: string | null }[]} />
-            </>
-          )}
-
-          {/* ── Members / Coaches tab ── */}
-          {tab !== 'leads' && (
-            <>
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, padding: '18px 20px', marginBottom: 20,
-                boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>
-                  Add {tab === 'staff' ? 'staff' : 'member'}
-                </p>
-                <AddMemberForm roles={tab === 'staff'
-                  ? [{ value: 'coach', label: 'Coach' }, { value: 'admin', label: 'Admin' }, { value: 'receptionist', label: 'Receptionist' }]
-                  : [{ value: 'athlete', label: 'Athlete' }]} />
-              </div>
-
-              {allTags.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-                  <Link href={`/dashboard/members?tab=${tab}`} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, textDecoration: 'none', background: !tagFilter ? 'var(--circle-lime-soft)' : 'var(--c-surface-alt)', color: !tagFilter ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)' }}>All</Link>
-                  {allTags.map((t) => (
-                    <Link key={t} href={`/dashboard/members?tab=${tab}&tag=${encodeURIComponent(t)}`} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, textDecoration: 'none', background: tagFilter === t ? 'var(--circle-lime-soft)' : 'var(--c-surface-alt)', color: tagFilter === t ? 'var(--circle-lime-ink)' : 'var(--c-ink-2)' }}>{t}</Link>
-                  ))}
-                </div>
-              )}
-
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--c-border)', background: 'var(--c-surface-sunk)' }}>
-                      <Th>Name</Th>
-                      <Th>Email</Th>
-                      <Th>Phone</Th>
-                      <Th>Role</Th>
-                      <th style={{ padding: '10px 16px' }} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shownPeople.map((member) => (
-                      <tr key={member.id} style={{ borderBottom: '1px solid var(--c-divider)' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>
-                          <Link href={`/dashboard/members/${member.id}`} className="member-link" style={{ color: 'var(--c-ink)', textDecoration: 'none' }}>
-                            {member.full_name}
-                          </Link>
-                          {(tagsByAthlete.get(member.id) ?? []).length > 0 && (
-                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                              {(tagsByAthlete.get(member.id) ?? []).map((t) => (
-                                <span key={t} className="mono" style={{ fontSize: 10, fontWeight: 700, color: 'var(--circle-lime-ink)', background: 'var(--circle-lime-soft)', padding: '1px 6px', borderRadius: 999 }}>{t}</span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{member.email}</td>
-                        <td style={{ padding: '12px 16px', color: 'var(--c-ink-muted)' }}>{member.phone ?? '—'}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          {tab === 'staff' && isOwner && member.role !== 'owner' && member.id !== user.id ? (
-                            <RolePicker profileId={member.id} role={member.role} />
-                          ) : (
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center',
-                              padding: '2px 8px', borderRadius: 999, fontSize: 11.5, fontWeight: 500,
-                              background: member.role === 'athlete' ? 'var(--c-surface-alt)' : 'var(--c-ok-soft)',
-                              color: member.role === 'athlete' ? 'var(--c-ink-muted)' : 'var(--c-ok-ink)',
-                              textTransform: 'capitalize',
-                            }}>{member.role}</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                          {isOwner && member.id !== user.id && (
-                            <RemoveMemberButton memberId={member.id} memberName={member.full_name} />
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                    {shownPeople.length === 0 && (
-                      <tr>
-                        <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
-                          {tagFilter ? `No ${tab} with the tag “${tagFilter}”.` : `No ${tab} yet.`}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
+    <DashboardShell
+      active="members"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="People"
+      actions={isOwner ? <DownloadCsvButton filename={csvExport.filename} headers={csvExport.headers} rows={csvExport.rows} /> : undefined}
+    >
+      <div className="mb-5 -mt-1">
+        <TabNav
+          tabs={TABS.map((t) => ({ key: t.key, label: t.label, href: `/dashboard/members?tab=${t.key}`, count: t.count }))}
+          active={tab}
+        />
       </div>
-    </div>
-  )
-}
 
-function Th({ children }: { children: React.ReactNode }) {
-  return (
-    <th style={{
-      padding: '10px 16px', textAlign: 'left',
-      fontFamily: 'var(--font-geist-mono)', fontSize: 10.5,
-      fontWeight: 500, color: 'var(--c-ink-muted)',
-      textTransform: 'uppercase', letterSpacing: '0.06em',
-    }}>{children}</th>
+      {/* ── Leads tab ── */}
+      {tab === 'leads' && (
+        <>
+          <Card className="mb-5 p-5">
+            <p className="mb-3 text-[13px] font-semibold text-ink">Add lead</p>
+            <AddLeadForm />
+          </Card>
+          <LeadsList leads={(leads ?? []) as Lead[]} staff={(leadStaff ?? []) as { id: string; full_name: string | null }[]} />
+        </>
+      )}
+
+      {/* ── Members / Coaches tab ── */}
+      {tab !== 'leads' && (
+        <>
+          <Card className="mb-5 p-5">
+            <p className="mb-3 text-[13px] font-semibold text-ink">
+              Add {tab === 'staff' ? 'staff' : 'member'}
+            </p>
+            <AddMemberForm roles={tab === 'staff'
+              ? [{ value: 'coach', label: 'Coach' }, { value: 'admin', label: 'Admin' }, { value: 'receptionist', label: 'Receptionist' }]
+              : [{ value: 'athlete', label: 'Athlete' }]} />
+          </Card>
+
+          {allTags.length > 0 && (
+            <div className="mb-3.5 flex flex-wrap gap-1.5">
+              <Link
+                href={`/dashboard/members?tab=${tab}`}
+                className={cn(
+                  'rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
+                  !tagFilter ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2 text-ink-3 hover:text-ink'
+                )}
+              >
+                All
+              </Link>
+              {allTags.map((t) => (
+                <Link
+                  key={t}
+                  href={`/dashboard/members?tab=${tab}&tag=${encodeURIComponent(t)}`}
+                  className={cn(
+                    'rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
+                    tagFilter === t ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2 text-ink-2 hover:text-ink'
+                  )}
+                >
+                  {t}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <Table>
+            <thead>
+              <tr className="bg-surface-2">
+                <Th>Name</Th>
+                <Th>Email</Th>
+                <Th>Phone</Th>
+                <Th>Role</Th>
+                <Th />
+              </tr>
+            </thead>
+            <tbody>
+              {shownPeople.map((member) => (
+                <tr key={member.id} className="last:[&>td]:border-0">
+                  <Td className="font-semibold">
+                    <Link
+                      href={`/dashboard/members/${member.id}`}
+                      className="text-ink transition-colors hover:text-accent-ink"
+                    >
+                      {member.full_name}
+                    </Link>
+                    {(tagsByAthlete.get(member.id) ?? []).length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {(tagsByAthlete.get(member.id) ?? []).map((t) => (
+                          <Badge key={t} tone="accent" className="font-mono text-[10px] font-bold">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </Td>
+                  <Td className="text-ink-3">{member.email}</Td>
+                  <Td className="text-ink-3">{member.phone ?? '—'}</Td>
+                  <Td>
+                    {tab === 'staff' && isOwner && member.role !== 'owner' && member.id !== user.id ? (
+                      <RolePicker profileId={member.id} role={member.role} />
+                    ) : (
+                      <Badge tone={member.role === 'athlete' ? 'neutral' : 'ok'} className="capitalize">
+                        {member.role}
+                      </Badge>
+                    )}
+                  </Td>
+                  <Td className="text-right">
+                    {isOwner && member.id !== user.id && (
+                      <RemoveMemberButton memberId={member.id} memberName={member.full_name} />
+                    )}
+                  </Td>
+                </tr>
+              ))}
+              {shownPeople.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-10 text-center text-[13px] text-ink-3">
+                    {tagFilter ? `No ${tab} with the tag “${tagFilter}”.` : `No ${tab} yet.`}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+        </>
+      )}
+    </DashboardShell>
   )
 }

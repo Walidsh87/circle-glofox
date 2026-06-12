@@ -50,6 +50,7 @@ function getNavGroups(role: string): NavGroup[] {
   if (isManager) runTheGym.push({ key: 'referrals', label: 'Referrals', href: '/dashboard/referrals', icon: 'gift' })
   if (isOwner) runTheGym.push({ key: 'attribution', label: 'Attribution', href: '/dashboard/attribution', icon: 'chart' })
   if (isOwner) runTheGym.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
+  if (isOwner) runTheGym.push({ key: 'audit', label: 'Audit log', href: '/dashboard/audit', icon: 'book' })
   groups.push({ section: 'Run the gym', items: runTheGym })
 
   if (isStaff) {

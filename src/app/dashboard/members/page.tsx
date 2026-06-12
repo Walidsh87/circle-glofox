@@ -9,6 +9,7 @@ import { Table, Th, Td } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { AddMemberForm } from './_components/add-member-form'
 import { RemoveMemberButton } from './_components/remove-member-button'
+import { ResetMfaButton } from './_components/reset-mfa-button'
 import { AddLeadForm } from './_components/add-lead-form'
 import { LeadsList, type Lead } from './_components/leads-list'
 import { DownloadCsvButton } from '@/components/download-csv-button'
@@ -197,9 +198,14 @@ export default async function MembersPage({
                     )}
                   </Td>
                   <Td className="text-right">
-                    {isOwner && member.id !== user.id && (
-                      <RemoveMemberButton memberId={member.id} memberName={member.full_name} />
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {tab === 'staff' && isOwner && (
+                        <ResetMfaButton profileId={member.id} name={member.full_name} />
+                      )}
+                      {isOwner && member.id !== user.id && (
+                        <RemoveMemberButton memberId={member.id} memberName={member.full_name} />
+                      )}
+                    </div>
                   </Td>
                 </tr>
               ))}

@@ -39,7 +39,7 @@ async function WaiverGate({
     return <>{children}</>
   }
 
-  const [{ data: waiverSig }, { data: terms }] = await Promise.all([
+  const [{ data: waiverSig }, { data: terms }, { data: parqDoc }] = await Promise.all([
     supabase
       .from('waiver_signatures')
       .select('id')
@@ -51,18 +51,37 @@ async function WaiverGate({
       .select('version')
       .eq('box_id', profile.box_id)
       .maybeSingle(),
+    supabase
+      .from('gym_parq')
+      .select('version')
+      .eq('box_id', profile.box_id)
+      .maybeSingle(),
   ])
 
   const currentTermsVersion = terms?.version ?? 1
-  const { data: termsSig } = await supabase
-    .from('terms_signatures')
-    .select('id')
-    .eq('box_id', profile.box_id)
-    .eq('athlete_id', user.id)
-    .eq('terms_version', currentTermsVersion)
-    .maybeSingle()
+  const [{ data: termsSig }, { data: parqResp }] = await Promise.all([
+    supabase
+      .from('terms_signatures')
+      .select('id')
+      .eq('box_id', profile.box_id)
+      .eq('athlete_id', user.id)
+      .eq('terms_version', currentTermsVersion)
+      .maybeSingle(),
+    parqDoc
+      ? supabase
+          .from('parq_responses')
+          .select('id')
+          .eq('box_id', profile.box_id)
+          .eq('athlete_id', user.id)
+          .eq('parq_version', parqDoc.version)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
 
-  if (!waiverSig || !termsSig) {
+  // Missing gym_parq row (trigger/backfill gap) must never lock athletes out.
+  const parqDone = !parqDoc || !!parqResp
+
+  if (!waiverSig || !termsSig || !parqDone) {
     redirect('/dashboard/sign-waiver')
   }
 

@@ -19,11 +19,11 @@ export function renderBlocks(blocks: Block[], ctx: { firstName: string }): strin
   const tok = (s: string) => esc(s.split('{{first_name}}').join(ctx.firstName))
   return blocks.map((b) => {
     switch (b.type) {
-      case 'heading': return `<h2 style="font-size:22px;font-weight:700;margin:0 0 12px;color:#111">${tok(b.text)}</h2>`
-      case 'paragraph': return `<p style="font-size:15px;line-height:1.5;margin:0 0 12px;color:#333">${tok(b.text)}</p>`
+      case 'heading': return `<h2 style="font-size:22px;font-weight:700;margin:0 0 12px;color:#15150F">${tok(b.text)}</h2>`
+      case 'paragraph': return `<p style="font-size:15px;line-height:1.5;margin:0 0 12px;color:#6B6757">${tok(b.text)}</p>`
       case 'image': return `<img src="${esc(b.url)}" alt="${esc(b.alt)}" style="max-width:100%;height:auto;display:block;margin:0 0 12px;border-radius:8px" />`
-      case 'button': return `<table cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr><td style="border-radius:8px;background:#111"><a href="${esc(b.url)}" style="display:inline-block;padding:12px 22px;color:#fff;text-decoration:none;font-weight:600;font-size:15px">${esc(b.label)}</a></td></tr></table>`
-      case 'divider': return `<hr style="border:none;border-top:1px solid #eee;margin:16px 0" />`
+      case 'button': return `<table cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr><td style="border-radius:8px;background:#C8F135"><a href="${esc(b.url)}" style="display:inline-block;padding:12px 22px;color:#15150F;text-decoration:none;font-weight:600;font-size:15px">${esc(b.label)}</a></td></tr></table>`
+      case 'divider': return `<hr style="border:none;border-top:1px solid #E3DFD2;margin:16px 0" />`
     }
   }).join('\n')
 }

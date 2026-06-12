@@ -38,6 +38,16 @@ test('renderEmail with blocks renders block HTML + footer', () => {
   expect(html).toContain('CrossFit X')
 })
 
+test('renderEmail wraps output in the light email shell', () => {
+  const html = renderEmail({
+    blocks: [{ type: 'paragraph', text: 'Hi {{first_name}}' }],
+    plainBody: '',
+    ctx: { firstName: 'Sarah', gymName: 'Iron Temple', unsubscribeUrl: 'https://app/u/tok' },
+  })
+  expect(html).toContain('<!DOCTYPE html>')
+  expect(html).toContain('#F6F4ED')
+})
+
 test('renderEmail with null blocks falls back to plain body + footer', () => {
   const html = renderEmail({
     blocks: null,

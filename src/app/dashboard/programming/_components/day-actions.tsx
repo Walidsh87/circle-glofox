@@ -2,15 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { saveTemplate } from '../_actions/save-template'
 import { copyWodToDates, type WodFields } from '../_actions/copy-wod-to-dates'
 import { clearDay } from '../_actions/clear-day'
-
-const btn: React.CSSProperties = {
-  height: 32, padding: '0 12px', borderRadius: 8, border: '1px solid var(--c-border-strong)',
-  background: 'var(--c-surface)', fontSize: 12.5, fontWeight: 600, color: 'var(--c-ink-2)',
-  cursor: 'pointer', fontFamily: 'inherit',
-}
 
 export function DayActions({ date, fields }: { date: string; fields: WodFields }) {
   const router = useRouter()
@@ -53,27 +48,44 @@ export function DayActions({ date, fields }: { date: string; fields: WodFields }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" style={btn} disabled={pending} onClick={onSaveTemplate}>Save as template</button>
-        <button type="button" style={btn} disabled={pending} onClick={() => setCopyOpen((v) => !v)}>Copy to dates…</button>
-        <button type="button" style={{ ...btn, color: 'var(--c-danger)' }} disabled={pending} onClick={onClear}>Clear day</button>
+    <div className="mt-3.5 flex flex-col gap-2.5">
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" disabled={pending} onClick={onSaveTemplate}>
+          Save as template
+        </Button>
+        <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => setCopyOpen((v) => !v)}>
+          Copy to dates…
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="text-danger hover:border-danger"
+          disabled={pending}
+          onClick={onClear}
+        >
+          Clear day
+        </Button>
       </div>
 
       {copyOpen && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', borderRadius: 10, background: 'var(--c-surface-alt)', border: '1px solid var(--c-border)' }}>
+        <div className="flex flex-col gap-2 rounded-[10px] border border-line bg-surface-2 px-3.5 py-3">
           {copyDates.map((d, i) => (
             <input
               key={i}
               type="date"
               value={d}
               onChange={(e) => setCopyDates((prev) => prev.map((x, idx) => (idx === i ? e.target.value : x)))}
-              style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 13, color: 'var(--c-ink)', fontFamily: 'inherit' }}
+              className="h-9 rounded-lg border border-line-strong bg-surface px-2.5 text-[13px] text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
           ))}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" style={btn} onClick={() => setCopyDates((p) => [...p, ''])}>+ Add date</button>
-            <button type="button" style={{ ...btn, background: 'var(--circle-lime)', border: 'none', color: 'var(--circle-ink)' }} disabled={pending} onClick={onCopy}>Copy</button>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setCopyDates((p) => [...p, ''])}>
+              + Add date
+            </Button>
+            <Button type="button" size="sm" disabled={pending} onClick={onCopy}>
+              Copy
+            </Button>
           </div>
         </div>
       )}

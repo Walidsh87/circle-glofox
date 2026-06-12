@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { deleteTemplate } from '../_actions/delete-template'
 import { TemplateForm, type TemplateExisting } from './template-form'
 
@@ -26,36 +28,55 @@ export function LibraryList({ templates }: { templates: Template[] }) {
 
   if (creating || editing) {
     return (
-      <div style={{ maxWidth: 640 }}>
-        <button type="button" onClick={() => { setCreating(false); setEditing(null) }} style={{ marginBottom: 14, background: 'none', border: 'none', color: 'var(--c-ink-muted)', cursor: 'pointer', fontSize: 13 }}>← Back to library</button>
-        <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '20px 22px', boxShadow: 'var(--c-shadow-sm)' }}>
+      <div className="max-w-2xl">
+        <button
+          type="button"
+          onClick={() => { setCreating(false); setEditing(null) }}
+          className="mb-3.5 text-[13px] text-ink-3 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          ← Back to library
+        </button>
+        <Card className="p-5">
           <TemplateForm key={editing?.id ?? 'new'} existing={editing} onSaved={() => { setCreating(false); setEditing(null); router.refresh() }} />
-        </div>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: 720 }}>
-      <button type="button" onClick={() => setCreating(true)} style={{ marginBottom: 16, height: 34, padding: '0 14px', background: 'var(--circle-lime)', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, color: 'var(--circle-ink)', cursor: 'pointer' }}>+ New template</button>
+    <div className="max-w-3xl">
+      <Button size="sm" className="mb-4" type="button" onClick={() => setCreating(true)}>
+        + New template
+      </Button>
 
       {templates.length === 0 ? (
-        <p style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>No templates yet. Save a WOD from the calendar, or create one here.</p>
+        <p className="text-[13px] text-ink-3">No templates yet. Save a WOD from the calendar, or create one here.</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {templates.map((t) => (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '12px 16px', boxShadow: 'var(--c-shadow-sm)' }}>
+            <Card key={t.id} className="flex items-center justify-between gap-2.5 px-4 py-3">
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>{t.title}</div>
-                <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginTop: 2 }}>
+                <div className="text-sm font-semibold text-ink">{t.title}</div>
+                <div className="mt-0.5 font-mono text-[11.5px] text-ink-3">
                   {TYPE_LABEL[t.scoring_type] ?? t.scoring_type}{t.strength_lift ? ' · + strength' : ''}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" onClick={() => setEditing(t)} style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 12.5, fontWeight: 600, color: 'var(--c-ink-2)', cursor: 'pointer' }}>Edit</button>
-                <button type="button" disabled={pending} onClick={() => onDelete(t.id)} style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 12.5, fontWeight: 600, color: 'var(--c-danger)', cursor: 'pointer' }}>Delete</button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditing(t)}>
+                  Edit
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs text-danger hover:border-danger"
+                  disabled={pending}
+                  onClick={() => onDelete(t.id)}
+                >
+                  Delete
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

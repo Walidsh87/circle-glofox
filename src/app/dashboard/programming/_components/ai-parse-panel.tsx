@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { Button } from '@/components/ui/button'
 import { aiParseProgramming } from '../_actions/ai-parse-programming'
 
 export function AiParsePanel({ onParsed }: { onParsed: (text: string) => void }) {
@@ -22,15 +23,19 @@ export function AiParsePanel({ onParsed }: { onParsed: (text: string) => void })
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} style={{ marginBottom: 12, height: 32, padding: '0 14px', borderRadius: 8, border: '1px dashed var(--c-border-strong)', background: 'var(--c-surface-alt)', fontSize: 12.5, fontWeight: 600, color: 'var(--c-ink-2)', cursor: 'pointer', fontFamily: 'inherit' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mb-3 rounded-lg border border-dashed border-line-strong bg-surface-2 px-3.5 py-1.5 text-xs font-semibold text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
         ✨ Parse with AI
       </button>
     )
   }
 
   return (
-    <div style={{ marginBottom: 14, padding: '14px 16px', borderRadius: 12, background: 'var(--c-surface-alt)', border: '1px solid var(--c-border)' }}>
-      <p style={{ fontSize: 12.5, color: 'var(--c-ink-muted)', marginBottom: 8, lineHeight: 1.5 }}>
+    <div className="mb-3.5 rounded-xl border border-line bg-surface-2 px-4 py-3.5">
+      <p className="mb-2 text-xs leading-relaxed text-ink-3">
         Paste a coach&apos;s week however it&apos;s written — AI structures it into the format below. Review and edit before importing.
       </p>
       <textarea
@@ -38,16 +43,16 @@ export function AiParsePanel({ onParsed }: { onParsed: (text: string) => void })
         onChange={(e) => setFreeform(e.target.value)}
         placeholder="Mon: Fran 21-15-9 thrusters/pullups. Tue: 20min AMRAP Cindy…"
         spellCheck={false}
-        style={{ width: '100%', minHeight: 120, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 13, fontFamily: 'inherit', lineHeight: 1.5, resize: 'vertical', boxSizing: 'border-box' }}
+        className="min-h-[120px] w-full resize-y rounded-[10px] border border-line-strong bg-surface px-3 py-2.5 text-[13px] leading-normal text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       />
-      <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
-        <button type="button" disabled={pending || !freeform.trim()} onClick={onParse} style={{ height: 32, padding: '0 14px', borderRadius: 8, border: 'none', background: 'var(--circle-lime)', fontSize: 12.5, fontWeight: 700, color: 'var(--circle-ink)', cursor: 'pointer', fontFamily: 'inherit' }}>
+      <div className="mt-2.5 flex items-center gap-2">
+        <Button type="button" size="sm" disabled={pending || !freeform.trim()} onClick={onParse}>
           {pending ? 'Parsing…' : '✨ Parse'}
-        </button>
-        <button type="button" disabled={pending} onClick={() => { setOpen(false); setErr(null) }} style={{ height: 32, padding: '0 12px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 12.5, fontWeight: 600, color: 'var(--c-ink-2)', cursor: 'pointer', fontFamily: 'inherit' }}>
+        </Button>
+        <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => { setOpen(false); setErr(null) }}>
           Cancel
-        </button>
-        {err && <span style={{ fontSize: 12, color: 'var(--c-danger)' }}>{err}</span>}
+        </Button>
+        {err && <span role="alert" className="text-xs text-danger">{err}</span>}
       </div>
     </div>
   )

@@ -1,7 +1,8 @@
 import { requireStaffPage } from '@/lib/auth/page-guards'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card } from '@/components/ui/card'
 import { WodForm } from '@/app/dashboard/wod/_components/wod-form'
 import { LoadFromLibrary } from '../../_components/load-from-library'
 import { DayActions } from '../../_components/day-actions'
@@ -59,26 +60,31 @@ export default async function DayEditorPage(ctx: {
     .format(new Date(params.date + 'T00:00:00Z'))
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="programming" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0, gap: 12 }}>
-          <Link href={`/dashboard/programming?month=${params.date.slice(0, 7)}`} style={{ fontSize: 13, color: 'var(--c-ink-muted)', textDecoration: 'none' }}>← Calendar</Link>
-          <span style={{ color: 'var(--c-border)' }}>/</span>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 18, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>{prettyDate}</h1>
-          <LoadFromLibrary date={params.date} templates={(templates ?? []).map((t) => ({ id: t.id, title: t.title }))} />
-        </header>
-
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 640 }}>
-            <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '20px 22px', boxShadow: 'var(--c-shadow-sm)' }}>
-              <WodForm date={params.date} existing={existing ?? null} />
-              {actionFields && <DayActions date={params.date} fields={actionFields} />}
-            </div>
-          </div>
-        </div>
+    <DashboardShell
+      active="programming"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title={
+        <span className="flex items-center gap-3">
+          <Link
+            href={`/dashboard/programming?month=${params.date.slice(0, 7)}`}
+            className="font-sans text-[13px] font-normal tracking-normal text-ink-3 transition-colors hover:text-ink"
+          >
+            ← Calendar
+          </Link>
+          <span className="text-base font-normal text-line-strong">/</span>
+          <span>{prettyDate}</span>
+        </span>
+      }
+      actions={<LoadFromLibrary date={params.date} templates={(templates ?? []).map((t) => ({ id: t.id, title: t.title }))} />}
+    >
+      <div className="max-w-2xl">
+        <Card className="p-5">
+          <WodForm date={params.date} existing={existing ?? null} />
+          {actionFields && <DayActions date={params.date} fields={actionFields} />}
+        </Card>
       </div>
-    </div>
+    </DashboardShell>
   )
 }

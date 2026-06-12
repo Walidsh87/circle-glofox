@@ -1,6 +1,8 @@
 import { requireProgrammingPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { monthGridDays, prevMonth, nextMonth, monthRange, formatMonth } from './_lib/calendar'
 import { todayInTimezone } from '@/lib/timezone'
 
@@ -26,68 +28,82 @@ export default async function ProgrammingPage(ctx: { searchParams: Promise<{ mon
   const cells = monthGridDays(month)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="programming" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0, gap: 16 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
-            WOD Planner
-          </h1>
-          <Link href="/dashboard/programming/import" style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink-2)', textDecoration: 'none', padding: '7px 14px', borderRadius: 8, border: '1px solid var(--c-border)' }}>
+    <DashboardShell
+      active="programming"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="WOD Planner"
+      actions={
+        <>
+          <Link href="/dashboard/programming/import" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
             Import
           </Link>
-          <Link href="/dashboard/programming/library" style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink-2)', textDecoration: 'none', padding: '7px 14px', borderRadius: 8, border: '1px solid var(--c-border)' }}>
+          <Link href="/dashboard/programming/library" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
             Library →
           </Link>
-        </header>
+        </>
+      }
+    >
+      <div className="mb-4 flex max-w-[920px] items-center justify-between">
+        <Link
+          href={`/dashboard/programming?month=${prevMonth(month)}`}
+          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+        >
+          ← {formatMonth(prevMonth(month))}
+        </Link>
+        <div className="font-display text-lg font-semibold text-ink">{formatMonth(month)}</div>
+        <Link
+          href={`/dashboard/programming?month=${nextMonth(month)}`}
+          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+        >
+          {formatMonth(nextMonth(month))} →
+        </Link>
+      </div>
 
-        <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, maxWidth: 920 }}>
-            <Link href={`/dashboard/programming?month=${prevMonth(month)}`} style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-2)', textDecoration: 'none' }}>← {formatMonth(prevMonth(month))}</Link>
-            <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 18, fontWeight: 600, color: 'var(--c-ink)' }}>{formatMonth(month)}</div>
-            <Link href={`/dashboard/programming?month=${nextMonth(month)}`} style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-2)', textDecoration: 'none' }}>{formatMonth(nextMonth(month))} →</Link>
-          </div>
-
-          <div style={{ maxWidth: 920 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 6 }}>
-              {WEEKDAYS.map((d) => (
-                <div key={d} className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center' }}>{d}</div>
-              ))}
+      <div className="max-w-[920px]">
+        <div className="mb-1.5 grid grid-cols-7 gap-1.5">
+          {WEEKDAYS.map((d) => (
+            <div key={d} className="text-center font-mono text-[10.5px] uppercase tracking-[0.06em] text-ink-3">
+              {d}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
-              {cells.map((cell, i) => {
-                if (!cell.date) return <div key={i} />
-                const w = byDate.get(cell.date)
-                const isToday = cell.date === today
-                const dayNum = Number(cell.date.slice(-2))
-                return (
-                  <Link
-                    key={i}
-                    href={`/dashboard/programming/day/${cell.date}`}
-                    style={{
-                      display: 'flex', flexDirection: 'column', gap: 4, minHeight: 84,
-                      padding: '8px 10px', borderRadius: 10, textDecoration: 'none',
-                      background: 'var(--c-surface)',
-                      border: `1px solid ${isToday ? 'var(--circle-lime)' : 'var(--c-border)'}`,
-                    }}
-                  >
-                    <span className="mono" style={{ fontSize: 12, fontWeight: isToday ? 700 : 500, color: isToday ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)' }}>{dayNum}</span>
-                    {w ? (
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--c-ink)', lineHeight: 1.3 }}>
-                        {w.title}
-                        {w.strength_lift && <span className="mono" style={{ display: 'block', fontSize: 9.5, fontWeight: 700, color: 'var(--circle-lime-ink)', textTransform: 'uppercase', marginTop: 2 }}>+ strength</span>}
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1.5">
+          {cells.map((cell, i) => {
+            if (!cell.date) return <div key={i} />
+            const w = byDate.get(cell.date)
+            const isToday = cell.date === today
+            const dayNum = Number(cell.date.slice(-2))
+            return (
+              <Link
+                key={i}
+                href={`/dashboard/programming/day/${cell.date}`}
+                className={cn(
+                  'flex min-h-[84px] flex-col gap-1 rounded-[10px] border bg-surface px-2.5 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                  isToday ? 'border-accent' : 'border-line hover:border-line-strong'
+                )}
+              >
+                <span className={cn('font-mono text-xs', isToday ? 'font-bold text-accent-ink' : 'font-medium text-ink-3')}>
+                  {dayNum}
+                </span>
+                {w ? (
+                  <span className="text-xs font-semibold leading-tight text-ink">
+                    {w.title}
+                    {w.strength_lift && (
+                      <span className="mt-0.5 block font-mono text-[9.5px] font-bold uppercase text-accent-ink">
+                        + strength
                       </span>
-                    ) : (
-                      <span style={{ fontSize: 16, color: 'var(--c-ink-faint)' }}>+</span>
                     )}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
+                  </span>
+                ) : (
+                  <span className="text-base text-ink-faint">+</span>
+                )}
+              </Link>
+            )
+          })}
         </div>
       </div>
-    </div>
+    </DashboardShell>
   )
 }

@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { previewImport, commitImport, type PreviewRow } from '../_actions/import-batch'
 import { AiParsePanel } from './ai-parse-panel'
 
@@ -15,11 +18,11 @@ Pull-ups
 Cindy
 20 min AMRAP: 5 pull-ups / 10 push-ups / 15 squats`
 
-const BADGE: Record<PreviewRow['status'], { bg: string; fg: string }> = {
-  NEW: { bg: 'var(--circle-lime)', fg: 'var(--circle-ink)' },
-  REPLACE: { bg: 'var(--c-surface-alt)', fg: 'var(--c-ink-2)' },
-  BLOCKED: { bg: 'var(--c-surface-alt)', fg: 'var(--c-danger)' },
-  INVALID: { bg: 'var(--c-surface-alt)', fg: 'var(--c-danger)' },
+const BADGE_CLASS: Record<PreviewRow['status'], string> = {
+  NEW: 'bg-accent text-accent-contrast',
+  REPLACE: 'bg-surface-2 text-ink-2',
+  BLOCKED: 'bg-surface-2 text-danger',
+  INVALID: 'bg-surface-2 text-danger',
 }
 
 export function ImportForm() {
@@ -50,8 +53,8 @@ export function ImportForm() {
   }
 
   return (
-    <div style={{ maxWidth: 720 }}>
-      <p style={{ fontSize: 13, color: 'var(--c-ink-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+    <div className="max-w-3xl">
+      <p className="mb-3 text-[13px] leading-normal text-ink-3">
         Paste one day per block: a date line (optionally with scoring — For Time, AMRAP, Rounds + Reps, Load), then the title, then the workout. Separate days with a blank line.
       </p>
 
@@ -62,43 +65,46 @@ export function ImportForm() {
         onChange={(e) => { setText(e.target.value); setDone(null) }}
         placeholder={PLACEHOLDER}
         spellCheck={false}
-        style={{ width: '100%', minHeight: 240, padding: '12px 14px', borderRadius: 12, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 13, fontFamily: 'var(--font-geist-mono, monospace)', lineHeight: 1.5, resize: 'vertical', boxSizing: 'border-box' }}
+        className="min-h-[240px] w-full resize-y rounded-xl border border-line-strong bg-surface px-3.5 py-3 font-mono text-[13px] leading-normal text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       />
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button type="button" disabled={pending || !text.trim()} onClick={onPreview} style={{ height: 34, padding: '0 16px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 13, fontWeight: 600, color: 'var(--c-ink-2)', cursor: 'pointer', fontFamily: 'inherit' }}>
+      <div className="mt-3 flex gap-2">
+        <Button type="button" variant="outline" size="sm" disabled={pending || !text.trim()} onClick={onPreview}>
           {pending ? 'Working…' : 'Preview'}
-        </button>
+        </Button>
         {rows && writable > 0 && done === null && (
-          <button type="button" disabled={pending} onClick={onImport} style={{ height: 34, padding: '0 16px', borderRadius: 8, border: 'none', background: 'var(--circle-lime)', fontSize: 13, fontWeight: 700, color: 'var(--circle-ink)', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <Button type="button" size="sm" disabled={pending} onClick={onImport}>
             Import {writable} day{writable === 1 ? '' : 's'}
-          </button>
+          </Button>
         )}
       </div>
 
-      {err && <p style={{ fontSize: 13, color: 'var(--c-danger)', marginTop: 12 }}>{err}</p>}
+      {err && <p role="alert" className="mt-3 text-[13px] text-danger">{err}</p>}
 
       {done !== null && (
-        <p style={{ fontSize: 13, color: 'var(--c-ink)', marginTop: 14 }}>
+        <p className="mt-3.5 text-[13px] text-ink">
           Imported {done} day{done === 1 ? '' : 's'}.{' '}
-          <Link href="/dashboard/programming" style={{ color: 'var(--circle-lime-ink)', fontWeight: 600, textDecoration: 'none' }}>Back to calendar →</Link>
+          <Link href="/dashboard/programming" className="font-semibold text-accent-ink transition-colors hover:text-ink">
+            Back to calendar →
+          </Link>
         </p>
       )}
 
       {rows && rows.length > 0 && (
-        <div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="mt-4 flex flex-col gap-1.5">
           {rows.map((r, i) => {
-            const b = BADGE[r.status]
             const showMsg = r.status === 'BLOCKED' || r.status === 'INVALID'
             return (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '10px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)', width: 92, flexShrink: 0 }}>{r.date}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title || '—'}</span>
-                  <span className="mono" style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 6, background: b.bg, color: b.fg, fontWeight: 700, textTransform: 'uppercase', flexShrink: 0 }}>{r.status}</span>
+              <Card key={i} className="flex flex-col gap-1 px-3.5 py-2.5 shadow-none">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-[92px] shrink-0 font-mono text-xs text-ink-3">{r.date}</span>
+                  <span className="flex-1 truncate text-[13px] font-semibold text-ink">{r.title || '—'}</span>
+                  <span className={cn('shrink-0 rounded-md px-2 py-0.5 font-mono text-[10.5px] font-bold uppercase', BADGE_CLASS[r.status])}>
+                    {r.status}
+                  </span>
                 </div>
-                {showMsg && <span style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', paddingLeft: 102 }}>{r.message}</span>}
-              </div>
+                {showMsg && <span className="pl-[102px] text-[11.5px] text-ink-3">{r.message}</span>}
+              </Card>
             )
           })}
         </div>

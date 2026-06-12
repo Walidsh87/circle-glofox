@@ -11,7 +11,7 @@ export function LoadFromLibrary({ date, templates }: { date: string; templates: 
     <select
       defaultValue=""
       onChange={(e) => { if (e.target.value) router.push(`/dashboard/programming/day/${date}?template=${e.target.value}`) }}
-      style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 13, color: 'var(--c-ink)', fontFamily: 'inherit' }}
+      className="h-9 rounded-lg border border-line-strong bg-surface px-2.5 text-[13px] text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <option value="">Load from library…</option>
       {templates.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}

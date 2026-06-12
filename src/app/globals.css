@@ -121,26 +121,6 @@
   }
 }
 
-/* Circle dark scope — whiteboard (legacy, consumed until B3) */
-.circle-dark {
-  --c-bg: #0A0A0A;
-  --c-surface: #141414;
-  --c-surface-alt: #1C1C1C;
-  --c-surface-sunk: #0F0F0F;
-  --c-border: #262626;
-  --c-border-strong: #383838;
-  --c-divider: #1F1F1F;
-  --c-ink: #FAFAFA;
-  --c-ink-2: #D4D4D4;
-  --c-ink-muted: #888888;
-  --c-ink-faint: #5A5A5A;
-  --c-ok-soft: oklch(0.30 0.08 148);
-  --c-warn-soft: oklch(0.30 0.10 82);
-  --c-danger-soft: oklch(0.30 0.10 28);
-  color: var(--c-ink);
-  background: var(--c-bg);
-}
-
 /* Circle logo mark — legacy CSS version (consumed until B3; CircleMark
    component in src/components/circle-mark.tsx is canonical) */
 .circle-mark {

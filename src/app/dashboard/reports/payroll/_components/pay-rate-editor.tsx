@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { savePayRate } from '../_actions/save-pay-rate'
 
-const field: React.CSSProperties = { height: 30, borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 12.5, color: 'var(--c-ink)', padding: '0 8px', boxSizing: 'border-box' }
+const fieldClass =
+  'h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function PayRateEditor({ coachId, baseType, baseRate, ptRate }: {
   coachId: string
@@ -36,25 +38,32 @@ export function PayRateEditor({ coachId, baseType, baseRate, ptRate }: {
 
   if (!editing) {
     return (
-      <button onClick={() => setEditing(true)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, cursor: 'pointer', color: 'var(--c-ink-muted)', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+      <button
+        onClick={() => setEditing(true)}
+        className="text-xs text-ink-3 underline underline-offset-2 transition-colors hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
         Edit rates
       </button>
     )
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-        <select value={bt} onChange={(e) => setBt(e.target.value)} style={field} aria-label="Base pay type">
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <select value={bt} onChange={(e) => setBt(e.target.value)} className={fieldClass} aria-label="Base pay type">
           <option value="">No base</option>
           <option value="per_class">Per class</option>
           <option value="monthly">Monthly</option>
         </select>
-        <input type="number" min={0} step="0.01" placeholder="Base AED" value={br} onChange={(e) => setBr(e.target.value)} style={{ ...field, width: 90 }} aria-label="Base rate (AED)" />
-        <input type="number" min={0} step="0.01" placeholder="PT AED" value={pr} onChange={(e) => setPr(e.target.value)} style={{ ...field, width: 80 }} aria-label="PT rate (AED)" />
-        <button onClick={onSave} disabled={pending} style={{ height: 30, padding: '0 12px', borderRadius: 6, border: 'none', background: '#111', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>{pending ? '…' : 'Save'}</button>
-        <button onClick={() => { setEditing(false); setError(null) }} disabled={pending} style={{ height: 30, padding: '0 10px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'none', fontSize: 12, cursor: 'pointer', color: 'var(--c-ink-2)' }}>Cancel</button>
+        <input type="number" min={0} step="0.01" placeholder="Base AED" value={br} onChange={(e) => setBr(e.target.value)} className={`${fieldClass} w-[90px]`} aria-label="Base rate (AED)" />
+        <input type="number" min={0} step="0.01" placeholder="PT AED" value={pr} onChange={(e) => setPr(e.target.value)} className={`${fieldClass} w-20`} aria-label="PT rate (AED)" />
+        <Button size="sm" className="h-8 px-3 text-xs" onClick={onSave} disabled={pending}>
+          {pending ? '…' : 'Save'}
+        </Button>
+        <Button size="sm" variant="ghost" className="h-8 px-2.5 text-xs" onClick={() => { setEditing(false); setError(null) }} disabled={pending}>
+          Cancel
+        </Button>
       </div>
-      {error && <p style={{ fontSize: 11.5, color: 'var(--c-danger)', margin: 0 }}>{error}</p>}
+      {error && <p role="alert" className="m-0 text-[11.5px] text-danger">{error}</p>}
     </div>
   )
 }

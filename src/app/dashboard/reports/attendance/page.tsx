@@ -1,7 +1,10 @@
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { requireManagerPage } from '@/lib/auth/page-guards'
 import { DownloadCsvButton } from '@/components/download-csv-button'
+import { Card, StatCard } from '@/components/ui/card'
+import { Table, Th, Td } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 import { buildAttendanceReport, type AttendanceBooking, type AttendanceInstance } from '@/lib/reports/attendance'
 
 const RANGES = [30, 60, 90]
@@ -52,98 +55,100 @@ export default async function AttendanceReportPage(ctx: { searchParams: Promise<
     { label: 'No-show rate', value: `${summary.noShowRate}%` },
   ]
 
-  const cell = { padding: '10px 12px', fontSize: 13.5, color: 'var(--c-ink)', textAlign: 'right' as const }
-  const head = { padding: '8px 12px', fontSize: 11, fontWeight: 700, color: 'var(--c-ink-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.04em', textAlign: 'right' as const }
-
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="reports" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Attendance &amp; no-shows</h1>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 720 }}>
-            <p style={{ fontSize: 13, color: 'var(--c-ink-muted)', marginBottom: 16 }}>Check-ins, fill rates and no-shows for classes held in the selected range.</p>
+    <DashboardShell
+      active="reports"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Attendance & no-shows"
+    >
+      <div className="max-w-3xl">
+        <p className="mb-4 text-sm text-ink-2">
+          Check-ins, fill rates and no-shows for classes held in the selected range.
+        </p>
 
-            <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
-              {RANGES.map((d) => (
-                <Link
-                  key={d}
-                  href={`/dashboard/reports/attendance?days=${d}`}
-                  style={{
-                    padding: '5px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, textDecoration: 'none',
-                    border: days === d ? '1px solid var(--circle-lime-ink)' : '1px solid var(--c-border)',
-                    background: days === d ? 'var(--circle-lime-soft)' : 'var(--c-surface)',
-                    color: days === d ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)',
-                  }}
-                >
-                  Last {d} days
-                </Link>
+        <div className="mb-4 flex gap-1.5">
+          {RANGES.map((d) => (
+            <Link
+              key={d}
+              href={`/dashboard/reports/attendance?days=${d}`}
+              className={cn(
+                'rounded-full border px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                days === d
+                  ? 'border-accent-ink bg-accent-soft text-accent-ink'
+                  : 'border-line bg-surface text-ink-3 hover:text-ink'
+              )}
+            >
+              Last {d} days
+            </Link>
+          ))}
+        </div>
+
+        {summary.classesHeld === 0 ? (
+          <p className="text-sm text-ink-2">No classes in this range.</p>
+        ) : (
+          <>
+            <div className="mb-4 grid grid-cols-3 gap-2.5">
+              {cards.map((c) => (
+                <StatCard key={c.label} label={c.label} value={c.value} />
               ))}
             </div>
 
-            {summary.classesHeld === 0 ? (
-              <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>No classes in this range.</p>
-            ) : (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 18 }}>
-                  {cards.map((c) => (
-                    <div key={c.label} style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: 'var(--c-shadow-sm)' }}>
-                      <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{c.label}</div>
-                      <div className="mono" style={{ fontSize: 26, color: 'var(--c-ink)', marginTop: 4, letterSpacing: '-0.02em', fontWeight: 700 }}>{c.value}</div>
-                    </div>
-                  ))}
-                </div>
+            <div className="mb-2.5 flex justify-end">
+              <DownloadCsvButton
+                filename="attendance.csv"
+                headers={['Class', 'Classes held', 'Avg attended', 'Fill %', 'No-show %']}
+                rows={byTemplate.map((t) => [t.name, t.classesHeld, t.avgAttended, t.fillPct, t.noShowPct])}
+              />
+            </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-                  <DownloadCsvButton
-                    filename="attendance.csv"
-                    headers={['Class', 'Classes held', 'Avg attended', 'Fill %', 'No-show %']}
-                    rows={byTemplate.map((t) => [t.name, t.classesHeld, t.avgAttended, t.fillPct, t.noShowPct])}
-                  />
-                </div>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Class</Th>
+                  <Th className="text-right">Held</Th>
+                  <Th className="text-right">Avg attended</Th>
+                  <Th className="text-right">Fill %</Th>
+                  <Th className="text-right">No-show %</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {byTemplate.map((t) => (
+                  <tr key={t.name} className="last:[&>td]:border-0">
+                    <Td className="font-semibold">{t.name}</Td>
+                    <Td className="text-right">{t.classesHeld}</Td>
+                    <Td className="text-right">{t.avgAttended}</Td>
+                    <Td className={t.fillPct >= 80 ? 'text-right text-accent-ink' : 'text-right'}>{t.fillPct}%</Td>
+                    <Td className="text-right text-ink-3">{t.noShowPct}%</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
 
-                <div style={{ border: '1px solid var(--c-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--c-surface)' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--c-border)' }}>
-                        <th style={{ ...head, textAlign: 'left' }}>Class</th>
-                        <th style={head}>Held</th>
-                        <th style={head}>Avg attended</th>
-                        <th style={head}>Fill %</th>
-                        <th style={head}>No-show %</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {byTemplate.map((t, i) => (
-                        <tr key={t.name} style={{ borderBottom: i < byTemplate.length - 1 ? '1px solid var(--c-border)' : 'none' }}>
-                          <td style={{ ...cell, textAlign: 'left', fontWeight: 600 }}>{t.name}</td>
-                          <td style={cell}>{t.classesHeld}</td>
-                          <td style={cell}>{t.avgAttended}</td>
-                          <td style={{ ...cell, color: t.fillPct >= 80 ? 'var(--circle-lime-ink)' : 'var(--c-ink)' }}>{t.fillPct}%</td>
-                          <td style={{ ...cell, color: 'var(--c-ink-muted)' }}>{t.noShowPct}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="mb-2 mt-5 text-xs font-bold uppercase tracking-[0.04em] text-ink-3">
+              Busiest classes
+            </div>
+            <Card className="overflow-hidden">
+              {busiest.map((t, i) => (
+                <div
+                  key={t.name}
+                  className={cn(
+                    'flex items-center gap-3 px-3.5 py-2.5',
+                    i < busiest.length - 1 && 'border-b border-line'
+                  )}
+                >
+                  <span className="w-[18px] font-mono text-xs font-bold text-ink-3">{i + 1}</span>
+                  <span className="flex-1 text-[13.5px] font-semibold text-ink">{t.name}</span>
+                  <span className="font-mono text-xs text-ink-3">
+                    {t.avgAttended} avg &middot; {t.fillPct}% full
+                  </span>
                 </div>
-
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '22px 0 8px' }}>Busiest classes</div>
-                <div style={{ border: '1px solid var(--c-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--c-surface)' }}>
-                  {busiest.map((t, i) => (
-                    <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < busiest.length - 1 ? '1px solid var(--c-border)' : 'none' }}>
-                      <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-ink-muted)', width: 18 }}>{i + 1}</span>
-                      <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: 'var(--c-ink)' }}>{t.name}</span>
-                      <span className="mono" style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>{t.avgAttended} avg &middot; {t.fillPct}% full</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+              ))}
+            </Card>
+          </>
+        )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

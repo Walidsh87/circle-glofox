@@ -1,7 +1,9 @@
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { requireManagerPage } from '@/lib/auth/page-guards'
 import { DownloadCsvButton } from '@/components/download-csv-button'
+import { Table, Th, Td } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 import { buildClassPerformance, type PerfBooking, type PerfInstance } from '@/lib/reports/class-performance'
 
 const RANGES = [30, 60, 90]
@@ -56,107 +58,101 @@ export default async function ClassPerformanceReportPage(ctx: { searchParams: Pr
 
   const { byTemplate, byCoach } = buildClassPerformance(instances, bookings, coachNameById, nowIso)
 
-  const cell = { padding: '10px 12px', fontSize: 13.5, color: 'var(--c-ink)', textAlign: 'right' as const }
-  const head = { padding: '8px 12px', fontSize: 11, fontWeight: 700, color: 'var(--c-ink-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.04em', textAlign: 'right' as const }
-  const sectionTitle = { fontSize: 12.5, fontWeight: 700, color: 'var(--c-ink-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginBottom: 8 }
-
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="reports" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Class &amp; coach performance</h1>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 720 }}>
-            <p style={{ fontSize: 13, color: 'var(--c-ink-muted)', marginBottom: 16 }}>Fill rate and no-show rate for every class template and coach, over classes already held.</p>
+    <DashboardShell
+      active="reports"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Class & coach performance"
+    >
+      <div className="max-w-3xl">
+        <p className="mb-4 text-sm text-ink-2">
+          Fill rate and no-show rate for every class template and coach, over classes already held.
+        </p>
 
-            <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
-              {RANGES.map((d) => (
-                <Link
-                  key={d}
-                  href={`/dashboard/reports/classes?days=${d}`}
-                  style={{
-                    padding: '5px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, textDecoration: 'none',
-                    border: days === d ? '1px solid var(--circle-lime-ink)' : '1px solid var(--c-border)',
-                    background: days === d ? 'var(--circle-lime-soft)' : 'var(--c-surface)',
-                    color: days === d ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)',
-                  }}
-                >
-                  Last {d} days
-                </Link>
-              ))}
+        <div className="mb-4 flex gap-1.5">
+          {RANGES.map((d) => (
+            <Link
+              key={d}
+              href={`/dashboard/reports/classes?days=${d}`}
+              className={cn(
+                'rounded-full border px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                days === d
+                  ? 'border-accent-ink bg-accent-soft text-accent-ink'
+                  : 'border-line bg-surface text-ink-3 hover:text-ink'
+              )}
+            >
+              Last {d} days
+            </Link>
+          ))}
+        </div>
+
+        {byTemplate.length === 0 ? (
+          <p className="text-sm text-ink-2">No classes in this range.</p>
+        ) : (
+          <>
+            <div className="mb-2 text-xs font-bold uppercase tracking-[0.04em] text-ink-3">Coaches</div>
+            <div className="mb-6">
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Coach</Th>
+                    <Th className="text-right">Classes held</Th>
+                    <Th className="text-right">Check-ins</Th>
+                    <Th className="text-right">Avg fill %</Th>
+                    <Th className="text-right">No-show %</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byCoach.map((r) => (
+                    <tr key={r.coachName} className="last:[&>td]:border-0">
+                      <Td className="font-semibold">{r.coachName}</Td>
+                      <Td className="text-right">{r.classesHeld}</Td>
+                      <Td className="text-right">{r.totalCheckIns}</Td>
+                      <Td className={r.avgFillPct >= 50 ? 'text-right text-accent-ink' : 'text-right text-ink-3'}>{r.avgFillPct}%</Td>
+                      <Td className="text-right">{r.noShowPct}%</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
             </div>
 
-            {byTemplate.length === 0 ? (
-              <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>No classes in this range.</p>
-            ) : (
-              <>
-                <div style={sectionTitle}>Coaches</div>
-                <div style={{ border: '1px solid var(--c-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--c-surface)', marginBottom: 24 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--c-border)' }}>
-                        <th style={{ ...head, textAlign: 'left' }}>Coach</th>
-                        <th style={head}>Classes held</th>
-                        <th style={head}>Check-ins</th>
-                        <th style={head}>Avg fill %</th>
-                        <th style={head}>No-show %</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {byCoach.map((r) => (
-                        <tr key={r.coachName} style={{ borderBottom: '1px solid var(--c-border)' }}>
-                          <td style={{ ...cell, textAlign: 'left', fontWeight: 600 }}>{r.coachName}</td>
-                          <td style={cell}>{r.classesHeld}</td>
-                          <td style={cell}>{r.totalCheckIns}</td>
-                          <td style={{ ...cell, color: r.avgFillPct >= 50 ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)' }}>{r.avgFillPct}%</td>
-                          <td style={cell}>{r.noShowPct}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ ...sectionTitle, marginBottom: 0 }}>Classes</div>
-                  <DownloadCsvButton
-                    filename="class-performance.csv"
-                    headers={['Class', 'Coach', 'Classes held', 'Check-ins', 'Avg fill %', 'No-show %']}
-                    rows={byTemplate.map((r) => [r.name, r.coachName, r.classesHeld, r.totalCheckIns, r.avgFillPct, r.noShowPct])}
-                  />
-                </div>
-                <div style={{ border: '1px solid var(--c-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--c-surface)' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--c-border)' }}>
-                        <th style={{ ...head, textAlign: 'left' }}>Class</th>
-                        <th style={{ ...head, textAlign: 'left' }}>Coach</th>
-                        <th style={head}>Classes held</th>
-                        <th style={head}>Check-ins</th>
-                        <th style={head}>Avg fill %</th>
-                        <th style={head}>No-show %</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {byTemplate.map((r, i) => (
-                        <tr key={`${r.name}-${i}`} style={{ borderBottom: '1px solid var(--c-border)' }}>
-                          <td style={{ ...cell, textAlign: 'left', fontWeight: 600 }}>{r.name}</td>
-                          <td style={{ ...cell, textAlign: 'left' }}>{r.coachName}</td>
-                          <td style={cell}>{r.classesHeld}</td>
-                          <td style={cell}>{r.totalCheckIns}</td>
-                          <td style={{ ...cell, color: r.avgFillPct >= 50 ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)' }}>{r.avgFillPct}%</td>
-                          <td style={cell}>{r.noShowPct}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+            <div className="mb-2.5 flex items-end justify-between">
+              <div className="text-xs font-bold uppercase tracking-[0.04em] text-ink-3">Classes</div>
+              <DownloadCsvButton
+                filename="class-performance.csv"
+                headers={['Class', 'Coach', 'Classes held', 'Check-ins', 'Avg fill %', 'No-show %']}
+                rows={byTemplate.map((r) => [r.name, r.coachName, r.classesHeld, r.totalCheckIns, r.avgFillPct, r.noShowPct])}
+              />
+            </div>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Class</Th>
+                  <Th>Coach</Th>
+                  <Th className="text-right">Classes held</Th>
+                  <Th className="text-right">Check-ins</Th>
+                  <Th className="text-right">Avg fill %</Th>
+                  <Th className="text-right">No-show %</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {byTemplate.map((r, i) => (
+                  <tr key={`${r.name}-${i}`} className="last:[&>td]:border-0">
+                    <Td className="font-semibold">{r.name}</Td>
+                    <Td>{r.coachName}</Td>
+                    <Td className="text-right">{r.classesHeld}</Td>
+                    <Td className="text-right">{r.totalCheckIns}</Td>
+                    <Td className={r.avgFillPct >= 50 ? 'text-right text-accent-ink' : 'text-right text-ink-3'}>{r.avgFillPct}%</Td>
+                    <Td className="text-right">{r.noShowPct}%</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </>
+        )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

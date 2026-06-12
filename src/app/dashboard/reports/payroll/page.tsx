@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { DownloadCsvButton } from '@/components/download-csv-button'
+import { Table, Th, Td } from '@/components/ui/table'
 import { buildPayroll, type PayRateRow, type PayrollInstance, type PtSessionRow } from '@/lib/reports/payroll'
 import { PayRateEditor } from './_components/pay-rate-editor'
 
@@ -66,103 +67,109 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
   const nextKey = shiftMonth(monthKey, 1)
   const hasNext = nextKey <= currentKey
 
-  const cell = { padding: '10px 12px', fontSize: 13.5, color: 'var(--c-ink)', textAlign: 'right' as const }
-  const head = { padding: '8px 12px', fontSize: 11, fontWeight: 700, color: 'var(--c-ink-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.04em', textAlign: 'right' as const }
+  const pagerClass =
+    'rounded-full border border-line bg-surface px-2.5 py-1 text-[13px] text-ink-3 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="reports" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Payroll</h1>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 760 }}>
-            <p style={{ fontSize: 13, color: 'var(--c-ink-muted)', marginBottom: 16 }}>Per-coach pay for the month: base (per class or salary) plus attributed PT sessions. Mid-month shows pay-to-date.</p>
+    <DashboardShell
+      active="reports"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Payroll"
+    >
+      <div className="max-w-3xl">
+        <p className="mb-4 text-sm text-ink-2">
+          Per-coach pay for the month: base (per class or salary) plus attributed PT sessions. Mid-month shows pay-to-date.
+        </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-              <Link href={`/dashboard/reports/payroll?month=${prevKey}`} aria-label="Previous month" style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-ink-muted)', fontSize: 13, textDecoration: 'none' }}>‹</Link>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--c-ink)', minWidth: 130, textAlign: 'center' }}>{monthLabel(monthKey)}</span>
-              {hasNext ? (
-                <Link href={`/dashboard/reports/payroll?month=${nextKey}`} aria-label="Next month" style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-ink-muted)', fontSize: 13, textDecoration: 'none' }}>›</Link>
-              ) : (
-                <span aria-hidden style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid var(--c-border)', background: 'var(--c-surface)', color: 'var(--c-border)', fontSize: 13 }}>›</span>
-              )}
-            </div>
-
-            {report.rows.length === 0 ? (
-              <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>No coaches yet — add one from the People page.</p>
-            ) : (
-              <>
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', marginBottom: 10 }}>
-                  <DownloadCsvButton
-                    filename={`payroll-${monthKey}.csv`}
-                    headers={['Coach', 'Base', 'Classes taught', 'PT rate (AED)', 'PT sessions', 'Pay (AED)']}
-                    rows={report.rows.map((r) => [
-                      r.coachName,
-                      r.baseType ? `${BASE_LABEL[r.baseType]} ${r.baseRate ?? 0}` : '',
-                      r.classesTaught,
-                      r.ptRate ?? '',
-                      r.ptCount,
-                      r.payAed,
-                    ])}
-                  />
-                </div>
-                <div style={{ border: '1px solid var(--c-border)', borderRadius: 12, overflow: 'hidden', background: 'var(--c-surface)' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--c-border)' }}>
-                        <th style={{ ...head, textAlign: 'left' }}>Coach</th>
-                        <th style={{ ...head, textAlign: 'left' }}>Base</th>
-                        <th style={head}>Classes</th>
-                        <th style={head}>PT rate</th>
-                        <th style={head}>PT sessions</th>
-                        <th style={head}>Pay (AED)</th>
-                        <th style={{ ...head, textAlign: 'left' }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {report.rows.map((r) => (
-                        <tr key={r.coachId} style={{ borderBottom: '1px solid var(--c-border)' }}>
-                          <td style={{ ...cell, textAlign: 'left', fontWeight: 600 }}>{r.coachName}</td>
-                          <td style={{ ...cell, textAlign: 'left', color: r.baseType ? 'var(--c-ink)' : 'var(--c-ink-muted)' }}>
-                            {r.baseType ? `${BASE_LABEL[r.baseType]} · ${r.baseRate ?? 0} AED` : '—'}
-                          </td>
-                          <td style={cell}>{r.classesTaught}</td>
-                          <td style={{ ...cell, color: r.ptRate !== null ? 'var(--c-ink)' : 'var(--c-ink-muted)' }}>{r.ptRate !== null ? r.ptRate : '—'}</td>
-                          <td style={cell}>{r.ptCount}</td>
-                          <td style={{ ...cell, fontWeight: 700 }} className="mono">{r.hasRate ? r.payAed.toFixed(2) : '—'}</td>
-                          <td style={{ ...cell, textAlign: 'left' }}>
-                            <PayRateEditor coachId={r.coachId} baseType={r.baseType} baseRate={r.baseRate} ptRate={r.ptRate} />
-                          </td>
-                        </tr>
-                      ))}
-                      <tr>
-                        <td style={{ ...cell, textAlign: 'left', fontWeight: 700 }}>Total</td>
-                        <td style={cell}></td>
-                        <td style={{ ...cell, fontWeight: 700 }}>{report.totals.classesTaught}</td>
-                        <td style={cell}></td>
-                        <td style={{ ...cell, fontWeight: 700 }}>{report.totals.ptCount}</td>
-                        <td style={{ ...cell, fontWeight: 700 }} className="mono">{report.totals.payAed.toFixed(2)}</td>
-                        <td style={cell}></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {report.unassignedClasses > 0 && (
-                  <p style={{ fontSize: 12.5, color: 'var(--c-warn-ink)', marginTop: 10 }}>
-                    {report.unassignedClasses} held {report.unassignedClasses === 1 ? 'class has' : 'classes have'} no coach on the template — they pay nobody. Assign coaches under Classes.
-                  </p>
-                )}
-                <p style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginTop: 10 }}>
-                  PT sessions counted from 11 Jun 2026 (attribution start). Class substitutions are not tracked — classes pay the rostered coach.
-                </p>
-              </>
-            )}
-          </div>
+        <div className="mb-4 flex items-center gap-2.5">
+          <Link href={`/dashboard/reports/payroll?month=${prevKey}`} aria-label="Previous month" className={pagerClass}>
+            ‹
+          </Link>
+          <span className="min-w-[130px] text-center text-sm font-bold text-ink">{monthLabel(monthKey)}</span>
+          {hasNext ? (
+            <Link href={`/dashboard/reports/payroll?month=${nextKey}`} aria-label="Next month" className={pagerClass}>
+              ›
+            </Link>
+          ) : (
+            <span aria-hidden className="rounded-full border border-line bg-surface px-2.5 py-1 text-[13px] text-ink-faint">
+              ›
+            </span>
+          )}
         </div>
+
+        {report.rows.length === 0 ? (
+          <p className="text-sm text-ink-2">No coaches yet — add one from the People page.</p>
+        ) : (
+          <>
+            <div className="mb-2.5 flex items-end justify-end">
+              <DownloadCsvButton
+                filename={`payroll-${monthKey}.csv`}
+                headers={['Coach', 'Base', 'Classes taught', 'PT rate (AED)', 'PT sessions', 'Pay (AED)']}
+                rows={report.rows.map((r) => [
+                  r.coachName,
+                  r.baseType ? `${BASE_LABEL[r.baseType]} ${r.baseRate ?? 0}` : '',
+                  r.classesTaught,
+                  r.ptRate ?? '',
+                  r.ptCount,
+                  r.payAed,
+                ])}
+              />
+            </div>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Coach</Th>
+                  <Th>Base</Th>
+                  <Th className="text-right">Classes</Th>
+                  <Th className="text-right">PT rate</Th>
+                  <Th className="text-right">PT sessions</Th>
+                  <Th className="text-right">Pay (AED)</Th>
+                  <Th></Th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.rows.map((r) => (
+                  <tr key={r.coachId}>
+                    <Td className="font-semibold">{r.coachName}</Td>
+                    <Td className={r.baseType ? undefined : 'text-ink-3'}>
+                      {r.baseType ? `${BASE_LABEL[r.baseType]} · ${r.baseRate ?? 0} AED` : '—'}
+                    </Td>
+                    <Td className="text-right">{r.classesTaught}</Td>
+                    <Td className={r.ptRate !== null ? 'text-right' : 'text-right text-ink-3'}>
+                      {r.ptRate !== null ? r.ptRate : '—'}
+                    </Td>
+                    <Td className="text-right">{r.ptCount}</Td>
+                    <Td className="mono text-right font-bold">{r.hasRate ? r.payAed.toFixed(2) : '—'}</Td>
+                    <Td>
+                      <PayRateEditor coachId={r.coachId} baseType={r.baseType} baseRate={r.baseRate} ptRate={r.ptRate} />
+                    </Td>
+                  </tr>
+                ))}
+                <tr className="[&>td]:border-0">
+                  <Td className="font-bold">Total</Td>
+                  <Td></Td>
+                  <Td className="text-right font-bold">{report.totals.classesTaught}</Td>
+                  <Td></Td>
+                  <Td className="text-right font-bold">{report.totals.ptCount}</Td>
+                  <Td className="mono text-right font-bold">{report.totals.payAed.toFixed(2)}</Td>
+                  <Td></Td>
+                </tr>
+              </tbody>
+            </Table>
+
+            {report.unassignedClasses > 0 && (
+              <p className="mt-2.5 text-xs text-warn">
+                {report.unassignedClasses} held {report.unassignedClasses === 1 ? 'class has' : 'classes have'} no coach on the template — they pay nobody. Assign coaches under Classes.
+              </p>
+            )}
+            <p className="mt-2.5 text-xs text-ink-3">
+              PT sessions counted from 11 Jun 2026 (attribution start). Class substitutions are not tracked — classes pay the rostered coach.
+            </p>
+          </>
+        )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

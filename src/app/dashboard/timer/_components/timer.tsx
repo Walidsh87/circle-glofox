@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { tick, type TimerConfig, type TimerState } from '../_lib/engine'
 
 type Mode = TimerConfig['mode']
@@ -12,11 +14,11 @@ const MODES: { value: Mode; label: string }[] = [
   { value: 'intervals', label: 'Intervals' },
 ]
 
-const PHASE_COLOR: Record<TimerState['phase'], string> = {
-  leadin: 'var(--c-warn-ink)',
-  work: 'var(--circle-lime)',
-  rest: 'var(--c-ok-ink)',
-  done: 'var(--c-ink-muted)',
+const PHASE_CLASS: Record<TimerState['phase'], string> = {
+  leadin: 'text-warn',
+  work: 'text-accent-ink',
+  rest: 'text-ok',
+  done: 'text-ink-3',
 }
 
 function fmt(total: number): string {
@@ -25,13 +27,8 @@ function fmt(total: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-const numInput: React.CSSProperties = {
-  width: 76, height: 38, padding: '0 10px', borderRadius: 8, border: '1px solid var(--c-border-strong)',
-  background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 15, fontFamily: 'inherit', textAlign: 'center',
-}
-const ctrlBtn: React.CSSProperties = {
-  height: 44, padding: '0 24px', borderRadius: 10, border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-}
+const numInput =
+  'h-[38px] w-[76px] rounded-lg border border-line-strong bg-surface px-2.5 text-center text-[15px] text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function Timer() {
   const [mode, setMode] = useState<Mode>('amrap')
@@ -136,56 +133,69 @@ export function Timer() {
     : mode === 'for_time' && state.phase !== 'leadin'
       ? state.secondsElapsed
       : state.secondsLeftInPhase
-  const phaseColor = !started ? 'var(--c-ink)' : PHASE_COLOR[state.phase]
+  const phaseClass = !started ? 'text-ink' : PHASE_CLASS[state.phase]
   const subLabel = !started ? MODES.find((m) => m.value === mode)!.label : state.label
 
   return (
-    <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
+    <div className="flex w-full max-w-[520px] flex-col items-center gap-5">
       {/* Mode tabs */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div className="flex flex-wrap justify-center gap-1.5">
         {MODES.map((m) => (
-          <button key={m.value} type="button" disabled={started} onClick={() => setMode(m.value)} style={{ height: 34, padding: '0 14px', borderRadius: 8, border: `1px solid ${mode === m.value ? 'var(--circle-lime)' : 'var(--c-border)'}`, background: mode === m.value ? 'var(--circle-lime-soft)' : 'var(--c-surface)', fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', cursor: started ? 'default' : 'pointer', opacity: started && mode !== m.value ? 0.5 : 1, fontFamily: 'inherit' }}>{m.label}</button>
+          <button
+            key={m.value}
+            type="button"
+            disabled={started}
+            onClick={() => setMode(m.value)}
+            className={cn(
+              'h-[34px] rounded-lg border px-3.5 text-[13px] font-semibold text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              mode === m.value ? 'border-accent bg-accent-soft' : 'border-line bg-surface',
+              started ? 'cursor-default' : 'cursor-pointer',
+              started && mode !== m.value && 'opacity-50'
+            )}
+          >
+            {m.label}
+          </button>
         ))}
       </div>
 
       {/* Config inputs (hidden once started) */}
       {!started && (
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-end' }}>
+        <div className="flex flex-wrap items-end justify-center gap-3.5">
           {mode === 'for_time' && (
-            <Field label="Cap (min, 0=none)"><input type="number" min={0} value={capMin} onChange={(e) => setCapMin(Number(e.target.value))} style={numInput} /></Field>
+            <Field label="Cap (min, 0=none)"><input type="number" min={0} value={capMin} onChange={(e) => setCapMin(Number(e.target.value))} className={numInput} /></Field>
           )}
           {mode === 'amrap' && (
-            <Field label="Minutes"><input type="number" min={1} value={amrapMin} onChange={(e) => setAmrapMin(Number(e.target.value))} style={numInput} /></Field>
+            <Field label="Minutes"><input type="number" min={1} value={amrapMin} onChange={(e) => setAmrapMin(Number(e.target.value))} className={numInput} /></Field>
           )}
           {mode === 'emom' && (<>
-            <Field label="Interval (s)"><input type="number" min={1} value={emomInterval} onChange={(e) => setEmomInterval(Number(e.target.value))} style={numInput} /></Field>
-            <Field label="Rounds"><input type="number" min={1} value={emomRounds} onChange={(e) => setEmomRounds(Number(e.target.value))} style={numInput} /></Field>
+            <Field label="Interval (s)"><input type="number" min={1} value={emomInterval} onChange={(e) => setEmomInterval(Number(e.target.value))} className={numInput} /></Field>
+            <Field label="Rounds"><input type="number" min={1} value={emomRounds} onChange={(e) => setEmomRounds(Number(e.target.value))} className={numInput} /></Field>
           </>)}
           {mode === 'intervals' && (<>
-            <Field label="Work (s)"><input type="number" min={1} value={work} onChange={(e) => setWork(Number(e.target.value))} style={numInput} /></Field>
-            <Field label="Rest (s)"><input type="number" min={0} value={rest} onChange={(e) => setRest(Number(e.target.value))} style={numInput} /></Field>
-            <Field label="Rounds"><input type="number" min={1} value={intervalRounds} onChange={(e) => setIntervalRounds(Number(e.target.value))} style={numInput} /></Field>
+            <Field label="Work (s)"><input type="number" min={1} value={work} onChange={(e) => setWork(Number(e.target.value))} className={numInput} /></Field>
+            <Field label="Rest (s)"><input type="number" min={0} value={rest} onChange={(e) => setRest(Number(e.target.value))} className={numInput} /></Field>
+            <Field label="Rounds"><input type="number" min={1} value={intervalRounds} onChange={(e) => setIntervalRounds(Number(e.target.value))} className={numInput} /></Field>
           </>)}
         </div>
       )}
 
       {/* Big display */}
-      <div style={{ textAlign: 'center' }}>
-        <div className="mono" style={{ fontSize: 88, fontWeight: 700, lineHeight: 1, color: phaseColor, letterSpacing: '-0.03em' }}>{fmt(bigValue)}</div>
-        <div className="mono" style={{ fontSize: 15, color: 'var(--c-ink-muted)', marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      <div className="text-center">
+        <div className={cn('font-mono text-[88px] font-bold leading-none tracking-[-0.03em]', phaseClass)}>{fmt(bigValue)}</div>
+        <div className="mt-2 font-mono text-[15px] uppercase tracking-[0.08em] text-ink-3">
           {subLabel}{started && state.totalRounds > 1 && state.phase !== 'done' ? ` · round ${state.round}/${state.totalRounds}` : ''}
         </div>
       </div>
 
       {/* Controls */}
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div className="flex gap-2.5">
         {!started ? (
-          <button type="button" onClick={onStart} style={{ ...ctrlBtn, background: 'var(--circle-lime)', color: 'var(--circle-ink)' }}>Start</button>
+          <Button type="button" onClick={onStart} className="px-6 text-[15px] font-bold">Start</Button>
         ) : (<>
           {running
-            ? <button type="button" onClick={onPause} style={{ ...ctrlBtn, background: 'var(--c-surface)', border: '1px solid var(--c-border-strong)', color: 'var(--c-ink-2)' }}>Pause</button>
-            : <button type="button" disabled={state.phase === 'done'} onClick={onResume} style={{ ...ctrlBtn, background: 'var(--circle-lime)', color: 'var(--circle-ink)', opacity: state.phase === 'done' ? 0.5 : 1 }}>Resume</button>}
-          <button type="button" onClick={onReset} style={{ ...ctrlBtn, background: 'var(--c-surface)', border: '1px solid var(--c-border-strong)', color: 'var(--c-danger)' }}>Reset</button>
+            ? <Button type="button" variant="outline" onClick={onPause} className="px-6 text-[15px] font-bold">Pause</Button>
+            : <Button type="button" disabled={state.phase === 'done'} onClick={onResume} className="px-6 text-[15px] font-bold">Resume</Button>}
+          <Button type="button" variant="outline" onClick={onReset} className="px-6 text-[15px] font-bold text-danger">Reset</Button>
         </>)}
       </div>
     </div>
@@ -194,8 +204,8 @@ export function Timer() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span className="mono" style={{ fontSize: 10, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+    <label className="flex flex-col gap-1">
+      <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">{label}</span>
       {children}
     </label>
   )

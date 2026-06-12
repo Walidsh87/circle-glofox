@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CircleMark } from '@/components/circle-mark'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { cn } from '@/lib/utils'
 
 type NavItem = {
@@ -148,7 +149,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="c-sidebar flex h-screen w-[248px] shrink-0 flex-col gap-[18px] overflow-y-auto border-r border-line bg-surface-2 px-3.5 py-5">
+      <aside className="hidden h-screen w-[248px] shrink-0 flex-col gap-[18px] overflow-y-auto border-r border-line bg-surface-2 px-3.5 py-5 md:flex">
         {/* Logo */}
         <div className="flex items-center justify-between px-1.5">
           <div className="flex items-center gap-2 font-display text-[15px] font-semibold text-ink">
@@ -222,6 +223,7 @@ export function Sidebar({
             <div className="truncate text-[12.5px] font-semibold text-ink">{userName}</div>
             <div className="mono text-xs capitalize text-ink-3">{userRole}</div>
           </div>
+          <ThemeToggle />
           <button
             onClick={handleSignOut}
             title="Sign out"
@@ -233,7 +235,7 @@ export function Sidebar({
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="c-mobile-nav fixed inset-x-0 bottom-0 z-50 items-center justify-around border-t border-line bg-surface pb-[env(safe-area-inset-bottom,8px)] pt-2">
+      <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-line bg-surface pb-[env(safe-area-inset-bottom,8px)] pt-2 md:hidden">
         {mobileItems.map((item) => {
           const on = item.key === active
           return (

@@ -11,18 +11,6 @@
   }
 }
 
-/* ── Mobile responsive (legacy chrome classes — consumed until B3) ── */
-@media (max-width: 768px) {
-  .c-sidebar          { display: none !important; }
-  .c-mobile-nav       { display: flex !important; }
-  .c-scroll-area      { padding: 16px !important; padding-bottom: 80px !important; }
-  .c-page-header      { padding: 0 16px !important; }
-}
-
-@media (min-width: 769px) {
-  .c-mobile-nav       { display: none !important; }
-}
-
 @layer base {
   /* ── Ivory & Lime semantic tokens (spec: 2026-06-12-ui-redesign-design.md §3.1) ──
      Components reference ONLY these via Tailwind utilities. Never raw hex. */

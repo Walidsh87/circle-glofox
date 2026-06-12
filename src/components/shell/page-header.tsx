@@ -10,7 +10,7 @@ export function PageHeader({
   actions?: React.ReactNode
 }) {
   return (
-    <div className="c-page-header flex items-end justify-between gap-4 pb-5">
+    <div className="flex items-end justify-between gap-4 pb-5">
       <div>
         {eyebrow && (
           <div className="font-mono text-xs uppercase tracking-[0.14em] text-ink-3">{eyebrow}</div>

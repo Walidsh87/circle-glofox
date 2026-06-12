@@ -2,24 +2,17 @@
 
 import { useFormState, useFormStatus } from 'react-dom'
 import { CircleMark } from '@/components/circle-mark'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      style={{
-        width: '100%', height: 46,
-        background: pending ? 'var(--c-surface-alt)' : 'var(--circle-lime)',
-        border: 'none', borderRadius: 10,
-        fontSize: 14.5, fontWeight: 700, cursor: pending ? 'not-allowed' : 'pointer',
-        color: pending ? 'var(--c-ink-muted)' : 'var(--circle-ink)',
-        letterSpacing: '0.01em', transition: 'opacity .12s',
-      }}
-    >
+    <Button type="submit" disabled={pending} className="w-full">
       {pending ? 'Joining…' : 'Join gym →'}
-    </button>
+    </Button>
   )
 }
 
@@ -33,72 +26,44 @@ export function JoinForm({
   const [state, formAction] = useFormState(action, { error: null })
 
   return (
-    <main style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)',
-    }}>
-      <div style={{
-        background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-        borderRadius: 18, padding: '40px 36px', width: '100%', maxWidth: 400,
-        boxShadow: 'var(--c-shadow-sm)',
-      }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 9, marginBottom: 32,
-          fontFamily: 'var(--font-space-grotesk)', fontWeight: 700,
-          fontSize: 16, letterSpacing: '0.04em', textTransform: 'uppercase',
-          color: 'var(--c-ink)',
-        }}>
-          <CircleMark size={22} />
-          <span>Circle</span>
+    <main className="flex min-h-screen items-center justify-center bg-canvas p-4">
+      <Card className="w-full max-w-md p-8 sm:p-9">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-display text-base font-semibold text-ink">
+            <CircleMark size={22} />
+            <span>Circle</span>
+          </div>
+          <ThemeToggle />
         </div>
 
-        <div className="mono" style={{
-          fontSize: 11, color: 'var(--c-ink-muted)',
-          textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10,
-        }}>
+        <div className="mb-2.5 font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
           Welcome
         </div>
-        <h1 style={{
-          fontFamily: 'var(--font-space-grotesk)', fontSize: 26,
-          letterSpacing: '-0.025em', marginBottom: 6, color: 'var(--c-ink)',
-        }}>
-          You&apos;re joining<br />{gymName}
+        <h1 className="mb-1.5 font-display text-2xl font-semibold tracking-[-0.02em] text-ink">
+          You&apos;re joining
+          <br />
+          {gymName}
         </h1>
-        <p style={{ fontSize: 13.5, color: 'var(--c-ink-muted)', marginBottom: 28 }}>
-          Just one more thing — what&apos;s your name?
-        </p>
+        <p className="mb-7 text-sm text-ink-2">Just one more thing — what&apos;s your name?</p>
 
-        <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label htmlFor="fullName" className="mono" style={{
-              fontSize: 11, color: 'var(--c-ink-muted)',
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-            }}>
-              Full name
-            </label>
-            <input
-              id="fullName"
-              name="fullName"
-              type="text"
-              required
-              autoFocus
-              placeholder="Ahmed Al Mansouri"
-              style={{
-                width: '100%', height: 46, padding: '0 14px',
-                border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
-                background: 'var(--c-surface)', fontSize: 15, color: 'var(--c-ink)',
-                fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
+        <form action={formAction} className="flex flex-col gap-4">
+          <Field
+            label="Full name"
+            id="fullName"
+            name="fullName"
+            type="text"
+            required
+            autoFocus
+            placeholder="Ahmed Al Mansouri"
+          />
           {state.error && (
-            <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{state.error}</p>
+            <p role="alert" className="text-sm font-medium text-danger">
+              {state.error}
+            </p>
           )}
-
           <SubmitButton />
         </form>
-      </div>
+      </Card>
     </main>
   )
 }

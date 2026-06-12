@@ -20,13 +20,19 @@ export function RolePicker({ profileId, role }: { profileId: string; role: strin
   }
 
   return (
-    <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
-      <select value={role} disabled={pending} onChange={(e) => onChange(e.target.value)} aria-label="Staff role" style={{ height: 28, borderRadius: 6, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 12, color: 'var(--c-ink)', padding: '0 6px' }}>
+    <span className="inline-flex flex-col gap-0.5">
+      <select
+        value={role}
+        disabled={pending}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label="Staff role"
+        className="h-7 rounded-md border border-line bg-surface px-1.5 text-xs text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
         <option value="admin">Admin</option>
         <option value="coach">Coach</option>
         <option value="receptionist">Receptionist</option>
       </select>
-      {error && <span style={{ fontSize: 11, color: 'var(--c-danger)' }}>{error}</span>}
+      {error && <span role="alert" className="text-[11px] text-danger">{error}</span>}
     </span>
   )
 }

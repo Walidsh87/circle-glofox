@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { updateLeadStatus } from '../_actions/update-lead'
 import { deleteLead } from '../_actions/delete-lead'
 import { convertLead } from '../_actions/convert-lead'
@@ -21,6 +24,7 @@ export type Lead = {
 
 export type Staff = { id: string; full_name: string | null }
 
+// Source category colors are fixed brand-ish pastels (not theme tokens).
 const SOURCE_STYLES: Record<string, { label: string; bg: string; color: string }> = {
   instagram: { label: 'Instagram', bg: '#F3E8FF', color: '#7C3AED' },
   tiktok:    { label: 'TikTok',    bg: '#FCE7F3', color: '#BE185D' },
@@ -28,17 +32,17 @@ const SOURCE_STYLES: Record<string, { label: string; bg: string; color: string }
   whatsapp:  { label: 'WhatsApp',  bg: '#DCFCE7', color: '#15803D' },
   walk_in:   { label: 'Walk-in',   bg: '#FEF3C7', color: '#B45309' },
   referral:  { label: 'Referral',  bg: '#CCFBF1', color: '#0F766E' },
-  other:     { label: 'Other',     bg: 'var(--c-surface-alt)', color: 'var(--c-ink-muted)' },
+  other:     { label: 'Other',     bg: '#E5E5E5', color: '#525252' },
 }
 
 const STATUSES = ['new', 'contacted', 'scheduled', 'converted', 'lost'] as const
 
-const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
-  new:       { bg: 'var(--c-surface-alt)',    color: 'var(--c-ink-muted)' },
-  contacted: { bg: 'var(--c-warn-soft)',      color: 'var(--c-warn-ink)' },
-  scheduled: { bg: 'var(--c-ok-soft)',        color: 'var(--c-ok-ink)' },
-  converted: { bg: 'var(--circle-lime-soft)', color: 'var(--circle-lime-ink)' },
-  lost:      { bg: 'var(--c-danger-soft)',    color: 'var(--c-danger)' },
+const STATUS_CLASSES: Record<string, string> = {
+  new:       'bg-surface-2 text-ink-3',
+  contacted: 'bg-warn-soft text-warn',
+  scheduled: 'bg-ok-soft text-ok',
+  converted: 'bg-accent-soft text-accent-ink',
+  lost:      'bg-danger-soft text-danger',
 }
 
 function daysAgo(dateStr: string) {
@@ -54,7 +58,7 @@ function LeadCard({ lead, staff }: { lead: Lead; staff: Staff[] }) {
   const [showFollowup, setShowFollowup] = useState(false)
   const [isPending, startTransition] = useTransition()
   const src = SOURCE_STYLES[lead.source] ?? SOURCE_STYLES.other
-  const stStyle = STATUS_STYLES[status] ?? STATUS_STYLES.new
+  const stClass = STATUS_CLASSES[status] ?? STATUS_CLASSES.new
 
   function handleStatus(newStatus: string) {
     const prev = status
@@ -81,26 +85,25 @@ function LeadCard({ lead, staff }: { lead: Lead; staff: Staff[] }) {
   }
 
   return (
-    <div style={{
-      background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-      borderRadius: 12, padding: '16px 18px', boxShadow: 'var(--c-shadow-sm)',
-      opacity: isPending ? 0.55 : 1, transition: 'opacity 150ms',
-    }}>
+    <Card className={cn('p-4 transition-opacity', isPending && 'opacity-55')}>
       {/* Name + badges */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 5 }}>
-        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-ink)', flex: 1, minWidth: 100 }}>
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <span className="min-w-[100px] flex-1 text-sm font-semibold text-ink">
           {lead.full_name}
         </span>
-        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: src.bg, color: src.color }}>
+        <span
+          className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+          style={{ background: src.bg, color: src.color }}
+        >
           {src.label}
         </span>
-        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: stStyle.bg, color: stStyle.color, textTransform: 'capitalize' }}>
+        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize', stClass)}>
           {status}
         </span>
       </div>
 
       {/* Contact line */}
-      <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginBottom: lead.notes ? 8 : 10 }}>
+      <div className={cn('font-mono text-[11.5px] text-ink-3', lead.notes ? 'mb-2' : 'mb-2.5')}>
         {[lead.phone, lead.email].filter(Boolean).join(' · ')}
         {lead.drop_in_date && ` · Drop-in: ${lead.drop_in_date}`}
         {' · '}Added {daysAgo(lead.created_at)}
@@ -108,80 +111,61 @@ function LeadCard({ lead, staff }: { lead: Lead; staff: Staff[] }) {
 
       {/* Notes */}
       {lead.notes && (
-        <div style={{
-          fontSize: 12.5, color: 'var(--c-ink-2)', marginBottom: 10,
-          padding: '6px 10px', background: 'var(--c-surface-sunk)', borderRadius: 6,
-          fontStyle: 'italic',
-        }}>
+        <div className="mb-2.5 rounded-md bg-surface-2 px-2.5 py-1.5 text-xs italic text-ink-2">
           &ldquo;{lead.notes}&rdquo;
         </div>
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="flex flex-wrap items-center gap-1">
         {STATUSES.map(s => (
           <button
             key={s}
             onClick={() => handleStatus(s)}
             disabled={isPending}
-            style={{
-              padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-              border: status === s ? '1.5px solid currentColor' : '1px solid var(--c-border)',
-              background: status === s ? STATUS_STYLES[s].bg : 'transparent',
-              color: status === s ? STATUS_STYLES[s].color : 'var(--c-ink-muted)',
-              cursor: isPending ? 'default' : 'pointer',
-              textTransform: 'capitalize', transition: 'all 100ms',
-            }}
+            className={cn(
+              'rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              status === s
+                ? cn('border-current', STATUS_CLASSES[s])
+                : 'border-line bg-transparent text-ink-3 hover:text-ink'
+            )}
           >{s}</button>
         ))}
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
         <button
           onClick={() => setShowFollowup((v) => !v)}
           disabled={isPending}
-          style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11.5, background: 'none', color: 'var(--c-ink-muted)', border: '1px solid var(--c-border)', cursor: isPending ? 'default' : 'pointer' }}
+          className="rounded-lg border border-line px-2.5 py-1 text-[11.5px] text-ink-3 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >+ Follow-up</button>
-        <button
-          onClick={handleConvert}
-          disabled={isPending}
-          style={{
-            padding: '4px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 700,
-            background: 'var(--circle-lime)', color: 'var(--circle-ink)',
-            border: 'none', cursor: isPending ? 'default' : 'pointer',
-          }}
-        >→ Member</button>
+        <Button size="sm" className="h-7 px-3 text-[11.5px]" onClick={handleConvert} disabled={isPending}>
+          → Member
+        </Button>
         <button
           onClick={handleDelete}
           disabled={isPending}
-          style={{
-            padding: '4px 10px', borderRadius: 8, fontSize: 12,
-            background: 'none', color: 'var(--c-ink-muted)',
-            border: '1px solid var(--c-border)', cursor: isPending ? 'default' : 'pointer',
-          }}
+          aria-label={`Delete ${lead.full_name}`}
+          className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink-3 transition-colors hover:border-danger hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >×</button>
       </div>
       {showFollowup && (
-        <div style={{ marginTop: 10 }}>
+        <div className="mt-2.5">
           <QuickAdd leadId={lead.id} placeholder={`Follow-up for ${lead.full_name}…`} staff={staff} />
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
 export function LeadsList({ leads, staff }: { leads: Lead[]; staff: Staff[] }) {
   if (leads.length === 0) {
     return (
-      <div style={{
-        background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-        borderRadius: 14, padding: '48px 24px', textAlign: 'center',
-        color: 'var(--c-ink-muted)', fontSize: 13, boxShadow: 'var(--c-shadow-sm)',
-      }}>
+      <Card className="px-6 py-12 text-center text-[13px] text-ink-3">
         No leads yet. Add your first social media inquiry above.
-      </div>
+      </Card>
     )
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="flex flex-col gap-2.5">
       {leads.map(lead => <LeadCard key={lead.id} lead={lead} staff={staff} />)}
     </div>
   )

@@ -18,12 +18,7 @@ export function RemoveMemberButton({ memberId, memberName }: { memberId: string;
     <button
       onClick={handleRemove}
       disabled={loading}
-      style={{
-        padding: '4px 12px', borderRadius: 7, fontSize: 12.5,
-        background: 'none', border: '1px solid var(--c-border)',
-        color: loading ? 'var(--c-ink-muted)' : 'var(--c-danger)',
-        cursor: loading ? 'not-allowed' : 'pointer',
-      }}
+      className="rounded-lg border border-line px-3 py-1 text-xs text-danger transition-colors hover:border-danger disabled:cursor-not-allowed disabled:text-ink-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       {loading ? 'Removing…' : 'Remove'}
     </button>

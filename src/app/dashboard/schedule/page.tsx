@@ -2,6 +2,7 @@ import { requirePage } from '@/lib/auth/page-guards'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { cn } from '@/lib/utils'
 import { BookingButton } from './_components/booking-button'
+import { FamilyBookingRow } from './_components/family-booking-row'
 import { waitlistPosition } from './_lib/waitlist'
 import { env } from '@/env'
 import { rosterFirstNames } from '@/lib/roster'
@@ -45,6 +46,20 @@ export default async function SchedulePage() {
 
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const rosterPublic = box?.roster_public === true
+
+  // Family (#84): co-members this athlete can book for.
+  let coMembers: { id: string; name: string }[] = []
+  const { data: meHh } = await supabase.from('profiles').select('household_id').eq('id', user.id).single()
+  if (meHh?.household_id) {
+    const { data: fam } = await supabase
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('household_id', meHh.household_id)
+      .neq('id', user.id)
+    coMembers = ((fam ?? []) as { id: string; full_name: string | null; role: string }[])
+      .filter((f) => f.role === 'athlete')
+      .map((f) => ({ id: f.id, name: (f.full_name ?? 'Member').split(' ')[0] }))
+  }
   const feedUrl = me?.calendar_token ? `${env.NEXT_PUBLIC_APP_URL}/api/calendar/${me.calendar_token}` : null
   const bookedInstanceIds = new Set((myBookings ?? []).map((b) => b.class_instance_id))
 
@@ -132,12 +147,21 @@ export default async function SchedulePage() {
                           </details>
                         )}
                       </div>
-                      <div className="shrink-0">
+                      <div className="flex shrink-0 flex-col items-end">
                         {(() => {
                           const entries = waitlistByInstance.get(instance.id) ?? []
                           const pos = waitlistPosition(entries, user.id)
                           return <BookingButton instanceId={instance.id} isBooked={isBooked} isFull={isFull} isWaitlisted={pos !== null} waitlistPosition={pos} />
                         })()}
+                        {coMembers.length > 0 && !isFull && (
+                          <FamilyBookingRow
+                            instanceId={instance.id}
+                            members={coMembers.map((m) => ({
+                              ...m,
+                              booked: (bookings ?? []).some((b) => b.athlete_id === m.id),
+                            }))}
+                          />
+                        )}
                       </div>
                     </div>
                   )

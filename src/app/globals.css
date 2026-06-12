@@ -6,9 +6,6 @@
   .text-balance {
     text-wrap: balance;
   }
-  .member-link:hover {
-    color: var(--circle-lime-ink) !important;
-  }
 }
 
 @layer base {
@@ -40,7 +37,7 @@
   }
 
   /* .theme-dark pins a subtree dark regardless of the html attribute —
-     used by the dashboard until B3 migrates its content. */
+     used by the gym-floor surfaces (whiteboard, TV, door check-in). */
   [data-theme='dark'],
   .theme-dark {
     --bg: #0F0F0F;
@@ -67,48 +64,6 @@
     --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
   }
 
-  :root {
-    /* ── LEGACY tokens — consumed by unmigrated inline-styled pages.
-       Values are frozen at today's dark theme so old pages look unchanged
-       in either mode. Removed batch-by-batch in B2–B5. ── */
-    --circle-lime: #C8F135;
-    --circle-lime-hover: #b6dd2a;
-    --circle-lime-soft: rgba(200, 241, 53, 0.12);
-    --circle-lime-ink: #C8F135;
-    --circle-ink: #0A0A0A;
-    --circle-steel: #B0B0B0;
-
-    --c-bg: #0F0F0F;
-    --c-surface: #1A1A1A;
-    --c-surface-alt: #1D1D1D;
-    --c-surface-sunk: #131313;
-    --c-border: rgba(255, 255, 255, 0.08);
-    --c-border-strong: rgba(255, 255, 255, 0.14);
-    --c-divider: rgba(255, 255, 255, 0.06);
-
-    --c-ink: #F0F0F0;
-    --c-ink-2: #C8C8C8;
-    --c-ink-muted: #888888;
-    --c-ink-faint: #5A5A5A;
-
-    --c-ok: #4ADE80;
-    --c-ok-soft: rgba(74, 222, 128, 0.12);
-    --c-ok-ink: #4ADE80;
-    --c-warn: #FACC15;
-    --c-warn-soft: rgba(250, 204, 21, 0.13);
-    --c-warn-ink: #FACC15;
-    --c-danger: #F87171;
-    --c-danger-soft: rgba(248, 113, 113, 0.13);
-    --c-danger-ink: #F87171;
-
-    --c-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-    --c-shadow-md: 0 4px 14px rgba(0, 0, 0, 0.5);
-
-    /* Bricolage retired — legacy inline references to the old display var
-       now render Fraunces (transitional look until pages migrate). */
-    --font-space-grotesk: var(--font-fraunces);
-  }
-
   * {
     border-color: var(--line);
   }
@@ -119,38 +74,6 @@
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.005em;
   }
-}
-
-/* Circle logo mark — legacy CSS version (consumed until B3; CircleMark
-   component in src/components/circle-mark.tsx is canonical) */
-.circle-mark {
-  width: 22px;
-  height: 22px;
-  position: relative;
-  flex-shrink: 0;
-  display: inline-block;
-}
-.circle-mark::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 3px solid var(--circle-lime);
-  box-sizing: border-box;
-}
-.circle-mark::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: -10%;
-  width: 14%;
-  height: 120%;
-  background: var(--circle-steel);
-  transform: translateX(-50%) rotate(20deg);
-  transform-origin: center;
-}
-.circle-mark-on-dark::before {
-  border-color: var(--circle-lime);
 }
 
 /* Motion — prefers-reduced-motion kills all durations */
@@ -179,38 +102,9 @@
 }
 .c-pulse { animation: c-pulse 2.2s ease-in-out infinite; }
 
-/* Working-athlete dot */
-@keyframes c-breathe {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(0.85); }
-}
-.c-breathe { animation: c-breathe 1.6s ease-in-out infinite; }
-
 /* Stage enter — opacity + 8px translate + blur */
 @keyframes c-stage-in {
   from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
   to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
 }
 .c-stage-in { animation: c-stage-in 360ms cubic-bezier(0.34, 1.2, 0.4, 1) both; }
-
-/* Stage exit */
-@keyframes c-stage-out {
-  from { opacity: 1; transform: translateY(0);   filter: blur(0); }
-  to   { opacity: 0; transform: translateY(-4px); filter: blur(4px); }
-}
-.c-stage-out { animation: c-stage-out 200ms cubic-bezier(0.4, 0, 1, 1) both; }
-
-/* Soft fade-up for row appearance */
-@keyframes c-fade-up {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.c-fade-up { animation: c-fade-up 240ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-/* PR celebration glow (stray #C0E050 lime removed per spec §3.1) */
-@keyframes c-pr {
-  0%   { box-shadow: 0 0 0 0 var(--accent), 0 0 0 0 var(--accent); }
-  60%  { box-shadow: 0 0 0 8px rgba(200, 241, 53, 0.35), 0 0 24px rgba(200, 241, 53, 0.4); }
-  100% { box-shadow: 0 0 0 0 rgba(200, 241, 53, 0), 0 0 0 0 rgba(200, 241, 53, 0); }
-}
-.c-pr { animation: c-pr 1.4s ease-out; }

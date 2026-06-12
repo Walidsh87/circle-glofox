@@ -1,6 +1,9 @@
 'use client'
 
 import { useFormState, useFormStatus } from 'react-dom'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { logScore, type WodPrInfo } from '../_actions/log-score'
 
 function formatScore(value: number, scoringType: string): string {
@@ -23,30 +26,16 @@ function prBlurb(pr: WodPrInfo): string {
   return `🏆 ${bracket} ${pr.benchmark} PR! +${delta} ${unit}`
 }
 
-const inputStyle: React.CSSProperties = {
-  height: 38, padding: '0 12px',
-  border: '1px solid var(--c-border-strong)', borderRadius: 8,
-  background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)',
-  fontFamily: 'inherit', outline: 'none',
-}
+const inputClass =
+  'h-10 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const labelClass = 'font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3'
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus()
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      style={{
-        height: 38, padding: '0 18px',
-        background: pending ? 'var(--c-surface-alt)' : 'var(--circle-lime)',
-        border: 'none', borderRadius: 8,
-        fontSize: 13.5, fontWeight: 700, cursor: pending ? 'not-allowed' : 'pointer',
-        color: pending ? 'var(--c-ink-muted)' : 'var(--circle-ink)',
-        transition: 'opacity 120ms', flexShrink: 0,
-      }}
-    >
+    <Button type="submit" disabled={pending} className="shrink-0">
       {pending ? 'Saving…' : label}
-    </button>
+    </Button>
   )
 }
 
@@ -79,23 +68,17 @@ export function ScoreSection({
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
+    <div className="flex flex-col gap-3">
       {/* Score entry */}
-      <div style={{
-        background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-        borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--c-shadow-sm)',
-      }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 14 }}>
+      <Card className="p-5">
+        <div className="mb-3.5 text-[13px] font-semibold text-ink">
           {myScore ? 'Update your score' : 'Log your score'}
         </div>
         <form action={formAction}>
           <input type="hidden" name="workoutId" value={workoutId} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 10 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <label className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                {hint}
-              </label>
+          <div className="flex flex-wrap items-end gap-2.5">
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>{hint}</label>
               <input
                 name="scoreValue"
                 type="number"
@@ -104,105 +87,81 @@ export function ScoreSection({
                 required
                 defaultValue={myScore?.score_value ?? ''}
                 placeholder={isTimeBased ? '180' : '0'}
-                style={{ ...inputStyle, width: 110 }}
+                className={`${inputClass} w-28`}
               />
             </div>
 
-            <label style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              fontSize: 13, fontWeight: 500, color: 'var(--c-ink-2)',
-              cursor: 'pointer', paddingBottom: 2,
-            }}>
+            <label className="flex cursor-pointer items-center gap-1.5 pb-2 text-[13px] font-medium text-ink-2">
               <input
                 name="rx"
                 type="checkbox"
                 defaultChecked={myScore?.rx ?? false}
-                style={{ width: 15, height: 15, accentColor: 'var(--circle-lime)', cursor: 'pointer' }}
+                className="h-[15px] w-[15px] cursor-pointer accent-[var(--accent)]"
               />
-              <span className="mono" style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.05em' }}>RX</span>
+              <span className="font-mono text-xs font-bold tracking-[0.05em]">RX</span>
             </label>
 
-            <div style={{ flex: 1, minWidth: 140, display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <label className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Notes
-              </label>
+            <div className="flex min-w-[140px] flex-1 flex-col gap-1">
+              <label className={labelClass}>Notes</label>
               <input
                 name="notes"
                 type="text"
                 defaultValue={myScore?.notes ?? ''}
                 placeholder="Optional"
-                style={{ ...inputStyle, width: '100%' }}
+                className={`${inputClass} w-full`}
               />
             </div>
 
             <SubmitButton label={myScore ? 'Update' : 'Log score'} />
           </div>
-          {state.error && (
-            <p style={{ marginTop: 8, fontSize: 12.5, color: 'var(--c-danger)' }}>{state.error}</p>
-          )}
-          {state.pr && (
-            <p style={{ marginTop: 8, fontSize: 12.5, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>{prBlurb(state.pr)}</p>
-          )}
+          {state.error && <p role="alert" className="mt-2 text-xs text-danger">{state.error}</p>}
+          {state.pr && <p className="mt-2 text-xs font-bold text-accent-ink">{prBlurb(state.pr)}</p>}
         </form>
-      </div>
+      </Card>
 
       {/* Leaderboard */}
       {sorted.length > 0 && (
-        <div style={{
-          background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-          borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
-        }}>
-          <div style={{
-            padding: '12px 18px', borderBottom: '1px solid var(--c-divider)',
-            background: 'var(--c-surface-sunk)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>Leaderboard</span>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)' }}>
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between border-b border-line bg-surface-2 px-4 py-3">
+            <span className="text-[13px] font-semibold text-ink">Leaderboard</span>
+            <span className="font-mono text-[11px] text-ink-3">
               {sorted.length} athlete{sorted.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="w-full">
             <tbody>
               {sorted.map((s, i) => {
                 const athleteProfile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles
                 const isFirst = i === 0
                 return (
-                  <tr key={s.athlete_id} style={{
-                    borderBottom: i < sorted.length - 1 ? '1px solid var(--c-divider)' : 'none',
-                    background: isFirst ? 'var(--circle-lime-soft)' : 'transparent',
-                  }}>
-                    <td style={{ padding: '11px 16px', width: 36 }}>
-                      <span className="mono" style={{
-                        fontSize: 13, fontWeight: 700,
-                        color: isFirst ? 'var(--circle-lime-ink)' : 'var(--c-ink-faint)',
-                      }}>{i + 1}</span>
+                  <tr
+                    key={s.athlete_id}
+                    className={cn('border-b border-line last:border-0', isFirst && 'bg-accent-soft')}
+                  >
+                    <td className="w-9 px-4 py-2.5">
+                      <span className={cn('font-mono text-[13px] font-bold', isFirst ? 'text-accent-ink' : 'text-ink-faint')}>
+                        {i + 1}
+                      </span>
                     </td>
-                    <td style={{ padding: '11px 8px', fontWeight: 600, fontSize: 13.5, color: 'var(--c-ink)' }}>
+                    <td className="px-2 py-2.5 text-[13.5px] font-semibold text-ink">
                       {athleteProfile?.full_name ?? '—'}
                     </td>
-                    <td style={{ padding: '11px 8px' }}>
+                    <td className="px-2 py-2.5">
                       {s.rx && (
-                        <span className="mono" style={{
-                          fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
-                          padding: '2px 6px', borderRadius: 4,
-                          background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)',
-                        }}>RX</span>
+                        <span className="rounded bg-ok-soft px-1.5 py-px font-mono text-[10px] font-bold tracking-[0.05em] text-ok">
+                          RX
+                        </span>
                       )}
                     </td>
-                    <td style={{ padding: '11px 16px', textAlign: 'right' }}>
-                      {s.is_pr && <span title="PR when logged" style={{ marginRight: 6 }}>🏆</span>}
-                      <span className="mono" style={{
-                        fontSize: isFirst ? 17 : 15, fontWeight: 700,
-                        color: isFirst ? 'var(--circle-lime-ink)' : 'var(--c-ink)',
-                        letterSpacing: '-0.01em',
-                      }}>
+                    <td className="px-4 py-2.5 text-right">
+                      {s.is_pr && <span title="PR when logged" className="mr-1.5">🏆</span>}
+                      <span className={cn('font-mono font-bold', isFirst ? 'text-[17px] text-accent-ink' : 'text-[15px] text-ink')}>
                         {formatScore(s.score_value, scoringType)}
                       </span>
                     </td>
                     {s.notes && (
-                      <td style={{ padding: '11px 16px', textAlign: 'right' }}>
-                        <span style={{ fontSize: 12, color: 'var(--c-ink-faint)' }}>{s.notes}</span>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="text-xs text-ink-3">{s.notes}</span>
                       </td>
                     )}
                   </tr>
@@ -210,7 +169,7 @@ export function ScoreSection({
               })}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
     </div>
   )

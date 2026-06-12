@@ -1,6 +1,9 @@
 import { requirePage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card } from '@/components/ui/card'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { WodForm } from './_components/wod-form'
 import { ScoreSection } from './_components/score-section'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
@@ -51,37 +54,34 @@ function weekEnd(date: string): string {
 function YourLoads({ liftValue, sets, oneRmGrams }: { liftValue: string; sets: StrengthSet[]; oneRmGrams: number | null }) {
   const liftLabel = LIFT_NAMES.find((l) => l.value === liftValue)?.label ?? liftValue
   return (
-    <div style={{
-      background: 'var(--c-surface)', border: '1px solid var(--circle-lime)',
-      borderRadius: 14, padding: '18px 22px', marginBottom: 12, boxShadow: 'var(--c-shadow-sm)',
-    }}>
-      <div className="mono" style={{ fontSize: 10.5, color: 'var(--circle-lime-ink)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+    <Card className="mb-3 border-accent p-5">
+      <div className="mb-2.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-accent-ink">
         Your loads · {liftLabel}
       </div>
       {oneRmGrams === null ? (
-        <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>
+        <div className="text-[13px] text-ink-3">
           {sets.map((s) => `${s.sets}×${s.reps} @ ${s.percentage}%`).join('  ·  ')}
           {' — '}
-          <Link href="/dashboard/lifts" style={{ color: 'var(--circle-lime-ink)', textDecoration: 'underline' }}>
+          <Link href="/dashboard/lifts" className="text-accent-ink underline transition-colors hover:text-ink">
             Log your {liftLabel} 1RM
           </Link> to see kg.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="flex flex-col gap-1.5">
           {sets.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <span className="mono" style={{ fontSize: 13, color: 'var(--c-ink-2)', minWidth: 96 }}>
+            <div key={i} className="flex items-baseline gap-2.5">
+              <span className="min-w-24 font-mono text-[13px] text-ink-2">
                 {s.sets}×{s.reps} @ {s.percentage}%
               </span>
-              <span className="mono" style={{ fontSize: 20, fontWeight: 700, color: 'var(--c-ink)' }}>
+              <span className="font-mono text-xl font-bold text-ink">
                 {loadForPercent(oneRmGrams, s.percentage).barKg}
               </span>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>kg</span>
+              <span className="font-mono text-[11px] text-ink-faint">kg</span>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -125,158 +125,136 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
         .maybeSingle()
     : { data: null }
 
+  const pagerClass = cn(buttonVariants({ variant: 'outline', size: 'sm' }))
+  const pagerDisabledClass =
+    'cursor-not-allowed rounded-lg border border-line px-3 py-1.5 text-sm text-ink-faint'
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="wod" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)',
-          display: 'flex', alignItems: 'center', padding: '0 32px',
-          background: 'var(--c-surface)', flexShrink: 0, gap: 12,
-        }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em', flex: 1 }}>
-            Daily WOD
-          </h1>
-        </header>
-
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 640 }}>
-            {/* Date navigation */}
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: 24,
-              background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-              borderRadius: 12, padding: '12px 16px',
-              boxShadow: 'var(--c-shadow-sm)',
-            }}>
-              {(!isStaff && date <= wStart) ? (
-                <span style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-faint)', cursor: 'not-allowed' }}>← Prev</span>
-              ) : (
-                <Link href={`/dashboard/wod?date=${prevDay(date)}`} style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-2)', textDecoration: 'none' }}>← Prev</Link>
-              )}
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-ink)' }}>{formatDate(date)}</div>
-                {!isToday && (
-                  <Link href="/dashboard/wod" style={{ fontSize: 12, color: 'var(--circle-lime-ink)', textDecoration: 'none' }}>
-                    Back to today
-                  </Link>
-                )}
-              </div>
-              {(!isStaff && date >= wEnd) ? (
-                <span style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-faint)', cursor: 'not-allowed' }}>Next →</span>
-              ) : (
-                <Link href={`/dashboard/wod?date=${nextDay(date)}`} style={{ fontSize: 13, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--c-border)', color: 'var(--c-ink-2)', textDecoration: 'none' }}>Next →</Link>
-              )}
-            </div>
-
-            {/* Strength card */}
-            {wod?.strength_title && (
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, padding: '20px 24px', marginBottom: 12,
-                boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-                  Strength
-                </div>
-                <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 22, fontWeight: 700, color: 'var(--c-ink)', letterSpacing: '-0.02em', marginBottom: wod.strength_description ? 10 : 0 }}>
-                  {wod.strength_title}
-                </div>
-                {wod.strength_description && (
-                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-geist-mono)', fontSize: 13.5, color: 'var(--c-ink-2)', lineHeight: 1.7, margin: 0 }}>
-                    {wod.strength_description}
-                  </pre>
-                )}
-              </div>
-            )}
-
-            {/* Your personal loads (the Wedge) */}
-            {wod?.strength_lift && (
-              <YourLoads
-                liftValue={wod.strength_lift}
-                sets={(wod.strength_sets ?? []) as StrengthSet[]}
-                oneRmGrams={myLift?.one_rm_grams ?? null}
-              />
-            )}
-
-            {/* WOD card */}
-            {wod && (
-              <div style={{
-                background: 'var(--circle-ink)', borderRadius: 16, padding: '24px 28px',
-                marginBottom: 16, position: 'relative', overflow: 'hidden',
-              }}>
-                <div style={{ position: 'absolute', right: -60, top: -60, width: 200, height: 200, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.2 }} />
-                <div style={{ position: 'relative' }}>
-                  <div className="mono" style={{ fontSize: 11, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-                    {SCORING_LABELS[wod.scoring_type] ?? wod.scoring_type}
-                  </div>
-                  <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 36, fontWeight: 700, color: 'var(--circle-lime)', letterSpacing: '-0.03em', marginBottom: 12 }}>
-                    {wod.title}
-                  </div>
-                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-geist-mono)', fontSize: 14, color: 'rgba(250,250,250,0.85)', lineHeight: 1.7, margin: 0 }}>
-                    {wod.description}
-                  </pre>
-                  {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).length > 0 && (
-                    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).map((t, i) => (
-                        <div key={i}>
-                          <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t.label}</span>
-                          <div style={{ fontFamily: 'var(--font-geist-mono)', fontSize: 13.5, color: 'rgba(250,250,250,0.8)', whiteSpace: 'pre-wrap', marginTop: 2 }}>{t.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Scores */}
-            {wod && (
-              <div style={{ marginBottom: 16 }}>
-                <ScoreSection
-                  workoutId={wod.id}
-                  scoringType={wod.scoring_type}
-                  myScore={myScore ?? null}
-                  scores={scores ?? []}
-                />
-              </div>
-            )}
-
-            {/* Staff WOD form */}
-            {isStaff && (
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, padding: '20px 22px', boxShadow: 'var(--c-shadow-sm)',
-              }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 14 }}>
-                  {wod ? 'Edit WOD' : 'Post WOD'}
-                </p>
-                <WodForm date={date} existing={wod ? {
-                  title: wod.title,
-                  description: wod.description,
-                  scoring_type: wod.scoring_type,
-                  strength_title: wod.strength_title,
-                  strength_description: wod.strength_description,
-                  strength_lift: wod.strength_lift,
-                  strength_sets: wod.strength_sets,
-                  scaling: wod.scaling as import('./_lib/validation').ScalingTier[] | null,
-                } : null} />
-              </div>
-            )}
-
-            {!wod && !isStaff && (
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, padding: '48px 24px', textAlign: 'center',
-                color: 'var(--c-ink-muted)', fontSize: 13,
-              }}>
-                No WOD posted for this day yet.
-              </div>
+    <DashboardShell
+      active="wod"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Daily WOD"
+    >
+      <div className="max-w-2xl">
+        {/* Date navigation */}
+        <Card className="mb-6 flex items-center justify-between px-4 py-3">
+          {(!isStaff && date <= wStart) ? (
+            <span className={pagerDisabledClass}>← Prev</span>
+          ) : (
+            <Link href={`/dashboard/wod?date=${prevDay(date)}`} className={pagerClass}>← Prev</Link>
+          )}
+          <div className="text-center">
+            <div className="text-sm font-semibold text-ink">{formatDate(date)}</div>
+            {!isToday && (
+              <Link href="/dashboard/wod" className="text-xs text-accent-ink transition-colors hover:text-ink">
+                Back to today
+              </Link>
             )}
           </div>
-        </div>
+          {(!isStaff && date >= wEnd) ? (
+            <span className={pagerDisabledClass}>Next →</span>
+          ) : (
+            <Link href={`/dashboard/wod?date=${nextDay(date)}`} className={pagerClass}>Next →</Link>
+          )}
+        </Card>
+
+        {/* Strength card */}
+        {wod?.strength_title && (
+          <Card className="mb-3 p-5">
+            <div className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3">
+              Strength
+            </div>
+            <div className={cn('font-display text-xl font-bold tracking-[-0.02em] text-ink', wod.strength_description && 'mb-2.5')}>
+              {wod.strength_title}
+            </div>
+            {wod.strength_description && (
+              <pre className="m-0 whitespace-pre-wrap font-mono text-[13.5px] leading-relaxed text-ink-2">
+                {wod.strength_description}
+              </pre>
+            )}
+          </Card>
+        )}
+
+        {/* Your personal loads (the Wedge) */}
+        {wod?.strength_lift && (
+          <YourLoads
+            liftValue={wod.strength_lift}
+            sets={(wod.strength_sets ?? []) as StrengthSet[]}
+            oneRmGrams={myLift?.one_rm_grams ?? null}
+          />
+        )}
+
+        {/* WOD hero — brand-dark in both themes (like the auth BrandPanel) */}
+        {wod && (
+          <div className="relative mb-4 overflow-hidden rounded-2xl bg-[#0A0A0A] p-6">
+            <div className="absolute -right-14 -top-14 h-[200px] w-[200px] rounded-full border-2 border-[#C8F135] opacity-20" />
+            <div className="relative">
+              <div className="mb-2 font-mono text-[11px] uppercase tracking-[0.1em] text-[#C8F135]">
+                {SCORING_LABELS[wod.scoring_type] ?? wod.scoring_type}
+              </div>
+              <div className="mb-3 font-display text-4xl font-bold tracking-[-0.03em] text-[#C8F135]">
+                {wod.title}
+              </div>
+              <pre className="m-0 whitespace-pre-wrap font-mono text-sm leading-relaxed text-[#FAFAFA]/85">
+                {wod.description}
+              </pre>
+              {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).length > 0 && (
+                <div className="mt-4 flex flex-col gap-2.5">
+                  {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).map((t, i) => (
+                    <div key={i}>
+                      <span className="font-mono text-xs font-bold uppercase tracking-[0.06em] text-[#C8F135]">
+                        {t.label}
+                      </span>
+                      <div className="mt-0.5 whitespace-pre-wrap font-mono text-[13.5px] text-[#FAFAFA]/80">
+                        {t.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Scores */}
+        {wod && (
+          <div className="mb-4">
+            <ScoreSection
+              workoutId={wod.id}
+              scoringType={wod.scoring_type}
+              myScore={myScore ?? null}
+              scores={scores ?? []}
+            />
+          </div>
+        )}
+
+        {/* Staff WOD form */}
+        {isStaff && (
+          <Card className="p-5">
+            <p className="mb-3.5 text-[13px] font-semibold text-ink">
+              {wod ? 'Edit WOD' : 'Post WOD'}
+            </p>
+            <WodForm date={date} existing={wod ? {
+              title: wod.title,
+              description: wod.description,
+              scoring_type: wod.scoring_type,
+              strength_title: wod.strength_title,
+              strength_description: wod.strength_description,
+              strength_lift: wod.strength_lift,
+              strength_sets: wod.strength_sets,
+              scaling: wod.scaling as import('./_lib/validation').ScalingTier[] | null,
+            } : null} />
+          </Card>
+        )}
+
+        {!wod && !isStaff && (
+          <Card className="px-6 py-12 text-center text-[13px] text-ink-3">
+            No WOD posted for this day yet.
+          </Card>
+        )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

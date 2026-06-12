@@ -10,7 +10,7 @@ export type UserActionContext = {
 }
 
 export type StaffActionContext = UserActionContext & {
-  profile: { box_id: string; role: Role }
+  profile: { box_id: string; role: Role; full_name: string | null }
 }
 
 const NOT_AUTHENTICATED = 'Not authenticated.'
@@ -28,7 +28,7 @@ async function requireRoleAction(roles: readonly string[], msg: string): Promise
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: NOT_AUTHENTICATED }
 
-  const { data: profile } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('profiles').select('box_id, role, full_name').eq('id', user.id).single()
   if (!profile || !roles.includes((profile as { role: string }).role)) return { error: msg }
   return { supabase, user, profile: profile as StaffActionContext['profile'] }
 }

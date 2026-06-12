@@ -2,6 +2,7 @@
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { logAudit } from '@/lib/audit'
 import { revalidatePath } from 'next/cache'
 import { deriveVatFromInclusive, formatCreditNoteNumber, validateRefund } from '@/lib/invoices'
 import { getProviderForBox } from '@/lib/psp'
@@ -128,6 +129,16 @@ export async function refundInvoice(
     console.error('credit_note insert failed:', insertErr)
     return { error: 'Could not record the refund. Please refresh and check status.' }
   }
+
+  // Webhook-raced refunds (early returns above) skip the audit row — rare, accepted.
+  await logAudit(service, {
+    boxId: profile.box_id,
+    actorId: user.id,
+    actorName: profile.full_name ?? null,
+    action: 'invoice.refund',
+    target: invoice.invoice_number,
+    details: { amount_aed: amountAed, reason: reason.trim() || null, invoice_id: invoiceId, athlete_id: invoice.athlete_id },
+  })
 
   const fullyRefunded = alreadyRefunded + amountAed >= totalAed - 0.001
   if (fullyRefunded && invoice.membership_id) {

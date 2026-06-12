@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { logAudit } from '@/lib/audit'
 import { revalidatePath } from 'next/cache'
 
 export async function removeMember(memberId: string): Promise<{ error: string | null }> {
@@ -13,7 +14,7 @@ export async function removeMember(memberId: string): Promise<{ error: string | 
 
   const { data: callerProfile } = await supabase
     .from('profiles')
-    .select('box_id, role')
+    .select('box_id, role, full_name')
     .eq('id', user.id)
     .single()
 
@@ -24,7 +25,7 @@ export async function removeMember(memberId: string): Promise<{ error: string | 
   // Verify the member belongs to the same box
   const { data: memberProfile } = await service
     .from('profiles')
-    .select('box_id')
+    .select('box_id, full_name, role')
     .eq('id', memberId)
     .single()
 
@@ -39,6 +40,15 @@ export async function removeMember(memberId: string): Promise<{ error: string | 
   // Delete auth user only after profile is confirmed deleted
   const { error: authDeleteError } = await service.auth.admin.deleteUser(memberId)
   if (authDeleteError) return { error: authDeleteError.message }
+
+  await logAudit(service, {
+    boxId: callerProfile.box_id,
+    actorId: user.id,
+    actorName: callerProfile.full_name ?? null,
+    action: 'member.remove',
+    target: memberProfile.full_name ?? 'Member',
+    details: { role: memberProfile.role },
+  })
 
   revalidatePath('/dashboard/members')
   return { error: null }

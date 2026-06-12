@@ -23,6 +23,7 @@ import { flaggedQuestions } from '@/lib/parq'
 import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_components/task-item'
 import { ReferCard } from './_components/refer-card'
 import { ChangePasswordCard } from './_components/change-password-card'
+import { MfaCard } from './_components/mfa-card'
 import { ensureReferralCode } from '@/app/dashboard/referrals/_actions/ensure-referral-code'
 import { referralLink } from '@/lib/referrals'
 import { env } from '@/env'
@@ -464,6 +465,10 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {isSelf && <div className="mb-4"><ChangePasswordCard /></div>}
+
+        {isSelf && (ALL_STAFF_ROLES as readonly string[]).includes(viewer.role) && (
+          <div className="mb-4"><MfaCard /></div>
+        )}
 
         {isSelf && (
           <Section label="My details">

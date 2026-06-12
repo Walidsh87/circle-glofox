@@ -12,20 +12,23 @@ export function LeadWidgetCard({ snippet }: { snippet: string | null }) {
   }
 
   return (
-    <div style={{ marginTop: 24, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '20px 22px' }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>Lead-capture widget</div>
-      <p style={{ fontSize: 12.5, color: 'var(--c-ink-muted)', marginTop: 4, lineHeight: 1.5 }}>
+    <div className="mt-6 rounded-[14px] border border-line bg-surface px-[22px] py-5">
+      <div className="text-sm font-semibold text-ink">Lead-capture widget</div>
+      <p className="mt-1 text-[12.5px] leading-normal text-ink-3">
         Paste this on your website to collect leads straight into your CRM. New submissions appear in your Lifecycle board.
       </p>
       {snippet ? (
         <>
-          <pre style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--c-bg)', border: '1px solid var(--c-border)', fontSize: 11.5, color: 'var(--c-ink-2)', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{snippet}</pre>
-          <button onClick={copy} style={{ marginTop: 10, height: 36, padding: '0 14px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', fontSize: 12.5, fontWeight: 600, color: 'var(--c-ink-2)', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-line bg-canvas px-3 py-2.5 text-[11.5px] text-ink-2">{snippet}</pre>
+          <button
+            onClick={copy}
+            className="mt-2.5 h-9 rounded-lg border border-line-strong bg-surface px-3.5 text-[12.5px] font-semibold text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
             {copied ? 'Copied!' : 'Copy embed code'}
           </button>
         </>
       ) : (
-        <p style={{ fontSize: 12.5, color: 'var(--c-ink-muted)', marginTop: 12 }}>Set your gym’s public URL slug above to generate the embed code.</p>
+        <p className="mt-3 text-[12.5px] text-ink-3">Set your gym’s public URL slug above to generate the embed code.</p>
       )}
     </div>
   )

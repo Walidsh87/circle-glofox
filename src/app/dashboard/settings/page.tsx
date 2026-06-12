@@ -1,5 +1,5 @@
 import { requireOwnerPage } from '@/lib/auth/page-guards'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { SettingsForm } from './_components/settings-form'
 import { env } from '@/env'
 import { TvDisplayCard } from './_components/tv-display-card'
@@ -40,40 +40,30 @@ export default async function SettingsPage() {
   const checklistItems = (checklistRows ?? []) as EditorItem[]
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="settings" userName={profile.full_name!} userRole={profile.role} boxName={boxes?.name ?? ''} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)',
-          display: 'flex', alignItems: 'center', padding: '0 32px',
-          background: 'var(--c-surface)', flexShrink: 0,
-        }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>
-            Settings
-          </h1>
-        </header>
-
-        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 480 }}>
-            <SettingsForm
-              initialName={boxes?.name ?? ''}
-              initialSlug={boxes?.slug ?? ''}
-              initialTimezone={boxes?.timezone ?? 'Asia/Dubai'}
-              initialTrn={box?.trn ?? ''}
-              initialLegalName={box?.legal_name ?? ''}
-              initialBillingAddress={box?.billing_address ?? ''}
-              stripeConnected={stripeConnected}
-            />
-            <TvDisplayCard link={box?.tv_token ? `${env.NEXT_PUBLIC_APP_URL}/tv/${box.tv_token}` : null} />
-            <CheckinQrCard link={box?.checkin_token ? `${env.NEXT_PUBLIC_APP_URL}/checkin/${box.checkin_token}` : null} />
-            <BookingPolicyCard closeMinutes={box?.booking_close_minutes ?? 0} lateCancelHours={box?.late_cancel_hours ?? 0} rosterPublic={box?.roster_public === true} />
-            <LeadWidgetCard snippet={leadSnippet} />
-            <ScheduleWidgetCard snippet={scheduleSnippet} />
-            <ChecklistEditor items={checklistItems} />
-          </div>
-        </div>
+    <DashboardShell
+      active="settings"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxes?.name ?? ''}
+      title="Settings"
+    >
+      <div className="max-w-[480px]">
+        <SettingsForm
+          initialName={boxes?.name ?? ''}
+          initialSlug={boxes?.slug ?? ''}
+          initialTimezone={boxes?.timezone ?? 'Asia/Dubai'}
+          initialTrn={box?.trn ?? ''}
+          initialLegalName={box?.legal_name ?? ''}
+          initialBillingAddress={box?.billing_address ?? ''}
+          stripeConnected={stripeConnected}
+        />
+        <TvDisplayCard link={box?.tv_token ? `${env.NEXT_PUBLIC_APP_URL}/tv/${box.tv_token}` : null} />
+        <CheckinQrCard link={box?.checkin_token ? `${env.NEXT_PUBLIC_APP_URL}/checkin/${box.checkin_token}` : null} />
+        <BookingPolicyCard closeMinutes={box?.booking_close_minutes ?? 0} lateCancelHours={box?.late_cancel_hours ?? 0} rosterPublic={box?.roster_public === true} />
+        <LeadWidgetCard snippet={leadSnippet} />
+        <ScheduleWidgetCard snippet={scheduleSnippet} />
+        <ChecklistEditor items={checklistItems} />
       </div>
-    </div>
+    </DashboardShell>
   )
 }

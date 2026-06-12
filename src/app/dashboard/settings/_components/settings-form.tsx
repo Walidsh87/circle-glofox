@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom'
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 import { updateSettings } from '../_actions/update-settings'
 
 const TIMEZONES = [
@@ -23,21 +24,17 @@ function toSlug(name: string) {
     .slice(0, 40)
 }
 
-const inputStyle: React.CSSProperties = {
-  width: '100%', height: 42, padding: '0 14px',
-  border: '1.5px solid var(--c-border-strong)', borderRadius: 10,
-  background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)',
-  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-}
+const inputClass =
+  'h-[42px] w-full rounded-[10px] border-[1.5px] border-line-strong bg-surface px-3.5 text-sm text-ink outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent'
 
 function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label htmlFor={id} className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3">
         {label}
       </label>
       {children}
-      {hint && <div style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>{hint}</div>}
+      {hint && <div className="text-[11.5px] text-ink-3">{hint}</div>}
     </div>
   )
 }
@@ -48,14 +45,10 @@ function SaveButton() {
     <button
       type="submit"
       disabled={pending}
-      style={{
-        height: 42, padding: '0 24px',
-        background: pending ? 'var(--c-surface-alt)' : 'var(--circle-lime)',
-        border: 'none', borderRadius: 10,
-        fontSize: 14, fontWeight: 700, cursor: pending ? 'not-allowed' : 'pointer',
-        color: pending ? 'var(--c-ink-muted)' : 'var(--circle-ink)',
-        transition: 'opacity .12s',
-      }}
+      className={cn(
+        'h-[42px] rounded-[10px] px-6 text-sm font-bold transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        pending ? 'cursor-not-allowed bg-surface-2 text-ink-3' : 'bg-accent text-accent-contrast hover:bg-accent-hover'
+      )}
     >
       {pending ? 'Saving…' : 'Save changes'}
     </button>
@@ -96,50 +89,46 @@ export function SettingsForm({ initialName, initialSlug, initialTimezone, initia
   const slugValid = /^[a-z0-9-]{3,40}$/.test(slug) && !RESERVED_SLUGS.includes(slug)
 
   return (
-    <div style={{
-      background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-      borderRadius: 14, padding: '22px 24px', boxShadow: 'var(--c-shadow-sm)',
-    }}>
-      <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 20 }}>Gym details</p>
+    <div className="rounded-[14px] border border-line bg-surface px-6 py-[22px] shadow-card">
+      <p className="mb-5 text-sm font-semibold text-ink">Gym details</p>
 
-      <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <form action={formAction} className="flex flex-col gap-[18px]">
         <Field id="gymName" label="Gym name">
           <input
             id="gymName" name="gymName" type="text" required
-            value={gymName} onChange={handleGymNameChange} style={inputStyle}
+            value={gymName} onChange={handleGymNameChange} className={inputClass}
           />
         </Field>
 
         <Field id="slug" label="Gym URL" hint="Members use this link to log in. Changing it breaks existing links.">
-          <div style={{ display: 'flex', alignItems: 'center', border: `1.5px solid ${slugValid || !slug ? 'var(--c-border-strong)' : 'var(--c-danger)'}`, borderRadius: 10, overflow: 'hidden', background: 'var(--c-surface)', height: 42 }}>
-            <span className="mono" style={{
-              padding: '0 10px', fontSize: 12, color: 'var(--c-ink-muted)',
-              background: 'var(--c-surface-sunk)', borderRight: '1px solid var(--c-border)',
-              height: '100%', display: 'flex', alignItems: 'center', flexShrink: 0, whiteSpace: 'nowrap',
-            }}>
+          <div className={cn(
+            'flex h-[42px] items-center overflow-hidden rounded-[10px] border-[1.5px] bg-surface',
+            slugValid || !slug ? 'border-line-strong' : 'border-danger'
+          )}>
+            <span className="flex h-full shrink-0 items-center whitespace-nowrap border-r border-line bg-canvas px-2.5 font-mono text-xs text-ink-3">
               circle.app/
             </span>
             <input
               id="slug" name="slug" type="text" required
               value={slug} onChange={handleSlugChange}
-              style={{ flex: 1, height: '100%', padding: '0 12px', border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--c-ink)', fontFamily: 'var(--font-geist-mono)', boxSizing: 'border-box' }}
+              className="h-full flex-1 border-none bg-transparent px-3 font-mono text-sm text-ink outline-none"
             />
           </div>
         </Field>
 
         <Field id="timezone" label="Timezone">
-          <select id="timezone" name="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} style={inputStyle}>
+          <select id="timezone" name="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputClass}>
             {TIMEZONES.map((tz) => (
               <option key={tz.value} value={tz.value}>{tz.label}</option>
             ))}
           </select>
         </Field>
 
-        <div style={{ borderTop: '1px solid var(--c-divider)', paddingTop: 18, marginTop: 4 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 16 }}>VAT invoicing (UAE)</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 18 }}>
+        <div className="mt-1 border-t border-line pt-[18px]">
+          <p className="mb-4 text-sm font-semibold text-ink">VAT invoicing (UAE)</p>
+          <div className="mb-[18px] flex flex-col gap-3.5">
             <Field id="legalName" label="Legal entity name" hint="Appears on the invoice. Defaults to gym name if blank.">
-              <input id="legalName" name="legalName" type="text" value={legalName} onChange={(e) => setLegalName(e.target.value)} style={inputStyle} />
+              <input id="legalName" name="legalName" type="text" value={legalName} onChange={(e) => setLegalName(e.target.value)} className={inputClass} />
             </Field>
             <Field id="trn" label="TRN" hint="15-digit UAE Tax Registration Number. Required for VAT-compliant invoices.">
               <input
@@ -147,48 +136,48 @@ export function SettingsForm({ initialName, initialSlug, initialTimezone, initia
                 value={trn}
                 onChange={(e) => setTrn(e.target.value.replace(/\D/g, '').slice(0, 15))}
                 placeholder="100123456700003"
-                style={inputStyle}
+                className={inputClass}
               />
             </Field>
             <Field id="billingAddress" label="Billing address" hint="Shown on invoice header.">
               <textarea
                 id="billingAddress" name="billingAddress" rows={3}
                 value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)}
-                style={{ ...inputStyle, height: 'auto', padding: 12, fontFamily: 'inherit', resize: 'vertical' }}
+                className={cn(inputClass, 'h-auto resize-y p-3')}
               />
             </Field>
           </div>
         </div>
 
-        <div style={{ borderTop: '1px solid var(--c-divider)', paddingTop: 18, marginTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)', margin: 0 }}>Stripe payments</p>
+        <div className="mt-1 border-t border-line pt-[18px]">
+          <div className="mb-4 flex items-center gap-2">
+            <p className="text-sm font-semibold text-ink">Stripe payments</p>
             {stripeConnected && (
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)' }}>
+              <span className="rounded-full bg-ok-soft px-[7px] py-0.5 text-[11px] font-bold text-ok">
                 Connected
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="flex flex-col gap-3.5">
             <Field id="stripeSecretKey" label="Secret key" hint="Starts with sk_live_ or sk_test_. Leave blank to keep existing.">
               <input
                 id="stripeSecretKey" name="stripeSecretKey" type="password"
                 placeholder={stripeConnected ? 'sk_••••••••••••••••' : 'sk_live_...'}
-                style={inputStyle}
+                className={inputClass}
               />
             </Field>
             <Field id="stripeWebhookSecret" label="Webhook secret" hint="From Stripe dashboard → Webhooks. Starts with whsec_. Leave blank to keep existing.">
               <input
                 id="stripeWebhookSecret" name="stripeWebhookSecret" type="password"
                 placeholder={stripeConnected ? 'whsec_••••••••••••••••' : 'whsec_...'}
-                style={inputStyle}
+                className={inputClass}
               />
             </Field>
           </div>
         </div>
 
-        {state.error && <p style={{ fontSize: 13, color: 'var(--c-danger)', margin: 0 }}>{state.error}</p>}
-        {state.success && <p style={{ fontSize: 13, color: 'var(--c-ok)', margin: 0 }}>Settings saved.</p>}
+        {state.error && <p className="text-[13px] text-danger">{state.error}</p>}
+        {state.success && <p className="text-[13px] text-ok">Settings saved.</p>}
 
         <div><SaveButton /></div>
       </form>

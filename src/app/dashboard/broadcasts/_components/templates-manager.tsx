@@ -15,13 +15,19 @@ export function TemplatesManager({ templates }: { templates: { id: string; name:
   }
 
   return (
-    <div style={{ marginBottom: 28 }}>
-      <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink-muted)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Templates</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div className="mb-7">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.04em] text-ink-3">Templates</h2>
+      <div className="flex flex-col gap-1.5">
         {templates.map((t) => (
-          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 8, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-            <span style={{ flex: 1, fontSize: 13.5, color: 'var(--c-ink)' }}>{t.name}</span>
-            <button onClick={() => onDelete(t.id)} disabled={pending} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'transparent', color: 'var(--c-danger)', cursor: 'pointer', fontSize: 12.5 }}>Delete</button>
+          <div key={t.id} className="flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3.5 py-2">
+            <span className="flex-1 text-[13.5px] text-ink">{t.name}</span>
+            <button
+              onClick={() => onDelete(t.id)}
+              disabled={pending}
+              className="rounded-md border border-line px-2.5 py-1 text-xs text-danger transition-colors hover:border-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+            >
+              Delete
+            </button>
           </div>
         ))}
       </div>

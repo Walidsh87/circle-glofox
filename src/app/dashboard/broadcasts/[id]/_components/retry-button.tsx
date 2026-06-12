@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { retryFailedBroadcast } from '../../_actions/retry-failed'
 
 export function RetryButton({ broadcastId }: { broadcastId: string }) {
@@ -19,11 +20,11 @@ export function RetryButton({ broadcastId }: { broadcastId: string }) {
   }
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-      <button onClick={onClick} disabled={pending} style={{ padding: '8px 14px', background: 'var(--c-surface)', color: 'var(--c-ink)', border: '1px solid var(--c-border)', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
+    <span className="inline-flex items-center gap-2.5">
+      <Button variant="outline" size="sm" onClick={onClick} disabled={pending}>
         {pending ? 'Retrying…' : 'Retry failed'}
-      </button>
-      {error && <span style={{ color: 'var(--c-danger)', fontSize: 13 }}>{error}</span>}
+      </Button>
+      {error && <span role="alert" className="text-[13px] text-danger">{error}</span>}
     </span>
   )
 }

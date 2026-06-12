@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { sendBroadcast } from '../_actions/send-broadcast'
 import { previewAudience } from '../_actions/preview-audience'
 import { saveTemplate } from '../_actions/save-template'
@@ -12,6 +14,9 @@ import { BlockEditor } from './block-editor'
 const SEGMENTS: Segment[] = ['all', 'paid', 'unpaid', 'trial', 'frozen']
 
 export type TemplateOption = { id: string; name: string; subject: string; body_blocks: Block[] }
+
+const inputClass =
+  'rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function ComposeForm({ tags, templates }: { tags: string[]; templates: TemplateOption[] }) {
   const router = useRouter()
@@ -59,14 +64,12 @@ export function ComposeForm({ tags, templates }: { tags: string[]; templates: Te
     })
   }
 
-  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)' } as const
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 18, borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', marginBottom: 28 }}>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <input style={{ ...inputStyle, flex: 1, minWidth: 200 }} placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+    <Card className="mb-7 flex flex-col gap-3.5 p-4">
+      <div className="flex flex-wrap gap-2.5">
+        <input className={`${inputClass} min-w-[200px] flex-1`} placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
         {templates.length > 0 && (
-          <select style={{ ...inputStyle, width: 'auto' }} defaultValue="" onChange={(e) => { applyTemplate(e.target.value); e.currentTarget.value = '' }}>
+          <select className={inputClass} defaultValue="" onChange={(e) => { applyTemplate(e.target.value); e.currentTarget.value = '' }}>
             <option value="">Start from template…</option>
             {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
@@ -76,34 +79,34 @@ export function ComposeForm({ tags, templates }: { tags: string[]; templates: Te
       <BlockEditor value={blocks} onChange={setBlocks} />
 
       <div>
-        <div className="mono" style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-ink-muted)', marginBottom: 6 }}>Preview</div>
+        <div className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">Preview</div>
         {/* eslint-disable-next-line react/no-danger -- owner-authored blocks; text escaped + URLs validated in renderBlocks */}
-        <div style={{ border: '1px solid var(--c-border)', borderRadius: 10, padding: 16, background: '#fff' }} dangerouslySetInnerHTML={{ __html: previewHtml }} />
+        <div className="rounded-[10px] border border-line bg-white p-4" dangerouslySetInnerHTML={{ __html: previewHtml }} />
       </div>
 
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <select style={{ ...inputStyle, width: 'auto' }} value={status} onChange={(e) => { const s = e.target.value as Segment; setStatus(s); refreshCount(s, tag) }}>
+      <div className="flex flex-wrap gap-2.5">
+        <select className={inputClass} value={status} onChange={(e) => { const s = e.target.value as Segment; setStatus(s); refreshCount(s, tag) }}>
           {SEGMENTS.map((s) => <option key={s} value={s}>{SEGMENT_LABELS[s]}</option>)}
         </select>
-        <select style={{ ...inputStyle, width: 'auto' }} value={tag} onChange={(e) => { setTag(e.target.value); refreshCount(status, e.target.value) }}>
+        <select className={inputClass} value={tag} onChange={(e) => { setTag(e.target.value); refreshCount(status, e.target.value) }}>
           <option value="">Any tag</option>
           {tags.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
-        <span style={{ alignSelf: 'center', fontSize: 13, color: 'var(--c-ink-muted)' }}>
+        <span className="self-center text-[13px] text-ink-3">
           {count === null ? 'Choose an audience to preview count' : `${count} recipient${count === 1 ? '' : 's'}`}
         </span>
       </div>
 
-      {error && <p style={{ color: 'var(--c-danger)', fontSize: 13 }}>{error}</p>}
+      {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
 
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={onSend} disabled={pending || !subject.trim()} style={{ padding: '10px 18px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+      <div className="flex gap-2.5">
+        <Button onClick={onSend} disabled={pending || !subject.trim()}>
           {pending ? 'Working…' : 'Send campaign'}
-        </button>
-        <button onClick={onSaveTemplate} disabled={pending} style={{ padding: '10px 18px', background: 'var(--c-surface)', color: 'var(--c-ink)', border: '1px solid var(--c-border)', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
+        </Button>
+        <Button variant="outline" onClick={onSaveTemplate} disabled={pending}>
           Save as template
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   )
 }

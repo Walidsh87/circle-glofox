@@ -21,17 +21,23 @@ function audienceLabel(status: string, tag: string | null): string {
 
 export function BroadcastsList({ rows }: { rows: BroadcastRow[] }) {
   if (rows.length === 0) {
-    return <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>No broadcasts yet.</p>
+    return <p className="text-sm text-ink-3">No broadcasts yet.</p>
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {rows.map((b) => (
-        <Link key={b.id} href={`/dashboard/broadcasts/${b.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)', textDecoration: 'none', color: 'var(--c-ink)' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.subject}</div>
-            <div style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{audienceLabel(b.audience_status, b.audience_tag)} · {new Date(b.created_at).toLocaleDateString('en-GB')}</div>
+        <Link
+          key={b.id}
+          href={`/dashboard/broadcasts/${b.id}`}
+          className="flex items-center gap-3 rounded-[10px] border border-line bg-surface px-4 py-3 text-ink transition-colors hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold">{b.subject}</div>
+            <div className="text-xs text-ink-3">
+              {audienceLabel(b.audience_status, b.audience_tag)} · {new Date(b.created_at).toLocaleDateString('en-GB')}
+            </div>
           </div>
-          <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>
+          <div className="font-mono text-[11.5px] text-ink-3">
             {b.sent_count} sent{b.failed_count > 0 ? ` · ${b.failed_count} failed` : ''}{b.skipped_count > 0 ? ` · ${b.skipped_count} skipped` : ''}
           </div>
         </Link>

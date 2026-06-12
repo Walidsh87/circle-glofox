@@ -1,5 +1,5 @@
 import { requireManagerPage } from '@/lib/auth/page-guards'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { scoreMember } from '@/app/dashboard/retention/_lib/risk'
 import { lastCheckInByAthlete, daysBetween } from '@/app/dashboard/retention/_lib/aggregate'
@@ -65,17 +65,15 @@ export default async function LifecyclePage() {
   const total = Object.values(columns).reduce((n, c) => n + c.length, 0)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="lifecycle" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0, gap: 12 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Lifecycle</h1>
-          <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{total} people</span>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <Board columns={columns} />
-        </div>
-      </div>
-    </div>
+    <DashboardShell
+      active="lifecycle"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Lifecycle"
+      actions={<span className="font-mono text-xs text-ink-3">{total} people</span>}
+    >
+      <Board columns={columns} />
+    </DashboardShell>
   )
 }

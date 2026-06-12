@@ -9,22 +9,30 @@ const STAGE_LABELS: Record<Stage, string> = {
 
 export function Board({ columns }: { columns: Record<Stage, Card[]> }) {
   return (
-    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', minWidth: 'min-content' }}>
+    <div className="flex min-w-min items-start gap-3.5">
       {STAGES.map((stage) => {
         const cards = columns[stage]
         return (
-          <div key={stage} style={{ width: 230, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '0 2px' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)' }}>{STAGE_LABELS[stage]}</span>
-              <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)' }}>{cards.length}</span>
+          <div key={stage} className="flex w-[230px] shrink-0 flex-col gap-2">
+            <div className="flex items-baseline justify-between px-0.5">
+              <span className="text-[13px] font-semibold text-ink">{STAGE_LABELS[stage]}</span>
+              <span className="font-mono text-[11px] text-ink-3">{cards.length}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="flex flex-col gap-1.5">
               {cards.length === 0 ? (
-                <p style={{ fontSize: 12, color: 'var(--c-ink-faint)', padding: '8px 2px' }}>—</p>
+                <p className="px-0.5 py-2 text-xs text-ink-faint">—</p>
               ) : cards.map((c) => (
-                <div key={`${c.kind}-${c.id}`} style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, boxShadow: 'var(--c-shadow-sm)' }}>
-                  <Link href={c.href} style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-ink)', textDecoration: 'none' }}>{c.name}</Link>
-                  {c.hint && <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)' }}>{c.hint}</span>}
+                <div
+                  key={`${c.kind}-${c.id}`}
+                  className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-surface px-3 py-2.5 shadow-card"
+                >
+                  <Link
+                    href={c.href}
+                    className="text-[13.5px] font-semibold text-ink transition-colors hover:text-accent-ink"
+                  >
+                    {c.name}
+                  </Link>
+                  {c.hint && <span className="font-mono text-[11px] text-ink-3">{c.hint}</span>}
                   {c.kind === 'member' && <MarkContacted athleteId={c.id} />}
                 </div>
               ))}

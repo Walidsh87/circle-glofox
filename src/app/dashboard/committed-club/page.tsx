@@ -1,5 +1,5 @@
 import { requirePage } from '@/lib/auth/page-guards'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { currentStreakWeeks, totalCheckins, currentMilestone } from '@/lib/consistency'
 import { todayInTimezone } from '@/lib/timezone'
 
@@ -31,33 +31,29 @@ export default async function CommittedClubPage() {
     .sort((a, b) => b.streak - a.streak || b.total - a.total)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="committed-club" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Committed Club</h1>
-        </header>
-
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {ranked.length === 0 && (
-              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '48px 24px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13 }}>
-                No check-ins yet — consistency shows up here.
-              </div>
-            )}
-            {ranked.map((m, i) => (
-              <div key={`${m.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, boxShadow: 'var(--c-shadow-sm)' }}>
-                <div className="mono" style={{ fontSize: 13, color: 'var(--c-ink-muted)', width: 22, textAlign: 'right' }}>{i + 1}</div>
-                <div style={{ flex: 1, fontWeight: 600, fontSize: 14, color: 'var(--c-ink)' }}>{m.name}</div>
-                {m.badge !== null && <span className="mono" style={{ fontSize: 11, color: 'var(--circle-lime-ink)' }}>🏅 {m.badge}</span>}
-                <span className="mono" style={{ fontSize: 12.5, color: 'var(--c-ink-2)' }}>{m.streak > 0 ? `🔥 ${m.streak}w` : '—'}</span>
-                <span className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)', width: 64, textAlign: 'right' }}>{m.total} total</span>
-              </div>
-            ))}
+    <DashboardShell
+      active="committed-club"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Committed Club"
+    >
+      <div className="flex max-w-[560px] flex-col gap-2">
+        {ranked.length === 0 && (
+          <div className="rounded-[14px] border border-line bg-surface px-6 py-12 text-center text-[13px] text-ink-3">
+            No check-ins yet — consistency shows up here.
           </div>
-        </div>
+        )}
+        {ranked.map((m, i) => (
+          <div key={`${m.name}-${i}`} className="flex items-center gap-3.5 rounded-xl border border-line bg-surface px-4 py-3 shadow-card">
+            <div className="w-[22px] text-right font-mono text-[13px] text-ink-3">{i + 1}</div>
+            <div className="flex-1 text-sm font-semibold text-ink">{m.name}</div>
+            {m.badge !== null && <span className="font-mono text-[11px] text-accent-ink">🏅 {m.badge}</span>}
+            <span className="font-mono text-[12.5px] text-ink-2">{m.streak > 0 ? `🔥 ${m.streak}w` : '—'}</span>
+            <span className="w-16 text-right font-mono text-xs text-ink-3">{m.total} total</span>
+          </div>
+        ))}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

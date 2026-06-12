@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { buyPackage } from '../_actions/buy-package'
 
 export function BuyButton({ packageId }: { packageId: string }) {
@@ -18,17 +19,8 @@ export function BuyButton({ packageId }: { packageId: string }) {
   }
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      style={{
-        height: 32, padding: '0 16px', background: 'var(--circle-lime)',
-        border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer',
-        fontSize: 13, fontWeight: 700, color: 'var(--circle-ink)',
-        fontFamily: 'inherit', opacity: loading ? 0.5 : 1,
-      }}
-    >
+    <Button size="sm" onClick={handleClick} disabled={loading}>
       {loading ? 'Starting…' : 'Buy'}
-    </button>
+    </Button>
   )
 }

@@ -1,21 +1,20 @@
 'use client'
 
 import { useTransition } from 'react'
+import { cn } from '@/lib/utils'
 import { togglePackage } from '../_actions/toggle-package'
 import { deletePackage } from '../_actions/delete-package'
 
-const btn: React.CSSProperties = {
-  background: 'none', border: '1px solid var(--c-border)', borderRadius: 6,
-  padding: '4px 9px', fontSize: 12, cursor: 'pointer', color: 'var(--c-ink-2)',
-}
+const btnClass =
+  'rounded-md border border-line bg-transparent px-2 py-1 text-xs text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
 
 export function PackageActions({ packageId, active }: { packageId: string; active: boolean }) {
   const [pending, startTransition] = useTransition()
 
   return (
-    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+    <div className="flex justify-end gap-1.5">
       <button
-        style={btn}
+        className={btnClass}
         disabled={pending}
         onClick={() => startTransition(async () => {
           const res = await togglePackage(packageId, !active)
@@ -25,7 +24,7 @@ export function PackageActions({ packageId, active }: { packageId: string; activ
         {active ? 'Deactivate' : 'Activate'}
       </button>
       <button
-        style={{ ...btn, color: 'var(--c-danger-ink)' }}
+        className={cn(btnClass, 'text-danger hover:border-danger hover:text-danger')}
         disabled={pending}
         onClick={() => {
           if (!confirm('Delete this package? This cannot be undone.')) return

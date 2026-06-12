@@ -1,6 +1,7 @@
 import { requirePage } from '@/lib/auth/page-guards'
 import { redirect } from 'next/navigation'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card } from '@/components/ui/card'
 import { BuyButton } from './_components/buy-button'
 
 const TYPE_LABEL: Record<string, string> = { class_pack: 'Class pack', drop_in: 'Drop-in', pt_block: 'PT block' }
@@ -33,64 +34,59 @@ export default async function ShopPage(ctx: { searchParams: Promise<{ purchase?:
   const creditRows = (credits ?? []) as CreditRow[]
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="shop" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex',
-          alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0,
-        }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>
-            Buy a pack
-          </h1>
-        </header>
-
-        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px', maxWidth: 760 }}>
-          {justPurchased && (
-            <div style={{ background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '12px 16px', fontSize: 13, marginBottom: 20 }}>
-              Payment received — your new credits will appear here shortly.
-            </div>
-          )}
-
-          {/* Your credits */}
-          <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--c-shadow-sm)', marginBottom: 20 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Your credits</p>
-            {creditRows.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {creditRows.map((c) => (
-                  <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--c-ink-2)' }}>
-                    <span>{creditPkgName(c)} <span className="mono" style={{ color: 'var(--c-ink-muted)' }}>({c.kind === 'pt_session' ? 'PT' : 'class'})</span></span>
-                    <span className="mono">{c.credits_remaining}/{c.credits_total}{c.expires_at ? ` · exp ${c.expires_at}` : ''}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>No credits yet. Buy a pack below.</p>
-            )}
+    <DashboardShell
+      active="shop"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Buy a pack"
+    >
+      <div className="max-w-3xl">
+        {justPurchased && (
+          <div className="mb-5 rounded-xl border border-line bg-ok-soft px-4 py-3 text-[13px] text-ok">
+            Payment received — your new credits will appear here shortly.
           </div>
+        )}
 
-          {/* Storefront */}
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', marginBottom: 12 }}>Available packages</p>
-          {(!packages || packages.length === 0) ? (
-            <p style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>No packages available right now.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {packages.map((p) => (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '14px 18px', boxShadow: 'var(--c-shadow-sm)' }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>{p.name}</div>
-                    <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)', marginTop: 2 }}>
-                      {TYPE_LABEL[p.type] ?? p.type} · {p.credit_count} {p.type === 'pt_block' ? 'sessions' : 'classes'} · {Number(p.price_aed).toFixed(2)} AED
-                    </div>
-                  </div>
-                  <BuyButton packageId={p.id} />
+        {/* Your credits */}
+        <Card className="mb-5 p-5">
+          <p className="mb-3 text-[13px] font-semibold text-ink">Your credits</p>
+          {creditRows.length > 0 ? (
+            <div className="flex flex-col gap-1.5">
+              {creditRows.map((c) => (
+                <div key={c.id} className="flex justify-between text-[13px] text-ink-2">
+                  <span>
+                    {creditPkgName(c)} <span className="font-mono text-ink-3">({c.kind === 'pt_session' ? 'PT' : 'class'})</span>
+                  </span>
+                  <span className="font-mono">{c.credits_remaining}/{c.credits_total}{c.expires_at ? ` · exp ${c.expires_at}` : ''}</span>
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-xs text-ink-3">No credits yet. Buy a pack below.</p>
           )}
-        </div>
+        </Card>
+
+        {/* Storefront */}
+        <p className="mb-3 text-[13px] font-semibold text-ink">Available packages</p>
+        {(!packages || packages.length === 0) ? (
+          <p className="text-[13px] text-ink-3">No packages available right now.</p>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {packages.map((p) => (
+              <Card key={p.id} className="flex items-center justify-between px-4 py-3.5">
+                <div>
+                  <div className="text-sm font-semibold text-ink">{p.name}</div>
+                  <div className="mt-0.5 font-mono text-xs text-ink-3">
+                    {TYPE_LABEL[p.type] ?? p.type} · {p.credit_count} {p.type === 'pt_block' ? 'sessions' : 'classes'} · {Number(p.price_aed).toFixed(2)} AED
+                  </div>
+                </div>
+                <BuyButton packageId={p.id} />
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

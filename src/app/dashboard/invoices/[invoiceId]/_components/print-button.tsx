@@ -1,14 +1,11 @@
 'use client'
 
 export function PrintButton() {
+  // Printable page: literal brand colors — this surface never themes.
   return (
     <button
       onClick={() => window.print()}
-      style={{
-        height: 36, padding: '0 18px',
-        background: 'var(--circle-lime, #d6f24a)', color: 'var(--circle-ink, #111)',
-        border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
-      }}
+      className="h-9 cursor-pointer rounded-lg border-none bg-[#C8F135] px-4 text-[13px] font-bold text-[#0A0A0A]"
     >
       Save as PDF
     </button>

@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { requireStaffPage } from '@/lib/auth/page-guards'
 import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { bucketTasks } from '@/lib/follow-up-tasks'
 import { QuickAdd } from './_components/quick-add'
 import { TaskItem, type TaskRow } from './_components/task-item'
@@ -45,49 +47,56 @@ export default async function TasksPage(ctx: { searchParams: Promise<{ filter?: 
   }
 
   const { overdue, today: dueToday, upcoming } = bucketTasks(open, today)
-  const sections: { label: string; color: string; rows: DbTask[] }[] = [
-    { label: 'Overdue', color: 'var(--c-danger)', rows: overdue },
-    { label: 'Today', color: 'var(--circle-lime-ink)', rows: dueToday },
-    { label: 'Upcoming', color: 'var(--c-ink-muted)', rows: upcoming },
+  const sections: { label: string; labelClass: string; rows: DbTask[] }[] = [
+    { label: 'Overdue', labelClass: 'text-danger', rows: overdue },
+    { label: 'Today', labelClass: 'text-accent-ink', rows: dueToday },
+    { label: 'Upcoming', labelClass: 'text-ink-3', rows: upcoming },
   ]
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="tasks" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Follow-ups</h1>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 620 }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-              {[{ href: '/dashboard/tasks', label: 'All', active: !mine }, { href: '/dashboard/tasks?filter=mine', label: 'Mine', active: mine }].map((p) => (
-                <Link key={p.label} href={p.href} style={{ padding: '5px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, textDecoration: 'none', border: '1px solid var(--c-border)', background: p.active ? '#111' : 'var(--c-surface)', color: p.active ? '#fff' : 'var(--c-ink-muted)' }}>{p.label}</Link>
-              ))}
-            </div>
-            <div style={{ marginBottom: 24, padding: 16, borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-              <QuickAdd staff={staffList} />
-            </div>
-            {open.length === 0 && <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>{mine ? 'No open follow-ups assigned to you.' : 'No open follow-ups. Add one above.'}</p>}
-            {sections.filter((s) => s.rows.length > 0).map((s) => (
-              <div key={s.label} style={{ marginBottom: 22 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: s.color, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>{s.label} ({s.rows.length})</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {s.rows.map((t) => <TaskItem key={t.id} task={toRow(t)} />)}
-                </div>
-              </div>
-            ))}
-            {doneList.length > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--c-ink-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Done</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {doneList.map((t) => <TaskItem key={t.id} task={toRow(t)} />)}
-                </div>
-              </div>
-            )}
-          </div>
+    <DashboardShell
+      active="tasks"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Follow-ups"
+    >
+      <div className="max-w-[620px]">
+        <div className="mb-3.5 flex gap-2">
+          {[{ href: '/dashboard/tasks', label: 'All', active: !mine }, { href: '/dashboard/tasks?filter=mine', label: 'Mine', active: mine }].map((p) => (
+            <Link
+              key={p.label}
+              href={p.href}
+              className={cn(
+                'rounded-full border px-3.5 py-1 text-[12.5px] font-semibold transition-colors',
+                p.active ? 'border-transparent bg-accent text-accent-contrast' : 'border-line bg-surface text-ink-3 hover:border-line-strong'
+              )}
+            >
+              {p.label}
+            </Link>
+          ))}
         </div>
+        <Card className="mb-6 p-4">
+          <QuickAdd staff={staffList} />
+        </Card>
+        {open.length === 0 && <p className="text-sm text-ink-3">{mine ? 'No open follow-ups assigned to you.' : 'No open follow-ups. Add one above.'}</p>}
+        {sections.filter((s) => s.rows.length > 0).map((s) => (
+          <div key={s.label} className="mb-5">
+            <div className={cn('mb-2 text-[12.5px] font-bold uppercase tracking-[0.04em]', s.labelClass)}>{s.label} ({s.rows.length})</div>
+            <div className="flex flex-col gap-1.5">
+              {s.rows.map((t) => <TaskItem key={t.id} task={toRow(t)} />)}
+            </div>
+          </div>
+        ))}
+        {doneList.length > 0 && (
+          <div className="mt-2">
+            <div className="mb-2 text-[12.5px] font-bold uppercase tracking-[0.04em] text-ink-faint">Done</div>
+            <div className="flex flex-col gap-1.5">
+              {doneList.map((t) => <TaskItem key={t.id} task={toRow(t)} />)}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

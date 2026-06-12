@@ -2,7 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { createTask } from '../_actions/create-task'
+
+const inputClass =
+  'rounded-lg border border-line bg-canvas px-3 py-2 text-[13.5px] text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function QuickAdd({ leadId = null, memberId = null, placeholder = 'New follow-up…', staff = [] }: {
   leadId?: string | null
@@ -28,22 +33,20 @@ export function QuickAdd({ leadId = null, memberId = null, placeholder = 'New fo
     })
   }
 
-  const input = { padding: '9px 12px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 13.5, color: 'var(--c-ink)', fontFamily: 'inherit' } as const
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <input style={{ ...input, flex: 1, minWidth: 160 }} placeholder={placeholder} value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onAdd() }} />
-        <input type="date" style={input} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap gap-2">
+        <input className={cn(inputClass, 'min-w-40 flex-1')} placeholder={placeholder} value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') onAdd() }} />
+        <input type="date" className={inputClass} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         {staff.length > 0 && (
-          <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} style={input} aria-label="Assign to">
+          <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className={inputClass} aria-label="Assign to">
             <option value="">Anyone</option>
             {staff.map((s) => <option key={s.id} value={s.id}>{s.full_name ?? 'Staff'}</option>)}
           </select>
         )}
-        <button onClick={onAdd} disabled={pending || !title.trim()} style={{ padding: '9px 16px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: pending || !title.trim() ? 0.6 : 1 }}>Add</button>
+        <Button size="sm" onClick={onAdd} disabled={pending || !title.trim()}>Add</Button>
       </div>
-      {error && <p style={{ color: 'var(--c-danger)', fontSize: 12.5 }}>{error}</p>}
+      {error && <p role="alert" className="text-[12.5px] text-danger">{error}</p>}
     </div>
   )
 }

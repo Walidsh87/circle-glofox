@@ -1,6 +1,10 @@
 import { requirePage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card, StatCard } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { PasswordNudge } from './_components/password-nudge'
 import { countIncompleteOnboarding } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
@@ -102,220 +106,180 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-hanken, var(--font-geist-sans))' }}>
-      <Sidebar active="dashboard" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
+    <DashboardShell
+      active="dashboard"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Dashboard"
+      actions={
+        isStaff ? (
+          <Link
+            href="/dashboard/whiteboard"
+            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+          >
+            Open Whiteboard
+          </Link>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-5">
+        <PasswordNudge show={!hasPassword} />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Topbar */}
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)',
-          display: 'flex', alignItems: 'center', gap: 16,
-          padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0,
-        }}>
-          <div style={{ flex: 1 }}>
-            <h1 style={{
-              fontFamily: 'var(--font-space-grotesk)', fontSize: 20,
-              fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em',
-            }}>Dashboard</h1>
+        {/* Greeting */}
+        <div>
+          <div className="mb-1.5 font-mono text-xs uppercase tracking-[0.08em] text-ink-3">
+            {boxName}
           </div>
-          {isStaff && (
-            <Link href="/dashboard/whiteboard" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              height: 34, padding: '0 14px', borderRadius: 8,
-              border: '1px solid var(--c-border)', background: 'var(--c-surface)',
-              fontSize: 13, fontWeight: 500, color: 'var(--c-ink-2)',
-              textDecoration: 'none',
-            }}>Open Whiteboard</Link>
-          )}
-        </header>
+          <h2 className="mb-1 font-display text-3xl font-semibold tracking-[-0.02em] text-ink">
+            Welcome, {firstName}.
+          </h2>
+          <p className="text-sm text-ink-2">
+            {profile.role === 'owner' ? 'You have full access to your gym.' : `Signed in as ${profile.role}.`}
+          </p>
+        </div>
 
-        {/* Body */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <PasswordNudge show={!hasPassword} />
-          {/* Greeting */}
-          <div>
-            <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-              {boxName}
-            </div>
-            <h2 style={{
-              fontFamily: 'var(--font-space-grotesk)', fontSize: 30,
-              fontWeight: 600, letterSpacing: '-0.025em', color: 'var(--c-ink)',
-              marginBottom: 4,
-            }}>
-              Welcome, {firstName}.
-            </h2>
-            <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>
-              {profile.role === 'owner' ? 'You have full access to your gym.' : `Signed in as ${profile.role}.`}
-            </p>
+        {/* Stats row — owner only */}
+        {isOwner && (
+          <div className="grid max-w-[860px] grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard label="Athletes" value={String(memberCount ?? 0)} href="/dashboard/members?tab=members" />
+            <StatCard label="MRR · AED" value={mrrAed > 0 ? mrrAed.toLocaleString() : '—'} href="/dashboard/payments" />
+            <StatCard label="Unpaid" value={String(unpaidCount)} fill={unpaidCount > 0 ? 'warn' : undefined} href="/dashboard/payments" />
+            <StatCard label="Active Leads" value={String(activeLeadCount ?? 0)} href="/dashboard/members?tab=leads" fill={activeLeadCount && activeLeadCount > 0 ? 'accent' : undefined} />
+            <StatCard label="Follow-ups due" value={String(tasksDueCount ?? 0)} href="/dashboard/tasks" fill={tasksDueCount && tasksDueCount > 0 ? 'accent' : undefined} />
+            <StatCard label="Onboarding to-do" value={String(onboardingTodo)} href="/dashboard/members?tab=members" fill={onboardingTodo > 0 ? 'accent' : undefined} />
           </div>
+        )}
 
-          {/* Stats row — owner only */}
-          {isOwner && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, maxWidth: 860 }}>
-              <StatCard label="Athletes" value={String(memberCount ?? 0)} href="/dashboard/members?tab=members" />
-              <StatCard label="MRR · AED" value={mrrAed > 0 ? mrrAed.toLocaleString() : '—'} href="/dashboard/payments" />
-              <StatCard label="Unpaid" value={String(unpaidCount)} variant={unpaidCount > 0 ? 'warn' : undefined} href="/dashboard/payments" />
-              <StatCard label="Active Leads" value={String(activeLeadCount ?? 0)} href="/dashboard/members?tab=leads" variant={activeLeadCount && activeLeadCount > 0 ? 'lime' : undefined} />
-              <StatCard label="Follow-ups due" value={String(tasksDueCount ?? 0)} href="/dashboard/tasks" variant={tasksDueCount && tasksDueCount > 0 ? 'lime' : undefined} />
-              <StatCard label="Onboarding to-do" value={String(onboardingTodo)} href="/dashboard/members?tab=members" variant={onboardingTodo > 0 ? 'lime' : undefined} />
-            </div>
-          )}
-
-          {/* Two-col: today's classes (left) + WOD hero (right) */}
-          {isStaff && (
-            <div style={{ display: 'grid', gridTemplateColumns: todayClasses && todayClasses.length > 0 ? '1.4fr 1fr' : '1fr', gap: 14, maxWidth: 900 }}>
-              {/* Today's classes */}
-              {todayClasses && todayClasses.length > 0 && (
-                <div style={{
-                  background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                  borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--c-shadow-sm)',
-                }}>
-                  <div style={{
-                    padding: '14px 18px', borderBottom: '1px solid var(--c-divider)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  }}>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>Today&apos;s classes</div>
-                      <div className="mono" style={{ fontSize: 11, color: 'var(--c-ink-muted)', marginTop: 2 }}>
-                        {todayClasses.length} session{todayClasses.length !== 1 ? 's' : ''} scheduled
-                      </div>
+        {/* Two-col: today's classes (left) + WOD hero (right) */}
+        {isStaff && (
+          <div
+            className={cn(
+              'grid max-w-[900px] gap-3.5',
+              todayClasses && todayClasses.length > 0 ? 'lg:grid-cols-[1.4fr_1fr]' : 'grid-cols-1'
+            )}
+          >
+            {todayClasses && todayClasses.length > 0 && (
+              <Card className="overflow-hidden">
+                <div className="flex items-center justify-between border-b border-line px-4 py-3.5">
+                  <div>
+                    <div className="text-sm font-semibold text-ink">Today&apos;s classes</div>
+                    <div className="mt-0.5 font-mono text-[11px] text-ink-3">
+                      {todayClasses.length} session{todayClasses.length !== 1 ? 's' : ''} scheduled
                     </div>
-                    <Link href="/dashboard/classes" style={{ fontSize: 12, color: 'var(--c-ink-muted)', textDecoration: 'none' }}>View all →</Link>
                   </div>
-                  {todayClasses.map((cls, i) => {
-                    const bookingCount = Array.isArray(cls.bookings) ? cls.bookings.length : 0
-                    const cap = cls.capacity ?? 20
-                    const pct = Math.round((bookingCount / cap) * 100)
-                    const full = bookingCount >= cap
-                    const time = new Date(cls.starts_at).toLocaleTimeString('en-GB', {
-                      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: timezone,
-                    })
-                    const templateName = Array.isArray(cls.class_templates)
-                      ? cls.class_templates[0]?.name
-                      : (cls.class_templates as { name: string } | null)?.name
-                    return (
-                      <div key={cls.id} style={{
-                        display: 'grid', gridTemplateColumns: '52px 1fr auto',
-                        alignItems: 'center', gap: 14, padding: '12px 18px',
-                        borderBottom: i < todayClasses.length - 1 ? '1px solid var(--c-divider)' : 'none',
-                      }}>
-                        <div className="mono" style={{ fontSize: 16, color: 'var(--c-ink)', letterSpacing: '-0.01em' }}>{time}</div>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--c-ink)' }}>{templateName ?? 'Class'}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                            <div className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-2)' }}>
-                              {bookingCount}<span style={{ color: 'var(--c-ink-faint)' }}>/{cap}</span>
-                            </div>
-                            <div style={{ width: 52, height: 5, background: 'var(--c-surface-sunk)', borderRadius: 3, overflow: 'hidden' }}>
-                              <div style={{ width: `${pct}%`, height: '100%', background: full ? 'var(--c-danger)' : 'var(--circle-lime)', borderRadius: 3 }} />
-                            </div>
+                  <Link href="/dashboard/classes" className="text-xs text-ink-3 transition-colors hover:text-accent-ink">
+                    View all →
+                  </Link>
+                </div>
+                {todayClasses.map((cls) => {
+                  const bookingCount = Array.isArray(cls.bookings) ? cls.bookings.length : 0
+                  const cap = cls.capacity ?? 20
+                  const pct = Math.round((bookingCount / cap) * 100)
+                  const full = bookingCount >= cap
+                  const time = new Date(cls.starts_at).toLocaleTimeString('en-GB', {
+                    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: timezone,
+                  })
+                  const templateName = Array.isArray(cls.class_templates)
+                    ? cls.class_templates[0]?.name
+                    : (cls.class_templates as { name: string } | null)?.name
+                  return (
+                    <div
+                      key={cls.id}
+                      className="grid grid-cols-[52px_1fr_auto] items-center gap-3.5 border-b border-line px-4 py-3 last:border-0"
+                    >
+                      <div className="font-mono text-base text-ink">{time}</div>
+                      <div>
+                        <div className="text-[13.5px] font-semibold text-ink">{templateName ?? 'Class'}</div>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="font-mono text-xs text-ink-2">
+                            {bookingCount}
+                            <span className="text-ink-faint">/{cap}</span>
+                          </div>
+                          <div className="h-[5px] w-[52px] overflow-hidden rounded-full bg-canvas">
+                            <div
+                              className={cn('h-full rounded-full', full ? 'bg-danger' : 'bg-accent')}
+                              style={{ width: `${pct}%` }}
+                            />
                           </div>
                         </div>
-                        {full && (
-                          <span style={{
-                            fontSize: 10.5, fontWeight: 600, padding: '2px 7px', borderRadius: 999,
-                            background: 'var(--c-danger-soft)', color: 'var(--c-danger-ink)',
-                          }}>Full</span>
-                        )}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* WOD hero */}
-              {wod && (
-                <div style={{
-                  background: 'var(--c-surface-alt)', borderRadius: 14, padding: '22px 24px',
-                  border: '1px solid rgba(200, 241, 53, 0.18)',
-                  position: 'relative', overflow: 'hidden', boxShadow: 'var(--c-shadow-md)',
-                }}>
-                  <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', border: '2px solid var(--circle-lime)', opacity: 0.4 }} />
-                  <div style={{ position: 'absolute', top: 30, right: 30, width: 100, height: 100, borderRadius: '50%', background: 'var(--circle-lime)', opacity: 0.12 }} />
-                  <div style={{ position: 'relative' }}>
-                    <div className="mono" style={{ fontSize: 10.5, color: 'var(--circle-lime)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>
-                      Daily WOD · {today}
+                      {full && <Badge tone="danger">Full</Badge>}
                     </div>
-                    <div style={{
-                      fontFamily: 'var(--font-space-grotesk)', fontSize: 28, fontWeight: 700,
-                      color: 'var(--circle-lime)', letterSpacing: '-0.025em', marginBottom: 10,
-                    }}>{wod.title}</div>
-                    <pre style={{
-                      fontFamily: 'var(--font-geist-mono)', fontSize: 12.5,
-                      color: 'rgba(250,250,250,0.75)', lineHeight: 1.65,
-                      whiteSpace: 'pre-wrap', margin: 0,
-                    }}>{wod.description}</pre>
-                    <Link href="/dashboard/wod" style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      marginTop: 16, height: 34, padding: '0 14px', borderRadius: 8,
-                      background: 'var(--circle-lime)', color: 'var(--circle-ink)',
-                      fontSize: 13, fontWeight: 700, textDecoration: 'none',
-                    }}>Open leaderboard →</Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+                  )
+                })}
+              </Card>
+            )}
 
-          {/* Nav cards grid — always shown */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, maxWidth: 900 }}>
-            {isStaff && <NavCard href="/dashboard/classes" label="Class Schedule" description="Templates & generator" />}
-            <NavCard href="/dashboard/schedule" label="Book a Class" description="Upcoming classes" />
-            {isStaff && <NavCard href="/dashboard/whiteboard" label="Whiteboard" description="Live check-in board" accent />}
-            {isStaff && <NavCard href="/dashboard/wod" label="Daily WOD" description="Workout + leaderboard" />}
-            <NavCard href="/dashboard/lifts" label="My 1RMs" description="Log & calculate lifts" />
-            {['owner', 'admin', 'coach', 'receptionist'].includes(profile.role) && <NavCard href="/dashboard/members" label="Members" description="Directory & management" />}
-            {isOwner && <NavCard href="/dashboard/payments" label="Payments" description="Membership billing" />}
+            {wod && (
+              <Card className="relative overflow-hidden border-accent-soft bg-surface-2 p-6 shadow-pop">
+                <div className="absolute -right-10 -top-10 h-[180px] w-[180px] rounded-full border-2 border-accent opacity-40" />
+                <div className="absolute right-7 top-7 h-[100px] w-[100px] rounded-full bg-accent opacity-10" />
+                <div className="relative">
+                  <div className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-accent-ink">
+                    Daily WOD · {today}
+                  </div>
+                  <div className="mb-2.5 font-display text-2xl font-semibold tracking-[-0.02em] text-accent-ink">
+                    {wod.title}
+                  </div>
+                  <pre className="m-0 whitespace-pre-wrap font-mono text-xs leading-relaxed text-ink-2">
+                    {wod.description}
+                  </pre>
+                  <Link
+                    href="/dashboard/wod"
+                    className={cn(buttonVariants({ size: 'sm' }), 'mt-4')}
+                  >
+                    Open leaderboard →
+                  </Link>
+                </div>
+              </Card>
+            )}
           </div>
+        )}
+
+        {/* Nav cards grid — always shown */}
+        <div className="grid max-w-[900px] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2.5">
+          {isStaff && <NavCard href="/dashboard/classes" label="Class Schedule" description="Templates & generator" />}
+          <NavCard href="/dashboard/schedule" label="Book a Class" description="Upcoming classes" />
+          {isStaff && <NavCard href="/dashboard/whiteboard" label="Whiteboard" description="Live check-in board" accent />}
+          {isStaff && <NavCard href="/dashboard/wod" label="Daily WOD" description="Workout + leaderboard" />}
+          <NavCard href="/dashboard/lifts" label="My 1RMs" description="Log & calculate lifts" />
+          {['owner', 'admin', 'coach', 'receptionist'].includes(profile.role) && (
+            <NavCard href="/dashboard/members" label="Members" description="Directory & management" />
+          )}
+          {isOwner && <NavCard href="/dashboard/payments" label="Payments" description="Membership billing" />}
         </div>
       </div>
-    </div>
+    </DashboardShell>
   )
 }
 
-function StatCard({ label, value, variant, href }: { label: string; value: string; variant?: 'warn' | 'lime'; href?: string }) {
-  const bg = variant === 'warn' ? 'var(--c-warn-soft)' : variant === 'lime' ? 'var(--circle-lime-soft)' : 'var(--c-surface)'
-  const color = variant === 'warn' ? 'var(--c-warn-ink)' : variant === 'lime' ? 'var(--circle-lime-ink)' : 'var(--c-ink)'
-  const labelColor = variant === 'warn' ? 'var(--c-warn-ink)' : variant === 'lime' ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)'
-  const border = variant ? 'transparent' : 'var(--c-border)'
-  const inner = (
-    <>
-      <div className="mono" style={{ fontSize: 10.5, color: labelColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-      <div className="mono" style={{ fontSize: 26, color, marginTop: 4, letterSpacing: '-0.02em', fontWeight: 700 }}>{value}</div>
-    </>
-  )
-  const style: React.CSSProperties = {
-    padding: '14px 16px', borderRadius: 12,
-    background: bg, border: `1px solid ${border}`,
-    boxShadow: 'var(--c-shadow-sm)', display: 'block', textDecoration: 'none',
-  }
-  if (href) return <a href={href} style={style}>{inner}</a>
-  return <div style={style}>{inner}</div>
-}
-
-function NavCard({ href, label, description, accent }: {
-  href: string; label: string; description: string; accent?: boolean
+function NavCard({
+  href,
+  label,
+  description,
+  accent,
+}: {
+  href: string
+  label: string
+  description: string
+  accent?: boolean
 }) {
   return (
-    <a href={href} style={{
-      display: 'flex', flexDirection: 'column', gap: 6,
-      padding: '18px 16px',
-      background: accent ? 'var(--c-surface-alt)' : 'var(--c-surface)',
-      border: `1px solid ${accent ? 'rgba(200, 241, 53, 0.25)' : 'var(--c-border)'}`,
-      borderRadius: 12, textDecoration: 'none',
-      boxShadow: 'var(--c-shadow-sm)',
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-space-grotesk)', fontSize: 14,
-        fontWeight: 600, color: accent ? 'var(--circle-lime)' : 'var(--c-ink)',
-        letterSpacing: '-0.01em',
-      }}>{label}</div>
-      <div style={{ fontSize: 12, color: accent ? 'rgba(250,250,250,0.55)' : 'var(--c-ink-muted)', lineHeight: 1.4 }}>
-        {description}
+    <Link
+      href={href}
+      className={cn(
+        'flex flex-col gap-1.5 rounded-xl border p-4 shadow-card transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        accent
+          ? 'border-accent-soft bg-surface-2 hover:border-accent'
+          : 'border-line bg-surface hover:border-line-strong'
+      )}
+    >
+      <div className={cn('font-display text-sm font-semibold tracking-[-0.01em]', accent ? 'text-accent-ink' : 'text-ink')}>
+        {label}
       </div>
-      <div style={{ marginTop: 6, fontSize: 12, color: accent ? 'var(--circle-lime)' : 'var(--c-ink-muted)', fontWeight: 500 }}>
-        Open →
-      </div>
-    </a>
+      <div className={cn('text-xs leading-snug', accent ? 'text-ink-2' : 'text-ink-3')}>{description}</div>
+      <div className={cn('mt-1.5 text-xs font-medium', accent ? 'text-accent-ink' : 'text-ink-3')}>Open →</div>
+    </Link>
   )
 }

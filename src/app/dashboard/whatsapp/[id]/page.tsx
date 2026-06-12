@@ -1,14 +1,15 @@
 import { requireManagerPage } from '@/lib/auth/page-guards'
 import { notFound } from 'next/navigation'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { cn } from '@/lib/utils'
 import { SEGMENT_LABELS, type Segment } from '@/lib/broadcast-audience'
 
-const STATUS_COLOR: Record<string, string> = {
-  read: 'var(--circle-lime-ink)',
-  delivered: 'var(--c-ink)',
-  sent: 'var(--c-ink-muted)',
-  failed: 'var(--c-danger)',
-  queued: 'var(--c-ink-muted)',
+const STATUS_CLASS: Record<string, string> = {
+  read: 'text-accent-ink',
+  delivered: 'text-ink',
+  sent: 'text-ink-3',
+  failed: 'text-danger',
+  queued: 'text-ink-3',
 }
 
 export default async function WaDetailPage(ctx: { params: Promise<{ id: string }> }) {
@@ -26,31 +27,29 @@ export default async function WaDetailPage(ctx: { params: Promise<{ id: string }
   const audience = `${SEGMENT_LABELS[c.audience_status as Segment] ?? c.audience_status}${c.audience_tag ? ` · ${c.audience_tag}` : ''}`
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="whatsapp" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>WhatsApp campaign</h1>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 640 }}>
-            <span className="mono" style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>
-              {audience} · {c.sent_count} sent · {delivered} delivered · {read} read · {failed} failed · {c.skipped_count} skipped
-            </span>
-            <div style={{ padding: 16, borderRadius: 12, background: 'var(--c-surface)', border: '1px solid var(--c-border)', margin: '16px 0 24px', whiteSpace: 'pre-wrap', fontSize: 13.5, color: 'var(--c-ink)' }}>{c.body_preview}</div>
-            <h2 style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Recipients</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {recs.map((r, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-                  <span style={{ flex: 1, fontSize: 13, color: 'var(--c-ink)' }}>{r.phone || '(no phone)'}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: STATUS_COLOR[r.status] ?? 'var(--c-ink-muted)' }}>{r.status}</span>
-                  {r.error && <span style={{ fontSize: 11.5, color: 'var(--c-ink-faint)' }}>{r.error}</span>}
-                </div>
-              ))}
+    <DashboardShell
+      active="whatsapp"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="WhatsApp campaign"
+    >
+      <div className="max-w-[640px]">
+        <span className="font-mono text-[12.5px] text-ink-3">
+          {audience} · {c.sent_count} sent · {delivered} delivered · {read} read · {failed} failed · {c.skipped_count} skipped
+        </span>
+        <div className="mb-6 mt-4 whitespace-pre-wrap rounded-xl border border-line bg-surface p-4 text-[13.5px] text-ink">{c.body_preview}</div>
+        <h2 className="mb-2.5 text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-3">Recipients</h2>
+        <div className="flex flex-col gap-1">
+          {recs.map((r, i) => (
+            <div key={i} className="flex items-center gap-2.5 rounded-lg border border-line bg-surface px-3 py-2">
+              <span className="flex-1 text-[13px] text-ink">{r.phone || '(no phone)'}</span>
+              <span className={cn('text-xs font-semibold', STATUS_CLASS[r.status] ?? 'text-ink-3')}>{r.status}</span>
+              {r.error && <span className="text-[11.5px] text-ink-faint">{r.error}</span>}
             </div>
-          </div>
+          ))}
         </div>
       </div>
-    </div>
+    </DashboardShell>
   )
 }

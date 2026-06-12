@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { saveCoachNote } from '../_actions/save-coach-note'
 
 export function CoachNote({ athleteId, note }: { athleteId: string; note: string }) {
@@ -23,29 +24,37 @@ export function CoachNote({ athleteId, note }: { athleteId: string; note: string
 
   if (!editing) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div className="flex flex-wrap items-center gap-2">
         {note
-          ? <span style={{ fontSize: 12.5, color: 'var(--c-ink-2)' }}>{note}</span>
-          : <span style={{ fontSize: 12.5, color: 'var(--c-ink-faint)', fontStyle: 'italic' }}>No note</span>}
-        <button type="button" onClick={() => { setValue(note); setEditing(true) }} style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Edit</button>
+          ? <span className="text-xs text-ink-2">{note}</span>
+          : <span className="text-xs italic text-ink-3">No note</span>}
+        <button
+          type="button"
+          onClick={() => { setValue(note); setEditing(true) }}
+          className="p-0 text-[11.5px] text-ink-3 underline transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        >Edit</button>
       </div>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div className="flex flex-col gap-1.5">
       <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={2}
         maxLength={500}
         placeholder="e.g. bad shoulder — scale overhead"
-        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', color: 'var(--c-ink)', fontSize: 12.5, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+        className="w-full resize-y rounded-lg border border-line-strong bg-surface px-2.5 py-2 text-xs text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <button type="button" disabled={pending} onClick={onSave} style={{ height: 28, padding: '0 12px', borderRadius: 7, border: 'none', background: 'var(--circle-lime)', color: 'var(--circle-ink)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{pending ? 'Saving…' : 'Save'}</button>
-        <button type="button" disabled={pending} onClick={() => setEditing(false)} style={{ height: 28, padding: '0 10px', borderRadius: 7, border: '1px solid var(--c-border-strong)', background: 'var(--c-surface)', color: 'var(--c-ink-2)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-        {err && <span style={{ fontSize: 11.5, color: 'var(--c-danger)' }}>{err}</span>}
+      <div className="flex items-center gap-2">
+        <Button size="sm" className="h-7 px-3 text-xs" type="button" disabled={pending} onClick={onSave}>
+          {pending ? 'Saving…' : 'Save'}
+        </Button>
+        <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" type="button" disabled={pending} onClick={() => setEditing(false)}>
+          Cancel
+        </Button>
+        {err && <span role="alert" className="text-[11.5px] text-danger">{err}</span>}
       </div>
     </div>
   )

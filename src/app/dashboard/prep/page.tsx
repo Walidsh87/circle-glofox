@@ -1,6 +1,9 @@
 import { requireStaffPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Card } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { cn } from '@/lib/utils'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { loadForPercent } from '@/lib/percentage'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
@@ -110,84 +113,97 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
   })()
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="prep" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
+    <DashboardShell
+      active="prep"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Class Prep"
+    >
+      {classes.length === 0 ? (
+        <EmptyState className="max-w-3xl" title="No classes scheduled today." />
+      ) : (
+        <div className="flex max-w-[820px] flex-col gap-4">
+          {/* Class switcher */}
+          <div className="flex flex-wrap gap-2">
+            {classes.map((c) => {
+              const isSel = c.id === selected?.id
+              return (
+                <Link
+                  key={c.id}
+                  href={`/dashboard/prep?class=${c.id}`}
+                  className={cn(
+                    'rounded-lg border px-3.5 py-1.5 font-mono text-[13px] font-semibold text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    isSel ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-line-strong'
+                  )}
+                >
+                  {fmtTime(c.starts_at, timezone)}
+                </Link>
+              )
+            })}
+          </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Class Prep</h1>
-        </header>
-
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
-          {classes.length === 0 ? (
-            <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '48px 24px', textAlign: 'center', color: 'var(--c-ink-muted)', fontSize: 13, maxWidth: 760 }}>
-              No classes scheduled today.
+          {/* Selected class header + today's WOD */}
+          <Card className="p-5">
+            <div className="flex flex-wrap items-baseline gap-2.5">
+              <span className="text-base font-bold text-ink">{selectedClassName ?? 'Class'}</span>
+              <span className="font-mono text-xs text-ink-3">
+                {selected ? fmtTime(selected.starts_at, timezone) : ''} · {selectedCoach ?? 'No coach'} · {roster.length} booked
+              </span>
             </div>
-          ) : (
-            <div style={{ maxWidth: 820, display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {/* Class switcher */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {classes.map((c) => {
-                  const isSel = c.id === selected?.id
-                  return (
-                    <Link key={c.id} href={`/dashboard/prep?class=${c.id}`} style={{
-                      padding: '7px 14px', borderRadius: 8, textDecoration: 'none',
-                      border: `1px solid ${isSel ? 'var(--circle-lime)' : 'var(--c-border)'}`,
-                      background: isSel ? 'var(--circle-lime-soft)' : 'var(--c-surface)',
-                      fontSize: 13, fontWeight: 600, color: 'var(--c-ink)',
-                    }} className="mono">{fmtTime(c.starts_at, timezone)}</Link>
-                  )
-                })}
-              </div>
-
-              {/* Selected class header + today's WOD */}
-              <div style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 14, padding: '18px 20px', boxShadow: 'var(--c-shadow-sm)' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--c-ink)' }}>{selectedClassName ?? 'Class'}</span>
-                  <span className="mono" style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>{selected ? fmtTime(selected.starts_at, timezone) : ''} · {selectedCoach ?? 'No coach'} · {roster.length} booked</span>
-                </div>
-                {wod ? (
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--c-divider)' }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-ink)' }}>{wod.title}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--c-ink-2)', whiteSpace: 'pre-wrap', marginTop: 4 }}>{wod.description}</div>
-                    {liftLabel && topPct !== null && (
-                      <div className="mono" style={{ fontSize: 11.5, color: 'var(--circle-lime-ink)', marginTop: 8, fontWeight: 700, textTransform: 'uppercase' }}>Strength: {liftLabel} @ {topPct}%</div>
-                    )}
+            {wod ? (
+              <div className="mt-3 border-t border-line pt-3">
+                <div className="text-[13.5px] font-semibold text-ink">{wod.title}</div>
+                <div className="mt-1 whitespace-pre-wrap text-xs text-ink-2">{wod.description}</div>
+                {liftLabel && topPct !== null && (
+                  <div className="mt-2 font-mono text-[11.5px] font-bold uppercase text-accent-ink">
+                    Strength: {liftLabel} @ {topPct}%
                   </div>
-                ) : (
-                  <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--c-ink-faint)' }}>No WOD posted for today.</div>
                 )}
               </div>
+            ) : (
+              <div className="mt-2.5 text-xs text-ink-3">No WOD posted for today.</div>
+            )}
+          </Card>
 
-              {/* Roster */}
-              {roster.length === 0 ? (
-                <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>No one booked into this class yet.</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {rows.map((r) => (
-                    <div key={r.athleteId} style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 12, padding: '14px 16px', boxShadow: 'var(--c-shadow-sm)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                        <Link href={`/dashboard/members/${r.athleteId}`} style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)', textDecoration: 'none' }}>{r.name}</Link>
-                        {r.checkedIn && <span className="mono" style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)' }}>IN</span>}
-                        {r.membership !== 'paid' && <span className="mono" style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'var(--c-danger-soft)', color: 'var(--c-danger-ink)' }}>⚠ {r.membership === 'unpaid' ? 'UNPAID' : 'NO PLAN'}</span>}
-                        <span className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)', marginLeft: 'auto' }}>last in: {r.lastAttended}</span>
-                      </div>
-                      {liftLabel && (
-                        <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-2)', marginTop: 6 }}>
-                          {liftLabel}: {r.oneRmKg !== null ? `${r.oneRmKg}kg 1RM → ${r.barKg}kg @${topPct}%` : '— no 1RM'}
-                        </div>
-                      )}
-                      <div style={{ marginTop: 8 }}>
-                        <CoachNote athleteId={r.athleteId} note={r.note} />
-                      </div>
+          {/* Roster */}
+          {roster.length === 0 ? (
+            <div className="text-[13px] text-ink-3">No one booked into this class yet.</div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {rows.map((r) => (
+                <Card key={r.athleteId} className="px-4 py-3.5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Link
+                      href={`/dashboard/members/${r.athleteId}`}
+                      className="text-sm font-semibold text-ink transition-colors hover:text-accent-ink"
+                    >
+                      {r.name}
+                    </Link>
+                    {r.checkedIn && (
+                      <span className="rounded bg-ok-soft px-1.5 py-px font-mono text-[10px] font-bold text-ok">IN</span>
+                    )}
+                    {r.membership !== 'paid' && (
+                      <span className="rounded bg-danger-soft px-1.5 py-px font-mono text-[10px] font-bold text-danger">
+                        ⚠ {r.membership === 'unpaid' ? 'UNPAID' : 'NO PLAN'}
+                      </span>
+                    )}
+                    <span className="ml-auto font-mono text-[11.5px] text-ink-3">last in: {r.lastAttended}</span>
+                  </div>
+                  {liftLabel && (
+                    <div className="mt-1.5 font-mono text-xs text-ink-2">
+                      {liftLabel}: {r.oneRmKg !== null ? `${r.oneRmKg}kg 1RM → ${r.barKg}kg @${topPct}%` : '— no 1RM'}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
+                  <div className="mt-2">
+                    <CoachNote athleteId={r.athleteId} note={r.note} />
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
         </div>
-      </div>
-    </div>
+      )}
+    </DashboardShell>
   )
 }

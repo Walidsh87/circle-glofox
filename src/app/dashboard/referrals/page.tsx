@@ -1,6 +1,7 @@
 import { requireManagerPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { Badge } from '@/components/ui/badge'
 import { RewardButton } from './_components/reward-button'
 
 type ReferralItem = { kind: 'lead' | 'member'; id: string; name: string; rewardedAt: string | null }
@@ -35,39 +36,37 @@ export default async function ReferralsPage() {
   const groups = [...byReferrer.entries()].map(([rid, items]) => ({ rid, name: referrerName.get(rid) ?? 'Member', items })).sort((a, b) => b.items.length - a.items.length)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="referrals" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Referrals</h1>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 640 }}>
-            {groups.length === 0 ? (
-              <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>No referrals yet. Members share their link from their profile.</p>
-            ) : groups.map((g) => (
-              <div key={g.rid} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--c-ink)', marginBottom: 8 }}>{g.name} <span className="mono" style={{ fontSize: 11.5, fontWeight: 400, color: 'var(--c-ink-muted)' }}>· {g.items.length}</span></div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {g.items.map((it) => (
-                    <div key={`${it.kind}-${it.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-                      <span style={{ flex: 1, fontSize: 14, color: 'var(--c-ink)' }}>
-                        {it.kind === 'member'
-                          ? <Link href={`/dashboard/members/${it.id}`} style={{ color: 'var(--c-ink)', textDecoration: 'none' }}>{it.name}</Link>
-                          : it.name}
-                      </span>
-                      <span style={{ fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: it.kind === 'member' ? 'var(--circle-lime-soft)' : 'var(--c-surface-alt)', color: it.kind === 'member' ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)' }}>{it.kind === 'member' ? 'Joined' : 'Pending'}</span>
-                      {it.kind === 'member' && (it.rewardedAt
-                        ? <span style={{ fontSize: 11.5, color: 'var(--circle-lime-ink)' }}>Rewarded ✓</span>
-                        : <RewardButton memberId={it.id} />)}
-                    </div>
-                  ))}
+    <DashboardShell
+      active="referrals"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Referrals"
+    >
+      <div className="max-w-[640px]">
+        {groups.length === 0 ? (
+          <p className="text-sm text-ink-3">No referrals yet. Members share their link from their profile.</p>
+        ) : groups.map((g) => (
+          <div key={g.rid} className="mb-5">
+            <div className="mb-2 text-[13.5px] font-bold text-ink">{g.name} <span className="font-mono text-[11.5px] font-normal text-ink-3">· {g.items.length}</span></div>
+            <div className="flex flex-col gap-1.5">
+              {g.items.map((it) => (
+                <div key={`${it.kind}-${it.id}`} className="flex items-center gap-2.5 rounded-[10px] border border-line bg-surface px-3.5 py-2.5">
+                  <span className="flex-1 text-sm text-ink">
+                    {it.kind === 'member'
+                      ? <Link href={`/dashboard/members/${it.id}`} className="text-ink transition-colors hover:text-accent-ink">{it.name}</Link>
+                      : it.name}
+                  </span>
+                  <Badge tone={it.kind === 'member' ? 'accent' : 'neutral'}>{it.kind === 'member' ? 'Joined' : 'Pending'}</Badge>
+                  {it.kind === 'member' && (it.rewardedAt
+                    ? <span className="text-[11.5px] text-accent-ink">Rewarded ✓</span>
+                    : <RewardButton memberId={it.id} />)}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

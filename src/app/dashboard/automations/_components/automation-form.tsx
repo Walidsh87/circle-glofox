@@ -3,6 +3,9 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { saveAutomation, type AutomationChannel } from '../_actions/save-automation'
 import { TRIGGER_OPTIONS } from '../_lib/automation-copy'
 import { BlockEditor } from '@/app/dashboard/broadcasts/_components/block-editor'
@@ -22,6 +25,9 @@ export type AutomationFormValue = {
   waTemplateId: string | null
   waVarValues: Record<string, string>
 }
+
+const inputClass =
+  'w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function AutomationForm({ initial, waTemplates }: { initial: AutomationFormValue; waTemplates: WaTemplateOption[] }) {
   const router = useRouter()
@@ -51,64 +57,82 @@ export function AutomationForm({ initial, waTemplates }: { initial: AutomationFo
     })
   }
 
-  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'var(--c-surface)', fontSize: 14, color: 'var(--c-ink)' } as const
-  const tabStyle = (on: boolean) => ({ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--c-border)', background: on ? '#111' : 'transparent', color: on ? '#fff' : 'var(--c-ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }) as const
+  const channelTab = (on: boolean) =>
+    cn(
+      'rounded-lg border px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+      on ? 'border-transparent bg-accent text-accent-contrast' : 'border-line bg-transparent text-ink hover:border-line-strong'
+    )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 18, borderRadius: 14, background: 'var(--c-surface)', border: '1px solid var(--c-border)', maxWidth: 640 }}>
-      <input style={inputStyle} placeholder="Automation name (internal)" value={name} onChange={(e) => setName(e.target.value)} />
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <select style={{ ...inputStyle, width: 'auto', flex: 1 }} value={triggerType} onChange={(e) => setTriggerType(e.target.value as TriggerType)}>
+    <Card className="flex max-w-2xl flex-col gap-3.5 p-4">
+      <input className={inputClass} placeholder="Automation name (internal)" value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="flex flex-wrap gap-2.5">
+        <select className={cn(inputClass, 'w-auto flex-1')} value={triggerType} onChange={(e) => setTriggerType(e.target.value as TriggerType)}>
           {TRIGGER_OPTIONS.map((o) => <option key={o.type} value={o.type}>{o.label}</option>)}
         </select>
         {usesDays && (
-          <input type="number" min={1} style={{ ...inputStyle, width: 110 }} placeholder="Days" value={triggerDays ?? ''} onChange={(e) => setTriggerDays(e.target.value === '' ? null : Number(e.target.value))} />
+          <input type="number" min={1} className={cn(inputClass, 'w-28')} placeholder="Days" value={triggerDays ?? ''} onChange={(e) => setTriggerDays(e.target.value === '' ? null : Number(e.target.value))} />
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={() => setChannel('email')} style={tabStyle(channel === 'email')}>Email</button>
-        <button type="button" onClick={() => setChannel('whatsapp')} style={tabStyle(channel === 'whatsapp')}>WhatsApp</button>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setChannel('email')} className={channelTab(channel === 'email')}>Email</button>
+        <button type="button" onClick={() => setChannel('whatsapp')} className={channelTab(channel === 'whatsapp')}>WhatsApp</button>
       </div>
 
       {channel === 'email' ? (
         <>
-          <input style={inputStyle} placeholder="Email subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+          <input className={inputClass} placeholder="Email subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
           <BlockEditor value={blocks} onChange={setBlocks} />
           <div>
-            <div className="mono" style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--c-ink-muted)', marginBottom: 6 }}>Preview</div>
+            <div className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">Preview</div>
             {/* eslint-disable-next-line react/no-danger -- owner-authored blocks; text escaped + URLs validated in renderBlocks */}
-            <div style={{ border: '1px solid var(--c-border)', borderRadius: 10, padding: 16, background: '#fff' }} dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            <div className="rounded-[10px] border border-line bg-white p-4" dangerouslySetInnerHTML={{ __html: previewHtml }} />
           </div>
         </>
       ) : waTemplates.length === 0 ? (
-        <p style={{ fontSize: 13.5, color: 'var(--c-ink-muted)' }}>No WhatsApp templates yet. Add one under <Link href="/dashboard/whatsapp" style={{ color: 'var(--c-ink)' }}>WhatsApp</Link> first.</p>
+        <p className="text-[13.5px] text-ink-3">
+          No WhatsApp templates yet. Add one under{' '}
+          <Link href="/dashboard/whatsapp" className="text-ink underline transition-colors hover:text-accent-ink">WhatsApp</Link> first.
+        </p>
       ) : (
         <>
-          <select style={inputStyle} value={waTemplateId} onChange={(e) => { setWaTemplateId(e.target.value); setWaVarValues({}) }}>
+          <select className={inputClass} value={waTemplateId} onChange={(e) => { setWaTemplateId(e.target.value); setWaVarValues({}) }}>
             {waTemplates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
-          {waTemplate && <div style={{ padding: 12, borderRadius: 8, background: 'var(--c-bg)', border: '1px solid var(--c-border)', fontSize: 13, color: 'var(--c-ink-muted)', whiteSpace: 'pre-wrap' }}>{waTemplate.body_preview}</div>}
+          {waTemplate && (
+            <div className="whitespace-pre-wrap rounded-lg border border-line bg-canvas p-3 text-[13px] text-ink-3">
+              {waTemplate.body_preview}
+            </div>
+          )}
           {slots.map((slot) => (
-            <div key={slot} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label className="mono" style={{ fontSize: 11.5, color: 'var(--c-ink-muted)' }}>{`{{${slot}}}`}</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input style={inputStyle} value={waVarValues[slot] ?? ''} onChange={(e) => setWaVarValues((v) => ({ ...v, [slot]: e.target.value }))} placeholder="Value or {{first_name}}" />
-                <button type="button" onClick={() => setWaVarValues((v) => ({ ...v, [slot]: (v[slot] ?? '') + '{{first_name}}' }))} style={{ padding: '0 12px', borderRadius: 8, border: '1px solid var(--c-border)', background: 'transparent', color: 'var(--c-ink)', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ name</button>
+            <div key={slot} className="flex flex-col gap-1">
+              <label className="font-mono text-[11.5px] text-ink-3">{`{{${slot}}}`}</label>
+              <div className="flex gap-2">
+                <input className={inputClass} value={waVarValues[slot] ?? ''} onChange={(e) => setWaVarValues((v) => ({ ...v, [slot]: e.target.value }))} placeholder="Value or {{first_name}}" />
+                <button
+                  type="button"
+                  onClick={() => setWaVarValues((v) => ({ ...v, [slot]: (v[slot] ?? '') + '{{first_name}}' }))}
+                  className="whitespace-nowrap rounded-lg border border-line bg-transparent px-3 text-xs text-ink transition-colors hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  + name
+                </button>
               </div>
             </div>
           ))}
         </>
       )}
 
-      {error && <p style={{ color: 'var(--c-danger)', fontSize: 13 }}>{error}</p>}
+      {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
 
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={onSave} disabled={pending || !name.trim()} style={{ padding: '10px 18px', background: '#111', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}>
+      <div className="flex gap-2.5">
+        <Button onClick={onSave} disabled={pending || !name.trim()}>
           {pending ? 'Saving…' : 'Save automation'}
-        </button>
-        <Link href="/dashboard/automations" style={{ padding: '10px 18px', background: 'var(--c-surface)', color: 'var(--c-ink)', border: '1px solid var(--c-border)', borderRadius: 8, fontWeight: 600, textDecoration: 'none' }}>Cancel</Link>
+        </Button>
+        <Link href="/dashboard/automations" className={cn(buttonVariants({ variant: 'outline' }))}>
+          Cancel
+        </Link>
       </div>
-    </div>
+    </Card>
   )
 }

@@ -1,6 +1,8 @@
 import { requireManagerPage } from '@/lib/auth/page-guards'
 import Link from 'next/link'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { AutomationsList, type AutomationRow } from './_components/automations-list'
 
 export default async function AutomationsPage() {
@@ -13,19 +15,21 @@ export default async function AutomationsPage() {
   const rows = ((autos ?? []) as Omit<AutomationRow, 'sent_count'>[]).map((a) => ({ ...a, sent_count: counts.get(a.id) ?? 0 }))
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="automations" userName={profile.full_name} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Automations</h1>
-          <Link href="/dashboard/automations/new" style={{ padding: '8px 14px', background: '#111', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>New automation</Link>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 640 }}>
-            <AutomationsList rows={rows} />
-          </div>
-        </div>
+    <DashboardShell
+      active="automations"
+      userName={profile.full_name}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Automations"
+      actions={
+        <Link href="/dashboard/automations/new" className={cn(buttonVariants({ size: 'sm' }))}>
+          New automation
+        </Link>
+      }
+    >
+      <div className="max-w-2xl">
+        <AutomationsList rows={rows} />
       </div>
-    </div>
+    </DashboardShell>
   )
 }

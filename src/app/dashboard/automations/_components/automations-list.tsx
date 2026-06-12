@@ -2,6 +2,8 @@
 
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { triggerLabel } from '../_lib/automation-copy'
 import { toggleAutomation } from '../_actions/toggle-automation'
 import { deleteAutomation } from '../_actions/delete-automation'
@@ -17,12 +19,15 @@ export type AutomationRow = {
   sent_count: number
 }
 
+const actionBtn =
+  'rounded-md border border-line px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
+
 export function AutomationsList({ rows }: { rows: AutomationRow[] }) {
   const router = useRouter()
   const [pending, start] = useTransition()
 
   if (rows.length === 0) {
-    return <p style={{ fontSize: 13.5, color: 'var(--c-ink-muted)' }}>No automations yet. Create one to email members automatically when they hit a lifecycle moment.</p>
+    return <p className="text-[13.5px] text-ink-3">No automations yet. Create one to email members automatically when they hit a lifecycle moment.</p>
   }
 
   function onToggle(id: string, enabled: boolean) {
@@ -34,16 +39,32 @@ export function AutomationsList({ rows }: { rows: AutomationRow[] }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="flex flex-col gap-2">
       {rows.map((a) => (
-        <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>{a.name}</div>
-            <div className="mono" style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{triggerLabel(a.trigger_type, a.trigger_days)} · {a.channel === 'whatsapp' ? 'WhatsApp' : 'Email'} · {a.sent_count} sent</div>
+        <div key={a.id} className="flex items-center gap-3 rounded-[10px] border border-line bg-surface px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-ink">{a.name}</div>
+            <div className="font-mono text-xs text-ink-3">
+              {triggerLabel(a.trigger_type, a.trigger_days)} · {a.channel === 'whatsapp' ? 'WhatsApp' : 'Email'} · {a.sent_count} sent
+            </div>
           </div>
-          <button onClick={() => onToggle(a.id, !a.enabled)} disabled={pending} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', background: a.enabled ? 'var(--circle-lime-soft)' : 'transparent', color: a.enabled ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{a.enabled ? 'On' : 'Off'}</button>
-          <a href={`/dashboard/automations/${a.id}`} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', color: 'var(--c-ink)', textDecoration: 'none', fontSize: 12.5 }}>Edit</a>
-          <button onClick={() => onDelete(a.id)} disabled={pending} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--c-border)', background: 'transparent', color: 'var(--c-danger)', cursor: 'pointer', fontSize: 12.5 }}>Delete</button>
+          <button
+            onClick={() => onToggle(a.id, !a.enabled)}
+            disabled={pending}
+            className={cn(actionBtn, 'font-semibold', a.enabled ? 'bg-accent-soft text-accent-ink' : 'bg-transparent text-ink-3')}
+          >
+            {a.enabled ? 'On' : 'Off'}
+          </button>
+          <Link href={`/dashboard/automations/${a.id}`} className={cn(actionBtn, 'text-ink hover:border-line-strong')}>
+            Edit
+          </Link>
+          <button
+            onClick={() => onDelete(a.id)}
+            disabled={pending}
+            className={cn(actionBtn, 'bg-transparent text-danger hover:border-danger')}
+          >
+            Delete
+          </button>
         </div>
       ))}
     </div>

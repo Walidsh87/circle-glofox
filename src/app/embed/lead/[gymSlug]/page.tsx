@@ -10,14 +10,14 @@ export default async function LeadEmbedPage(ctx: { params: Promise<{ gymSlug: st
   if (!box) notFound()
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <div style={{ width: '100%', maxWidth: 420, background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 16, padding: '28px 26px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+    <div data-theme="light" className="flex min-h-screen items-center justify-center bg-canvas p-5">
+      <div className="w-full max-w-[420px] rounded-2xl border border-line bg-surface px-[26px] py-7">
+        <div className="mb-[18px] flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {box.logo_url && <img src={box.logo_url} alt="" width={40} height={40} style={{ borderRadius: 8, objectFit: 'cover' }} />}
+          {box.logo_url && <img src={box.logo_url} alt="" width={40} height={40} className="rounded-lg object-cover" />}
           <div>
-            <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 18, fontWeight: 600, color: 'var(--c-ink)' }}>{box.name}</div>
-            <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>Get started — leave your details below.</div>
+            <div className="font-display text-lg font-semibold text-ink">{box.name}</div>
+            <div className="text-[13px] text-ink-3">Get started — leave your details below.</div>
           </div>
         </div>
         <LeadForm gymSlug={gymSlug} refCode={ref} />

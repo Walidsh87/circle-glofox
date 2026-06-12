@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { groupByDay, spotsLabel, spotsRemaining, type WidgetInstance } from '@/lib/schedule-widget'
 
 type Embedded<T> = T | T[] | null
@@ -41,34 +42,36 @@ export default async function ScheduleEmbedPage(ctx: { params: Promise<{ gymSlug
   const timeFmt = new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', padding: 20, background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <div style={{ width: '100%', maxWidth: 560 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+    <div data-theme="light" className="flex min-h-screen justify-center bg-canvas p-5">
+      <div className="w-full max-w-[560px]">
+        <div className="mb-[18px] flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {box.logo_url && <img src={box.logo_url as string} alt="" width={40} height={40} style={{ borderRadius: 8, objectFit: 'cover' }} />}
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 18, fontWeight: 600, color: 'var(--c-ink)' }}>{box.name}</div>
-            <div style={{ fontSize: 13, color: 'var(--c-ink-muted)' }}>Class schedule</div>
+          {box.logo_url && <img src={box.logo_url as string} alt="" width={40} height={40} className="rounded-lg object-cover" />}
+          <div className="flex-1">
+            <div className="font-display text-lg font-semibold text-ink">{box.name}</div>
+            <div className="text-[13px] text-ink-3">Class schedule</div>
           </div>
-          <Link href={`/${gymSlug}`} style={{ padding: '8px 14px', background: '#111', color: '#fff', borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 13 }}>Book / Log in</Link>
+          <Link href={`/${gymSlug}`} className="rounded-lg bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover">
+            Book / Log in
+          </Link>
         </div>
 
         {days.length === 0 ? (
-          <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>No classes scheduled in the next 7 days.</p>
+          <p className="text-sm text-ink-3">No classes scheduled in the next 7 days.</p>
         ) : days.map((day) => (
-          <div key={day.key} style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--c-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>{day.label}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div key={day.key} className="mb-[18px]">
+            <div className="mb-2 text-[12.5px] font-bold uppercase tracking-[0.04em] text-ink-3">{day.label}</div>
+            <div className="flex flex-col gap-1.5">
               {day.items.map((i) => {
                 const full = spotsRemaining(i.capacity, i.booked) === 0
                 return (
-                  <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--c-surface)', border: '1px solid var(--c-border)' }}>
-                    <span className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--c-ink)', width: 52 }}>{timeFmt.format(new Date(i.starts_at))}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--c-ink)' }}>{i.className}</div>
-                      {i.coachName && <div style={{ fontSize: 12, color: 'var(--c-ink-muted)' }}>{i.coachName}</div>}
+                  <div key={i.id} className="flex items-center gap-3 rounded-[10px] border border-line bg-surface px-3.5 py-2.5">
+                    <span className="w-[52px] font-mono text-[13px] font-semibold text-ink">{timeFmt.format(new Date(i.starts_at))}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-ink">{i.className}</div>
+                      {i.coachName && <div className="text-xs text-ink-3">{i.coachName}</div>}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: full ? 'var(--c-ink-muted)' : 'var(--circle-lime-ink)' }}>{spotsLabel(i.capacity, i.booked)}</span>
+                    <span className={cn('text-xs font-semibold', full ? 'text-ink-3' : 'text-accent-ink')}>{spotsLabel(i.capacity, i.booked)}</span>
                   </div>
                 )
               })}

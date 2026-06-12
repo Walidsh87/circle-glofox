@@ -6,13 +6,21 @@ import { revalidatePath } from 'next/cache'
 import { getMembershipStatus } from '@/lib/membership-status'
 import { selectBestBatch, decideEntitlement } from '@/lib/credits'
 import { bookingClosed } from '@/lib/booking-policy'
+import { resolveBookingTarget } from '@/lib/family'
 
 type BookResult = { error: string | null; needsCredits?: boolean }
 
-export async function bookClass(instanceId: string): Promise<BookResult> {
+export async function bookClass(instanceId: string, forAthleteId?: string): Promise<BookResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
+
+  // Family (#84): booking for a household member rides the same flow with the
+  // target's identity; self bookings resolve with zero extra queries.
+  const targetRes = await resolveBookingTarget(supabase, user.id, forAthleteId ?? null)
+  if ('error' in targetRes) return { error: targetRes.error }
+  const targetId = targetRes.targetId
+  const onBehalf = targetId !== user.id
 
   const { data: instance } = await supabase
     .from('class_instances')
@@ -29,13 +37,13 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   const { data: profile } = await supabase
     .from('profiles')
     .select('box_id, household_id')
-    .eq('id', user.id)
+    .eq('id', targetId)
     .single()
   if (!profile) return { error: 'Profile not found.' }
   if (instance.box_id !== profile.box_id) return { error: 'Class not found.' }
 
   // Family: membership entitlement resolves through the household's primary (credits stay per-person).
-  let billingAthleteId = user.id
+  let billingAthleteId = targetId
   if (profile.household_id) {
     const { data: hh } = await supabase.from('households').select('primary_athlete_id').eq('id', profile.household_id).single()
     if (hh?.primary_athlete_id) billingAthleteId = hh.primary_athlete_id
@@ -66,7 +74,7 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   const { data: batches } = await service
     .from('package_credits')
     .select('id, credits_remaining, expires_at')
-    .eq('athlete_id', user.id)
+    .eq('athlete_id', targetId)
     .eq('box_id', profile.box_id)
     .eq('kind', 'class')
     .gt('credits_remaining', 0)
@@ -79,18 +87,20 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   }
 
   if (decision.kind === 'membership') {
-    // Free booking via the RLS client (athlete inserts own row), credit_id null.
-    const { error } = await supabase.from('bookings').insert({
+    // Free booking. RLS lets athletes insert only their OWN row — on-behalf rides
+    // the service client (target already validated by the household rail).
+    const inserter = onBehalf ? service : supabase
+    const { error } = await inserter.from('bookings').insert({
       box_id: profile.box_id,
       class_instance_id: instanceId,
-      athlete_id: user.id,
+      athlete_id: targetId,
     })
     if (error) {
       if (error.code === '23505') return { error: 'Already booked.' }
       return { error: error.message }
     }
     // Booked → leave the waitlist for this class (best-effort; a missing row is fine).
-    await service.from('class_waitlist').delete().eq('class_instance_id', instanceId).eq('athlete_id', user.id)
+    await service.from('class_waitlist').delete().eq('class_instance_id', instanceId).eq('athlete_id', targetId)
     revalidatePath('/dashboard/schedule')
     return { error: null }
   }
@@ -110,7 +120,7 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   const { error: insErr } = await service.from('bookings').insert({
     box_id: profile.box_id,
     class_instance_id: instanceId,
-    athlete_id: user.id,
+    athlete_id: targetId,
     credit_id: creditId,
   })
   if (insErr) {
@@ -123,7 +133,7 @@ export async function bookClass(instanceId: string): Promise<BookResult> {
   }
 
   // Booked → leave the waitlist for this class (best-effort; a missing row is fine).
-  await service.from('class_waitlist').delete().eq('class_instance_id', instanceId).eq('athlete_id', user.id)
+  await service.from('class_waitlist').delete().eq('class_instance_id', instanceId).eq('athlete_id', targetId)
   revalidatePath('/dashboard/schedule')
   return { error: null }
 }

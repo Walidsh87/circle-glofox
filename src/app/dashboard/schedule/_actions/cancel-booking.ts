@@ -7,29 +7,39 @@ import { sendWaitlistEmail } from '@/lib/email'
 import { sendPushTo } from '@/lib/push'
 import { env } from '@/env'
 import { isLateCancel } from '@/lib/booking-policy'
+import { resolveBookingTarget } from '@/lib/family'
 
-export async function cancelBooking(instanceId: string): Promise<{ error: string | null; forfeited?: boolean }> {
+export async function cancelBooking(instanceId: string, forAthleteId?: string): Promise<{ error: string | null; forfeited?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
 
+  // Family (#84): cancelling for a household member needs the service client —
+  // RLS scopes booking reads/deletes to the caller's own rows.
+  const targetRes = await resolveBookingTarget(supabase, user.id, forAthleteId ?? null)
+  if ('error' in targetRes) return { error: targetRes.error }
+  const targetId = targetRes.targetId
+  const onBehalf = targetId !== user.id
+  if (onBehalf && !process.env.SUPABASE_SERVICE_ROLE_KEY) return { error: 'Server configuration error.' }
+  const db = onBehalf ? createServiceClient() : supabase
+
   // Read which credit (if any) this booking drew from, before deleting it.
   // bookings' box_isolation_select policy lets any gym member read bookings in
   // their box; the .eq('athlete_id') filter here — not RLS alone — is what scopes
-  // the result to the caller's own row.
-  const { data: booking } = await supabase
+  // the result to the target's own row.
+  const { data: booking } = await db
     .from('bookings')
     .select('credit_id')
     .eq('class_instance_id', instanceId)
-    .eq('athlete_id', user.id)
+    .eq('athlete_id', targetId)
     .maybeSingle()
 
-  // athlete_book RLS policy covers delete for own bookings.
-  const { error } = await supabase
+  // athlete_book RLS policy covers delete for own bookings; service covers on-behalf.
+  const { error } = await db
     .from('bookings')
     .delete()
     .eq('class_instance_id', instanceId)
-    .eq('athlete_id', user.id)
+    .eq('athlete_id', targetId)
   if (error) return { error: error.message }
 
   // Late-cancel policy: cancelling within late_cancel_hours of the start forfeits the credit.

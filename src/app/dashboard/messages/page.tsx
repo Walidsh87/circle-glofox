@@ -1,5 +1,6 @@
 import { requirePage } from '@/lib/auth/page-guards'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { cn } from '@/lib/utils'
 import { InboxPoller } from '../inbox/_components/inbox-poller'
 import { Composer } from '../inbox/_components/composer'
 import { markRead } from '../inbox/_actions/mark-read'
@@ -17,32 +18,37 @@ export default async function MessagesPage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="messages" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{ height: 60, borderBottom: '1px solid var(--c-border)', display: 'flex', alignItems: 'center', padding: '0 32px', background: 'var(--c-surface)', flexShrink: 0 }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>Messages</h1>
-        </header>
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <InboxPoller />
-          <div style={{ maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {messages.length === 0 ? (
-              <p style={{ fontSize: 14, color: 'var(--c-ink-muted)' }}>Send {gymName} a message — coaches usually reply within a day.</p>
-            ) : messages.map((m) => {
-              const mine = m.sender_role === 'member'
-              return (
-                <div key={m.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
-                  <div style={{ padding: '9px 13px', borderRadius: 12, background: mine ? '#111' : 'var(--c-surface)', color: mine ? '#fff' : 'var(--c-ink)', border: mine ? 'none' : '1px solid var(--c-border)', fontSize: 13.5, whiteSpace: 'pre-wrap' }}>{m.body}</div>
-                  <div className="mono" style={{ fontSize: 10.5, color: 'var(--c-ink-muted)', marginTop: 3, textAlign: mine ? 'right' : 'left' }}>{mine ? 'You' : gymName} · {new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-        <div style={{ borderTop: '1px solid var(--c-border)', padding: '16px 32px', background: 'var(--c-surface)' }}>
-          <div style={{ maxWidth: 600 }}><Composer memberId={user.id} /></div>
-        </div>
+    <DashboardShell
+      active="messages"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Messages"
+    >
+      <InboxPoller />
+      <div className="flex max-w-[600px] flex-col gap-2.5">
+        {messages.length === 0 ? (
+          <p className="text-sm text-ink-3">Send {gymName} a message — coaches usually reply within a day.</p>
+        ) : messages.map((m) => {
+          const mine = m.sender_role === 'member'
+          return (
+            <div key={m.id} className={cn('max-w-[78%]', mine ? 'self-end' : 'self-start')}>
+              <div className={cn(
+                'whitespace-pre-wrap rounded-xl px-3 py-2 text-[13.5px]',
+                mine ? 'bg-ink text-canvas' : 'border border-line bg-surface text-ink'
+              )}>
+                {m.body}
+              </div>
+              <div className={cn('mt-0.5 font-mono text-[10.5px] text-ink-3', mine ? 'text-right' : 'text-left')}>
+                {mine ? 'You' : gymName} · {new Date(m.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          )
+        })}
       </div>
-    </div>
+      <div className="sticky bottom-0 mt-6 max-w-[600px] rounded-xl border border-line bg-surface p-3 shadow-card">
+        <Composer memberId={user.id} />
+      </div>
+    </DashboardShell>
   )
 }

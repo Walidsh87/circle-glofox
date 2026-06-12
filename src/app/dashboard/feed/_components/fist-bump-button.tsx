@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 import { toggleReaction } from '../_actions/toggle-reaction'
 
 type Props = { scoreId: string; initialCount: number; initialReacted: boolean }
@@ -31,21 +32,13 @@ export function FistBumpButton({ scoreId, initialCount, initialReacted }: Props)
     <button
       onClick={handleClick}
       disabled={loading}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 5,
-        padding: '4px 10px', borderRadius: 20,
-        border: `1.5px solid ${reacted ? 'var(--circle-lime)' : 'var(--c-border)'}`,
-        background: reacted ? 'var(--circle-lime-soft)' : 'transparent',
-        cursor: loading ? 'not-allowed' : 'pointer',
-        fontSize: 13, fontWeight: 600,
-        color: reacted ? 'var(--circle-lime-ink)' : 'var(--c-ink-muted)',
-        fontFamily: 'inherit',
-        transition: 'all 120ms',
-        opacity: loading ? 0.6 : 1,
-      }}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border-[1.5px] px-2.5 py-1 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60',
+        reacted ? 'border-accent bg-accent-soft text-accent-ink' : 'border-line bg-transparent text-ink-3 hover:border-line-strong'
+      )}
     >
-      <span style={{ fontSize: 14 }}>👊</span>
-      {count > 0 && <span className="mono" style={{ fontSize: 12 }}>{count}</span>}
+      <span className="text-sm">👊</span>
+      {count > 0 && <span className="font-mono text-xs">{count}</span>}
     </button>
   )
 }

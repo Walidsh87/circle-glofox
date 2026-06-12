@@ -1,5 +1,6 @@
 import { requirePage } from '@/lib/auth/page-guards'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { cn } from '@/lib/utils'
 import { FistBumpButton } from './_components/fist-bump-button'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { mergeTimeline, type FeedItem, type ScoreItem, type PrItem, type AchievementItem } from './_lib/merge-feed'
@@ -95,52 +96,36 @@ export default async function FeedPage() {
   const items = mergeTimeline(scoreItems, prItems, achievementItems)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--c-bg)', fontFamily: 'var(--font-geist-sans)' }}>
-      <Sidebar active="feed" userName={profile.full_name!} userRole={profile.role} boxName={boxName} />
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
-          height: 60, borderBottom: '1px solid var(--c-border)',
-          display: 'flex', alignItems: 'center', padding: '0 32px',
-          background: 'var(--c-surface)', flexShrink: 0,
-        }}>
-          <h1 style={{ fontFamily: 'var(--font-space-grotesk)', fontSize: 20, fontWeight: 600, color: 'var(--c-ink)', letterSpacing: '-0.02em' }}>
-            Activity Feed
-          </h1>
-        </header>
-
-        <div className="c-scroll-area" style={{ flex: 1, overflow: 'auto', padding: '28px 32px' }}>
-          <div style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {items.length > 0 ? items.map((item) => (
-              item.kind === 'achievement'
-                ? <AchievementCard key={`ach-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
-                : item.kind === 'pr'
-                  ? <PrCard key={`pr-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
-                  : <ScoreCard key={`score-${item.id}`} item={item} isSelf={item.athleteId === user.id} reaction={reactionsByScore[item.id] ?? { count: 0, reacted: false }} />
-            )) : (
-              <div style={{
-                background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-                borderRadius: 14, padding: '48px 24px', textAlign: 'center',
-                color: 'var(--c-ink-muted)', fontSize: 13,
-              }}>
-                No activity yet. Log a WOD result or hit a lift PR to get started.
-              </div>
-            )}
+    <DashboardShell
+      active="feed"
+      userName={profile.full_name!}
+      userRole={profile.role}
+      boxName={boxName}
+      title="Activity Feed"
+    >
+      <div className="flex max-w-[560px] flex-col gap-2.5">
+        {items.length > 0 ? items.map((item) => (
+          item.kind === 'achievement'
+            ? <AchievementCard key={`ach-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
+            : item.kind === 'pr'
+              ? <PrCard key={`pr-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
+              : <ScoreCard key={`score-${item.id}`} item={item} isSelf={item.athleteId === user.id} reaction={reactionsByScore[item.id] ?? { count: 0, reacted: false }} />
+        )) : (
+          <div className="rounded-[14px] border border-line bg-surface px-6 py-12 text-center text-[13px] text-ink-3">
+            No activity yet. Log a WOD result or hit a lift PR to get started.
           </div>
-        </div>
+        )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }
 
 function Avatar({ name, isSelf }: { name: string; isSelf: boolean }) {
   return (
-    <div style={{
-      width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-      background: isSelf ? 'var(--circle-lime)' : 'var(--c-surface-alt)',
-      color: isSelf ? 'var(--circle-ink)' : 'var(--c-ink-2)',
-      display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 13,
-    }}>
+    <div className={cn(
+      'grid h-9 w-9 shrink-0 place-items-center rounded-full text-[13px] font-bold',
+      isSelf ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-ink-2'
+    )}>
       {initials(name)}
     </div>
   )
@@ -148,26 +133,22 @@ function Avatar({ name, isSelf }: { name: string; isSelf: boolean }) {
 
 function ScoreCard({ item, isSelf, reaction }: { item: ScoreItem; isSelf: boolean; reaction: { count: number; reacted: boolean } }) {
   return (
-    <div style={{
-      background: 'var(--c-surface)', border: '1px solid var(--c-border)',
-      borderRadius: 14, padding: '16px 18px', boxShadow: 'var(--c-shadow-sm)',
-      display: 'flex', alignItems: 'center', gap: 14,
-    }}>
+    <div className="flex items-center gap-3.5 rounded-[14px] border border-line bg-surface px-4 py-4 shadow-card">
       <Avatar name={item.athleteName} isSelf={isSelf} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-ink)' }}>{item.athleteName}</span>
-          <span style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>{item.wodTitle}</span>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>{formatDate(item.at)}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          <span className="text-[13.5px] font-semibold text-ink">{item.athleteName}</span>
+          <span className="text-[12.5px] text-ink-3">{item.wodTitle}</span>
+          <span className="font-mono text-[11px] text-ink-faint">{formatDate(item.at)}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-          <span className="mono" style={{ fontSize: 18, fontWeight: 700, color: 'var(--c-ink)' }}>
+        <div className="mt-1 flex items-center gap-2">
+          <span className="font-mono text-lg font-bold text-ink">
             {formatScore(item.scoreValue, item.scoringType)}
           </span>
           {item.rx && (
-            <span className="mono" style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'var(--c-ok-soft)', color: 'var(--c-ok-ink)' }}>RX</span>
+            <span className="rounded bg-ok-soft px-1 py-px font-mono text-[10px] font-bold text-ok">RX</span>
           )}
-          {item.isPr && <span title="Personal record" style={{ fontSize: 13 }}>🏆</span>}
+          {item.isPr && <span title="Personal record" className="text-[13px]">🏆</span>}
         </div>
       </div>
       <FistBumpButton scoreId={item.id} initialCount={reaction.count} initialReacted={reaction.reacted} />
@@ -177,20 +158,16 @@ function ScoreCard({ item, isSelf, reaction }: { item: ScoreItem; isSelf: boolea
 
 function PrCard({ item, isSelf }: { item: PrItem; isSelf: boolean }) {
   return (
-    <div style={{
-      background: 'var(--c-surface)', border: '1px solid var(--circle-lime)',
-      borderRadius: 14, padding: '16px 18px', boxShadow: 'var(--c-shadow-sm)',
-      display: 'flex', alignItems: 'center', gap: 14,
-    }}>
+    <div className="flex items-center gap-3.5 rounded-[14px] border border-accent bg-surface px-4 py-4 shadow-card">
       <Avatar name={item.athleteName} isSelf={isSelf} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-ink)' }}>{item.athleteName}</span>
-          <span style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>🏆 {liftLabel(item.liftName)} PR</span>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>{formatDate(item.at)}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-1.5">
+          <span className="text-[13.5px] font-semibold text-ink">{item.athleteName}</span>
+          <span className="text-[12.5px] text-ink-3">🏆 {liftLabel(item.liftName)} PR</span>
+          <span className="font-mono text-[11px] text-ink-faint">{formatDate(item.at)}</span>
         </div>
-        <div style={{ marginTop: 4 }}>
-          <span className="mono" style={{ fontSize: 18, fontWeight: 700, color: 'var(--circle-lime-ink)' }}>{item.kg} kg</span>
+        <div className="mt-1">
+          <span className="font-mono text-lg font-bold text-accent-ink">{item.kg} kg</span>
         </div>
       </div>
     </div>
@@ -203,17 +180,15 @@ function AchievementCard({ item, isSelf }: { item: AchievementItem; isSelf: bool
     ? `joined the ${item.threshold} Club`
     : `hit a ${item.threshold}-week streak`
   return (
-    <div style={{
-      background: isSelf ? 'var(--circle-lime-soft)' : 'var(--c-surface)',
-      border: `1px solid ${isSelf ? 'var(--circle-lime)' : 'var(--c-border)'}`,
-      borderRadius: 14, padding: '14px 18px', boxShadow: 'var(--c-shadow-sm)',
-      display: 'flex', alignItems: 'center', gap: 12,
-    }}>
-      <span style={{ fontSize: 22 }}>{emoji}</span>
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--c-ink)' }}>{item.athleteName}</span>
-        <span style={{ fontSize: 12.5, color: 'var(--c-ink-muted)' }}>{text}</span>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--c-ink-faint)' }}>{formatDate(item.at)}</span>
+    <div className={cn(
+      'flex items-center gap-3 rounded-[14px] border px-4 py-3.5 shadow-card',
+      isSelf ? 'border-accent bg-accent-soft' : 'border-line bg-surface'
+    )}>
+      <span className="text-[22px]">{emoji}</span>
+      <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-1.5">
+        <span className="text-[13.5px] font-semibold text-ink">{item.athleteName}</span>
+        <span className="text-[12.5px] text-ink-3">{text}</span>
+        <span className="font-mono text-[11px] text-ink-faint">{formatDate(item.at)}</span>
       </div>
     </div>
   )

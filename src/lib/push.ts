@@ -1,6 +1,7 @@
 import webpush from 'web-push'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { env } from '@/env'
+import { getT, type Locale } from '@/lib/i18n'
 
 export type PushPayload = { title: string; body: string; url: string }
 
@@ -34,7 +35,7 @@ export async function sendPushTo(service: SupabaseClient, athleteId: string, pay
 export type DigestRow = { athlete_id: string; starts_at: string; class_name: string }
 
 // Morning digest (#22): one push per athlete listing today's booked classes.
-export function buildDigestPushes(rows: DigestRow[], timeZone: string): { athleteId: string; payload: PushPayload }[] {
+export function buildDigestPushes(rows: DigestRow[], timeZone: string, localeByAthlete?: Map<string, Locale>): { athleteId: string; payload: PushPayload }[] {
   const byAthlete = new Map<string, DigestRow[]>()
   for (const r of rows) {
     const arr = byAthlete.get(r.athlete_id) ?? []
@@ -43,8 +44,9 @@ export function buildDigestPushes(rows: DigestRow[], timeZone: string): { athlet
   }
   const fmt = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false })
   return [...byAthlete.entries()].map(([athleteId, list]) => {
+    const t = getT(localeByAthlete?.get(athleteId) ?? 'en')
     const sorted = [...list].sort((a, b) => a.starts_at.localeCompare(b.starts_at))
-    const parts = sorted.map((r) => `${r.class_name} at ${fmt.format(new Date(r.starts_at))}`)
-    return { athleteId, payload: { title: 'Today at the gym', body: parts.join(', '), url: '/dashboard/schedule' } }
+    const parts = sorted.map((r) => t('comms.classReminder.line', { className: r.class_name, time: fmt.format(new Date(r.starts_at)) }))
+    return { athleteId, payload: { title: t('comms.classReminder.title'), body: parts.join(t('comms.classReminder.separator')), url: '/dashboard/schedule' } }
   })
 }

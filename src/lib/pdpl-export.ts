@@ -11,6 +11,8 @@ export type ProfileRow = {
   blood_type?: string | null
   allergies?: string | null
   date_of_birth?: string | null
+  id_type?: string | null
+  id_number?: string | null
 }
 
 export type MembershipRow = {

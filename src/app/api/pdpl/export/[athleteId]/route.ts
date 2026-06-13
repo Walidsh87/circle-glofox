@@ -33,7 +33,7 @@ export async function GET(
 
   const { data: athlete } = await service
     .from('profiles')
-    .select('id, full_name, email, phone, role, created_at, box_id, emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth')
+    .select('id, full_name, email, phone, role, created_at, box_id, emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth, id_type, id_number')
     .eq('id', params.athleteId)
     .maybeSingle()
 

@@ -74,4 +74,14 @@ describe('buildPdplExport', () => {
     expect(parsed).toBeGreaterThanOrEqual(before)
     expect(parsed).toBeLessThanOrEqual(after)
   })
+
+  test('carries the member national ID fields', () => {
+    const out = buildPdplExport({
+      profile: { ...baseProfile, id_type: 'emirates_id', id_number: '784199012345676' },
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+    })
+    expect(out.athlete.profile.id_type).toBe('emirates_id')
+    expect(out.athlete.profile.id_number).toBe('784199012345676')
+  })
 })

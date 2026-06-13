@@ -21,7 +21,7 @@ function SubmitButton() {
 
 type Coach = { id: string; full_name: string }
 
-export function AddTemplateForm({ coaches }: { coaches: Coach[] }) {
+export function AddTemplateForm({ coaches, season = 'default' }: { coaches: Coach[]; season?: string }) {
   const [state, formAction] = useFormState(createTemplate, { error: null })
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -60,6 +60,7 @@ export function AddTemplateForm({ coaches }: { coaches: Coach[] }) {
         ))}
       </select>
       <input name="durationMinutes" type="hidden" value={60} />
+      <input name="season" type="hidden" value={season} />
       <div className="col-span-2 flex items-center gap-3 sm:col-span-6">
         <SubmitButton />
         {state.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}

@@ -1,6 +1,7 @@
 import { requirePage } from '@/lib/auth/page-guards'
 import { PROGRAMMING_ROLES } from '@/lib/auth/roles'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
+import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, Th, Td } from '@/components/ui/table'
@@ -18,7 +19,9 @@ function formatTime(time: string) {
   return `${hour}:${String(m).padStart(2, '0')} ${suffix}`
 }
 
-export default async function ClassesPage() {
+export default async function ClassesPage({ searchParams }: { searchParams: Promise<{ season?: string }> }) {
+  const seasonParam = (await searchParams).season
+  const season = seasonParam === 'ramadan' ? 'ramadan' : 'default'
   const { supabase, profile, boxName } = await requirePage()
 
   const isStaff = (PROGRAMMING_ROLES as readonly string[]).includes(profile.role)
@@ -28,6 +31,7 @@ export default async function ClassesPage() {
       .from('class_templates')
       .select('id, name, weekday, start_time, duration_minutes, capacity, active, coach_id, profiles(full_name)')
       .eq('box_id', profile.box_id)
+      .eq('season', season)
       .order('weekday')
       .order('start_time'),
     supabase
@@ -47,11 +51,28 @@ export default async function ClassesPage() {
       title="Class Schedule"
       actions={<span className="font-mono text-xs text-ink-3">{templates?.length ?? 0} templates</span>}
     >
+      <div className="mb-4 flex gap-1.5">
+        <Link
+          href="/dashboard/classes?season=default"
+          className={cn('rounded-lg px-3 py-1.5 text-[13px] font-semibold', season === 'default' ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-ink-3 hover:text-ink')}
+        >Default schedule</Link>
+        <Link
+          href="/dashboard/classes?season=ramadan"
+          className={cn('rounded-lg px-3 py-1.5 text-[13px] font-semibold', season === 'ramadan' ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-ink-3 hover:text-ink')}
+        >Ramadan schedule</Link>
+      </div>
+      {season === 'ramadan' && (
+        <p className="mb-4 text-[12.5px] text-ink-3">
+          These classes auto-apply during your Ramadan window — set the dates in{' '}
+          <Link href="/dashboard/settings" className="underline hover:text-ink">Settings</Link>.
+        </p>
+      )}
+
       {isStaff && (
         <div className="mb-5 grid gap-3.5 lg:grid-cols-2">
           <Card className="p-5">
             <p className="mb-3 text-[13px] font-semibold text-ink">Add class template</p>
-            <AddTemplateForm coaches={coaches ?? []} />
+            <AddTemplateForm coaches={coaches ?? []} season={season} />
           </Card>
           <Card className="p-5">
             <p className="mb-3 text-[13px] font-semibold text-ink">Generate instances</p>

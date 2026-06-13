@@ -12,6 +12,7 @@ export async function createTemplate(prevState: State, formData: FormData): Prom
   const durationMinutes = parseInt(formData.get('durationMinutes') as string) || 60
   const capacity = parseInt(formData.get('capacity') as string) || 12
   const coachId = (formData.get('coachId') as string) || null
+  const season = formData.get('season') === 'ramadan' ? 'ramadan' : 'default'
 
   if (!name || !startTime || isNaN(weekday)) return { error: 'Name, weekday, and start time are required.' }
 
@@ -27,6 +28,7 @@ export async function createTemplate(prevState: State, formData: FormData): Prom
     duration_minutes: durationMinutes,
     capacity,
     coach_id: coachId || null,
+    season,
   })
 
   if (error) return { error: error.message }

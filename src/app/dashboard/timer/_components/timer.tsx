@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/components/i18n/locale-provider'
 import { cn } from '@/lib/utils'
 import { tick, type TimerConfig, type TimerState } from '../_lib/engine'
 
 type Mode = TimerConfig['mode']
 
-const MODES: { value: Mode; label: string }[] = [
-  { value: 'for_time', label: 'For Time' },
-  { value: 'amrap', label: 'AMRAP' },
-  { value: 'emom', label: 'EMOM' },
-  { value: 'intervals', label: 'Intervals' },
+const MODES: { value: Mode; labelKey: string }[] = [
+  { value: 'for_time', labelKey: 'timer.mode.forTime' },
+  { value: 'amrap', labelKey: 'timer.mode.amrap' },
+  { value: 'emom', labelKey: 'timer.mode.emom' },
+  { value: 'intervals', labelKey: 'timer.mode.intervals' },
 ]
 
 const PHASE_CLASS: Record<TimerState['phase'], string> = {
@@ -31,6 +32,7 @@ const numInput =
   'h-[38px] w-[76px] rounded-lg border border-line-strong bg-surface px-2.5 text-center text-[15px] text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 export function Timer() {
+  const t = useT()
   const [mode, setMode] = useState<Mode>('amrap')
   const [amrapMin, setAmrapMin] = useState(20)
   const [capMin, setCapMin] = useState(0) // 0 = no cap
@@ -128,13 +130,23 @@ export function Timer() {
     setRunning(false)
   }
 
+  function phaseText(s: TimerState): string {
+    if (s.phase === 'leadin') return t('timer.phase.getReady')
+    if (s.phase === 'done') return t('timer.phase.done')
+    if (s.phase === 'rest') return t('timer.phase.rest')
+    // phase === 'work'
+    if (mode === 'emom') return t('timer.phase.emom', { round: s.round, total: s.totalRounds })
+    if (mode === 'intervals') return t('timer.phase.work', { round: s.round, total: s.totalRounds })
+    return t('timer.phase.go') // for_time | amrap
+  }
+
   const bigValue = !started
     ? (mode === 'for_time' ? 0 : mode === 'amrap' ? Math.max(1, amrapMin) * 60 : mode === 'emom' ? Math.max(1, emomInterval) : Math.max(1, work))
     : mode === 'for_time' && state.phase !== 'leadin'
       ? state.secondsElapsed
       : state.secondsLeftInPhase
   const phaseClass = !started ? 'text-ink' : PHASE_CLASS[state.phase]
-  const subLabel = !started ? MODES.find((m) => m.value === mode)!.label : state.label
+  const subLabel = !started ? t(MODES.find((m) => m.value === mode)!.labelKey) : phaseText(state)
 
   return (
     <div className="flex w-full max-w-[520px] flex-col items-center gap-5">
@@ -153,7 +165,7 @@ export function Timer() {
               started && mode !== m.value && 'opacity-50'
             )}
           >
-            {m.label}
+            {t(m.labelKey)}
           </button>
         ))}
       </div>
@@ -162,19 +174,19 @@ export function Timer() {
       {!started && (
         <div className="flex flex-wrap items-end justify-center gap-3.5">
           {mode === 'for_time' && (
-            <Field label="Cap (min, 0=none)"><input type="number" min={0} value={capMin} onChange={(e) => setCapMin(Number(e.target.value))} className={numInput} /></Field>
+            <Field label={t('timer.config.cap')}><input type="number" min={0} value={capMin} onChange={(e) => setCapMin(Number(e.target.value))} className={numInput} /></Field>
           )}
           {mode === 'amrap' && (
-            <Field label="Minutes"><input type="number" min={1} value={amrapMin} onChange={(e) => setAmrapMin(Number(e.target.value))} className={numInput} /></Field>
+            <Field label={t('timer.config.minutes')}><input type="number" min={1} value={amrapMin} onChange={(e) => setAmrapMin(Number(e.target.value))} className={numInput} /></Field>
           )}
           {mode === 'emom' && (<>
-            <Field label="Interval (s)"><input type="number" min={1} value={emomInterval} onChange={(e) => setEmomInterval(Number(e.target.value))} className={numInput} /></Field>
-            <Field label="Rounds"><input type="number" min={1} value={emomRounds} onChange={(e) => setEmomRounds(Number(e.target.value))} className={numInput} /></Field>
+            <Field label={t('timer.config.interval')}><input type="number" min={1} value={emomInterval} onChange={(e) => setEmomInterval(Number(e.target.value))} className={numInput} /></Field>
+            <Field label={t('timer.config.rounds')}><input type="number" min={1} value={emomRounds} onChange={(e) => setEmomRounds(Number(e.target.value))} className={numInput} /></Field>
           </>)}
           {mode === 'intervals' && (<>
-            <Field label="Work (s)"><input type="number" min={1} value={work} onChange={(e) => setWork(Number(e.target.value))} className={numInput} /></Field>
-            <Field label="Rest (s)"><input type="number" min={0} value={rest} onChange={(e) => setRest(Number(e.target.value))} className={numInput} /></Field>
-            <Field label="Rounds"><input type="number" min={1} value={intervalRounds} onChange={(e) => setIntervalRounds(Number(e.target.value))} className={numInput} /></Field>
+            <Field label={t('timer.config.work')}><input type="number" min={1} value={work} onChange={(e) => setWork(Number(e.target.value))} className={numInput} /></Field>
+            <Field label={t('timer.config.rest')}><input type="number" min={0} value={rest} onChange={(e) => setRest(Number(e.target.value))} className={numInput} /></Field>
+            <Field label={t('timer.config.rounds')}><input type="number" min={1} value={intervalRounds} onChange={(e) => setIntervalRounds(Number(e.target.value))} className={numInput} /></Field>
           </>)}
         </div>
       )}
@@ -183,19 +195,19 @@ export function Timer() {
       <div className="text-center">
         <div className={cn('font-mono text-[88px] font-bold leading-none tracking-[-0.03em]', phaseClass)}>{fmt(bigValue)}</div>
         <div className="mt-2 font-mono text-[15px] uppercase tracking-[0.08em] text-ink-3">
-          {subLabel}{started && state.totalRounds > 1 && state.phase !== 'done' ? ` · round ${state.round}/${state.totalRounds}` : ''}
+          {subLabel}{started && state.totalRounds > 1 && state.phase !== 'done' ? ` · ${t('timer.roundCounter', { round: state.round, total: state.totalRounds })}` : ''}
         </div>
       </div>
 
       {/* Controls */}
       <div className="flex gap-2.5">
         {!started ? (
-          <Button type="button" onClick={onStart} className="px-6 text-[15px] font-bold">Start</Button>
+          <Button type="button" onClick={onStart} className="px-6 text-[15px] font-bold">{t('timer.button.start')}</Button>
         ) : (<>
           {running
-            ? <Button type="button" variant="outline" onClick={onPause} className="px-6 text-[15px] font-bold">Pause</Button>
-            : <Button type="button" disabled={state.phase === 'done'} onClick={onResume} className="px-6 text-[15px] font-bold">Resume</Button>}
-          <Button type="button" variant="outline" onClick={onReset} className="px-6 text-[15px] font-bold text-danger">Reset</Button>
+            ? <Button type="button" variant="outline" onClick={onPause} className="px-6 text-[15px] font-bold">{t('timer.button.pause')}</Button>
+            : <Button type="button" disabled={state.phase === 'done'} onClick={onResume} className="px-6 text-[15px] font-bold">{t('timer.button.resume')}</Button>}
+          <Button type="button" variant="outline" onClick={onReset} className="px-6 text-[15px] font-bold text-danger">{t('timer.button.reset')}</Button>
         </>)}
       </div>
     </div>

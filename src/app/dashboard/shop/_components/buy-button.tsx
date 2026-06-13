@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/components/i18n/locale-provider'
 import { buyPackage } from '../_actions/buy-package'
 
 export function BuyButton({ packageId }: { packageId: string }) {
   const [loading, setLoading] = useState(false)
+  const t = useT()
 
   async function handleClick() {
     setLoading(true)
@@ -20,7 +22,7 @@ export function BuyButton({ packageId }: { packageId: string }) {
 
   return (
     <Button size="sm" onClick={handleClick} disabled={loading}>
-      {loading ? 'Starting…' : 'Buy'}
+      {loading ? t('shop.starting') : t('shop.buy')}
     </Button>
   )
 }

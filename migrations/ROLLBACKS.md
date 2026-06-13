@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`065` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`066` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,13 @@ Reverse procedures for migrations `008`–`065` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 066_ramadan_schedule
+```sql
+ALTER TABLE boxes DROP COLUMN IF EXISTS ramadan_end;
+ALTER TABLE boxes DROP COLUMN IF EXISTS ramadan_start;
+ALTER TABLE class_templates DROP COLUMN IF EXISTS season;   -- ⚠️ Ramadan timetable rows lose their season tag
+```
 
 ### 065_national_id
 ```sql

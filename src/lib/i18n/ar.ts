@@ -130,4 +130,49 @@ export const ar: typeof en = {
     agreements: { section: 'الاتفاقيات', waiver: 'إقرار إخلاء المسؤولية', waiverSigned: 'موقّع باسم {name} · {date}', waiverNotSigned: 'غير موقّع — وقّع الآن', terms: 'شروط العضوية', termsSigned: 'موقّع النسخة v{version} · {date}', termsUpdated: 'تم التحديث منذ توقيعك (النسخة الحالية v{version})', termsNotSigned: 'غير موقّع', parq: 'PAR-Q (الجاهزية الطبية)', parqAnswered: 'تمت الإجابة على النسخة v{version} · {date}', parqUpdated: 'تم التحديث منذ إجابتك (النسخة الحالية v{version})', parqNotCompleted: 'غير مكتمل — أجب الآن', viewDocument: 'عرض الوثيقة' },
     refer: { section: 'أحِل صديقاً', description: 'شارك رابطك — الأصدقاء الذين يسجّلون يُحتسبون لك.', copyButton: 'نسخ الرابط', copied: 'تم النسخ!', stats: '{referred} مُحال · {joined} انضم' },
   },
+  comms: {
+    billing: {
+      subject: {
+        pre: 'عضويتك في {gymName} مستحقة في {date}',
+        due: 'العضوية مستحقة اليوم — {gymName}',
+        overdue: 'دفعة متأخّرة — {gymName}',
+      },
+      body: {
+        pre: '<p>مرحبًا {athleteName}،</p>\n<p>تذكير بسيط — عضويتك الشهرية في <strong>{gymName}</strong> مستحقة في <strong>{date}</strong> ({amount}). مرّ على مكتب الاستقبال في أي وقت للتجديد.</p>\n<p>— {gymName}</p>',
+        due: '<p>مرحبًا {athleteName}،</p>\n<p>عضويتك الشهرية في <strong>{gymName}</strong> مستحقة اليوم ({amount}). يُرجى التجديد في مكتب الاستقبال أو التواصل معنا.</p>\n<p>— {gymName}</p>',
+        overdue: '<p>مرحبًا {athleteName}،</p>\n<p>دفعة عضويتك في <strong>{gymName}</strong> متأخّرة منذ 3 أيام ({amount}). قد يتم إيقاف تسجيل حضورك في النادي حتى تجدّد العضوية. يُرجى المرور علينا أو التواصل معنا اليوم.</p>\n<p>— {gymName}</p>',
+      },
+    },
+    cardFailed: {
+      subject: {
+        retry: 'تنبيه — تعذّر إتمام دفعة {gymName}',
+        final: 'إجراء مطلوب — فشلت دفعة {gymName}',
+      },
+      body: {
+        retry: '<p>مرحبًا {athleteName}،</p>\n<p>حاولنا تحصيل {amount} مقابل عضويتك في <strong>{gymName}</strong> لكن تم رفض بطاقتك (المحاولة {attemptCount} من {maxRetries}). سنعيد المحاولة تلقائيًا، لكن تحديث بطاقتك الآن سيُسرّع الأمر.</p>\n{button}\n<p>— {gymName}</p>',
+        final: '<p>مرحبًا {athleteName}،</p>\n<p>حاولنا {attemptCount} مرات تحصيل {amount} مقابل عضويتك في <strong>{gymName}</strong> وتم رفض بطاقتك في كل مرة. أصبح حسابك الآن <strong>متأخّر السداد</strong>، ما يعني أن تسجيل حضورك قد يكون محظورًا.</p>\n{button}\n<p>بمجرد تحديث بطاقتك، سنعيد محاولة التحصيل تلقائيًا.</p>\n<p>— {gymName}</p>',
+      },
+      cta: {
+        retry: 'تحديث طريقة الدفع',
+        final: 'حدّث بطاقتك',
+      },
+    },
+    waitlist: {
+      subject: 'توفّر مكان في {className} لدى {gymName}',
+      body: '<p>مرحبًا {athleteName}،</p>\n<p>توفّر للتو مكان في <strong>{className}</strong> ({classTime}) لدى {gymName}. الأماكن تنفد بسرعة — احجز الآن:</p>\n{button}\n<p>— {gymName}</p>',
+      cta: 'احجز الآن',
+    },
+    waitlistPush: {
+      title: 'توفّر مكان!',
+      body: '{className} {classTime} — احجزه قبل أن يسبقك غيرك',
+    },
+    classReminder: {
+      title: 'اليوم في النادي',
+      line: '{className} في {time}',
+      separator: '، ',
+    },
+    newMessage: {
+      title: 'رسالة جديدة من النادي',
+    },
+  },
 }

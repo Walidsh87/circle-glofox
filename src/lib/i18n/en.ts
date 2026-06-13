@@ -128,6 +128,51 @@ export const en = {
     agreements: { section: 'Agreements', waiver: 'Liability waiver', waiverSigned: 'Signed as {name} · {date}', waiverNotSigned: 'Not signed — sign now', terms: 'Membership terms', termsSigned: 'Signed v{version} · {date}', termsUpdated: 'Updated since you signed (current v{version})', termsNotSigned: 'Not signed', parq: 'PAR-Q (medical readiness)', parqAnswered: 'Answered v{version} · {date}', parqUpdated: 'Updated since you answered (current v{version})', parqNotCompleted: 'Not completed — answer now', viewDocument: 'View document' },
     refer: { section: 'Refer a friend', description: 'Share your link — friends who sign up are credited to you.', copyButton: 'Copy link', copied: 'Copied!', stats: '{referred} referred · {joined} joined' },
   },
+  comms: {
+    billing: {
+      subject: {
+        pre: 'Your {gymName} membership is due {date}',
+        due: 'Membership due today — {gymName}',
+        overdue: 'Payment overdue — {gymName}',
+      },
+      body: {
+        pre: '<p>Hey {athleteName},</p>\n<p>Just a heads-up — your monthly membership at <strong>{gymName}</strong> is due on <strong>{date}</strong> ({amount}). Drop by the front desk anytime to renew.</p>\n<p>— {gymName}</p>',
+        due: '<p>Hi {athleteName},</p>\n<p>Your monthly membership at <strong>{gymName}</strong> is due today ({amount}). Please renew at the front desk or contact us.</p>\n<p>— {gymName}</p>',
+        overdue: '<p>Hi {athleteName},</p>\n<p>Your <strong>{gymName}</strong> membership payment is 3 days overdue ({amount}). Your gym check-ins may be blocked until you renew. Please drop by or contact us today.</p>\n<p>— {gymName}</p>',
+      },
+    },
+    cardFailed: {
+      subject: {
+        retry: "Heads up — {gymName} payment couldn't be processed",
+        final: 'Action required — {gymName} payment failed',
+      },
+      body: {
+        retry: "<p>Hi {athleteName},</p>\n<p>We tried to charge {amount} for your <strong>{gymName}</strong> membership but your card was declined (attempt {attemptCount} of {maxRetries}). We'll retry automatically, but updating your card now will speed things up.</p>\n{button}\n<p>— {gymName}</p>",
+        final: "<p>Hi {athleteName},</p>\n<p>We tried {attemptCount} times to charge {amount} for your <strong>{gymName}</strong> membership and your card was declined each time. Your account is now <strong>past due</strong>, which means your check-ins may be blocked.</p>\n{button}\n<p>Once you update your card, we'll automatically retry the charge.</p>\n<p>— {gymName}</p>",
+      },
+      cta: {
+        retry: 'Update payment method',
+        final: 'Update your card',
+      },
+    },
+    waitlist: {
+      subject: 'A spot opened in {className} at {gymName}',
+      body: '<p>Hi {athleteName},</p>\n<p>A spot just opened in <strong>{className}</strong> ({classTime}) at {gymName}. Spots go fast — book now:</p>\n{button}\n<p>— {gymName}</p>',
+      cta: 'Book now',
+    },
+    waitlistPush: {
+      title: 'A spot opened!',
+      body: '{className} {classTime} — book it before someone else does',
+    },
+    classReminder: {
+      title: 'Today at the gym',
+      line: '{className} at {time}',
+      separator: ', ',
+    },
+    newMessage: {
+      title: 'New message from the gym',
+    },
+  },
 }
 // NOTE: no `as const` — that would make typeof en use literal string types
 // (e.g. title: 'Book a Class'), and `const ar: typeof en` would then reject the

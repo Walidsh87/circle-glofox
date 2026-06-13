@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { logScore, type WodPrInfo } from '../_actions/log-score'
+import { useT } from '@/components/i18n/locale-provider'
 
 function formatScore(value: number, scoringType: string): string {
   if (scoringType === 'time') {
@@ -32,9 +33,10 @@ const labelClass = 'font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus()
+  const t = useT()
   return (
     <Button type="submit" disabled={pending} className="shrink-0">
-      {pending ? 'Saving…' : label}
+      {pending ? t('common.saving') : label}
     </Button>
   )
 }
@@ -57,11 +59,12 @@ export function ScoreSection({
   scores: Score[]
 }) {
   const [state, formAction] = useFormState(logScore, { error: null, pr: null })
+  const t = useT()
 
   const isTimeBased = scoringType === 'time'
   const hint = isTimeBased
-    ? 'Seconds (180 = 3:00)'
-    : scoringType === 'load_kg' ? 'Weight (kg)' : 'Total reps'
+    ? t('wod.score.secondsHint')
+    : scoringType === 'load_kg' ? t('wod.score.weightHint') : t('wod.score.repsHint')
 
   const sorted = [...scores].sort((a, b) =>
     isTimeBased ? a.score_value - b.score_value : b.score_value - a.score_value
@@ -72,7 +75,7 @@ export function ScoreSection({
       {/* Score entry */}
       <Card className="p-5">
         <div className="mb-3.5 text-[13px] font-semibold text-ink">
-          {myScore ? 'Update your score' : 'Log your score'}
+          {myScore ? t('wod.score.updateHeading') : t('wod.score.logHeading')}
         </div>
         <form action={formAction}>
           <input type="hidden" name="workoutId" value={workoutId} />
@@ -98,21 +101,21 @@ export function ScoreSection({
                 defaultChecked={myScore?.rx ?? false}
                 className="h-[15px] w-[15px] cursor-pointer accent-[var(--accent)]"
               />
-              <span className="font-mono text-xs font-bold tracking-[0.05em]">RX</span>
+              <span className="font-mono text-xs font-bold tracking-[0.05em]">{t('common.rx')}</span>
             </label>
 
             <div className="flex min-w-[140px] flex-1 flex-col gap-1">
-              <label className={labelClass}>Notes</label>
+              <label className={labelClass}>{t('wod.score.notes')}</label>
               <input
                 name="notes"
                 type="text"
                 defaultValue={myScore?.notes ?? ''}
-                placeholder="Optional"
+                placeholder={t('wod.score.notesPlaceholder')}
                 className={`${inputClass} w-full`}
               />
             </div>
 
-            <SubmitButton label={myScore ? 'Update' : 'Log score'} />
+            <SubmitButton label={myScore ? t('wod.score.updateButton') : t('wod.score.logButton')} />
           </div>
           {state.error && <p role="alert" className="mt-2 text-xs text-danger">{state.error}</p>}
           {state.pr && <p className="mt-2 text-xs font-bold text-accent-ink">{prBlurb(state.pr)}</p>}
@@ -123,9 +126,9 @@ export function ScoreSection({
       {sorted.length > 0 && (
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-line bg-surface-2 px-4 py-3">
-            <span className="text-[13px] font-semibold text-ink">Leaderboard</span>
+            <span className="text-[13px] font-semibold text-ink">{t('wod.leaderboard.title')}</span>
             <span className="font-mono text-[11px] text-ink-3">
-              {sorted.length} athlete{sorted.length !== 1 ? 's' : ''}
+              {t('wod.leaderboard.athleteCount', { count: sorted.length, plural: sorted.length !== 1 ? 's' : '' })}
             </span>
           </div>
           <table className="w-full">
@@ -144,17 +147,17 @@ export function ScoreSection({
                       </span>
                     </td>
                     <td className="px-2 py-2.5 text-[13.5px] font-semibold text-ink">
-                      {athleteProfile?.full_name ?? '—'}
+                      {athleteProfile?.full_name ?? t('common.dash')}
                     </td>
                     <td className="px-2 py-2.5">
                       {s.rx && (
                         <span className="rounded bg-ok-soft px-1.5 py-px font-mono text-[10px] font-bold tracking-[0.05em] text-ok">
-                          RX
+                          {t('common.rx')}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      {s.is_pr && <span title="PR when logged" className="mr-1.5">🏆</span>}
+                      {s.is_pr && <span title={t('wod.leaderboard.prTitle')} className="me-1.5">🏆</span>}
                       <span className={cn('font-mono font-bold', isFirst ? 'text-[17px] text-accent-ink' : 'text-[15px] text-ink')}>
                         {formatScore(s.score_value, scoringType)}
                       </span>

@@ -11,13 +11,8 @@ import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { loadForPercent } from '@/lib/percentage'
 import type { StrengthSet } from './_lib/validation'
 import { todayInTimezone } from '@/lib/timezone'
-
-const SCORING_LABELS: Record<string, string> = {
-  time:        'For Time',
-  rounds_reps: 'AMRAP (rounds + reps)',
-  load_kg:     'Max Load (kg)',
-  amrap:       'AMRAP (total reps)',
-}
+import { getServerT } from '@/lib/i18n/server'
+import type { TFn } from '@/lib/i18n'
 
 function prevDay(date: string): string {
   const d = new Date(date + 'T00:00:00Z')
@@ -52,20 +47,20 @@ function weekEnd(date: string): string {
   return start.toISOString().slice(0, 10)
 }
 
-function YourLoads({ liftValue, sets, oneRmGrams }: { liftValue: string; sets: StrengthSet[]; oneRmGrams: number | null }) {
+function YourLoads({ liftValue, sets, oneRmGrams, t }: { liftValue: string; sets: StrengthSet[]; oneRmGrams: number | null; t: TFn }) {
   const liftLabel = LIFT_NAMES.find((l) => l.value === liftValue)?.label ?? liftValue
   return (
     <Card className="mb-3 border-accent p-5">
       <div className="mb-2.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-accent-ink">
-        Your loads · {liftLabel}
+        {t('wod.section.yourLoads', { liftLabel })}
       </div>
       {oneRmGrams === null ? (
         <div className="text-[13px] text-ink-3">
           {sets.map((s) => `${s.sets}×${s.reps} @ ${s.percentage}%`).join('  ·  ')}
           {' — '}
           <Link href="/dashboard/lifts" className="text-accent-ink underline transition-colors hover:text-ink">
-            Log your {liftLabel} 1RM
-          </Link> to see kg.
+            {t('wod.logLift1rm', { liftLabel })}
+          </Link> {t('wod.seeKg')}
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
@@ -77,7 +72,7 @@ function YourLoads({ liftValue, sets, oneRmGrams }: { liftValue: string; sets: S
               <span className="font-mono text-xl font-bold text-ink">
                 {loadForPercent(oneRmGrams, s.percentage).barKg}
               </span>
-              <span className="font-mono text-[11px] text-ink-faint">kg</span>
+              <span className="font-mono text-[11px] text-ink-faint">{t('common.kg')}</span>
             </div>
           ))}
         </div>
@@ -88,6 +83,14 @@ function YourLoads({ liftValue, sets, oneRmGrams }: { liftValue: string; sets: S
 
 export default async function WodPage({ searchParams }: { searchParams: { date?: string } }) {
   const { supabase, user, profile, boxName } = await requirePage()
+  const t = await getServerT()
+
+  const SCORING_LABELS: Record<string, string> = {
+    time:        t('wod.scoring.forTime'),
+    rounds_reps: t('wod.scoring.amrapRoundsReps'),
+    load_kg:     t('wod.scoring.maxLoad'),
+    amrap:       t('wod.scoring.amrapTotalReps'),
+  }
 
   const { data: box } = await supabase.from('boxes').select('timezone').eq('id', profile.box_id).single()
   const timezone = box?.timezone ?? 'Asia/Dubai'
@@ -136,28 +139,28 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
       userName={profile.full_name}
       userRole={profile.role}
       boxName={boxName}
-      title="Daily WOD"
+      title={t('wod.title')}
     >
       <div className="max-w-2xl">
         {/* Date navigation */}
         <Card className="mb-6 flex items-center justify-between px-4 py-3">
           {(!isStaff && date <= wStart) ? (
-            <span className={pagerDisabledClass}>← Prev</span>
+            <span className={pagerDisabledClass}>{t('wod.navPrev')}</span>
           ) : (
-            <Link href={`/dashboard/wod?date=${prevDay(date)}`} className={pagerClass}>← Prev</Link>
+            <Link href={`/dashboard/wod?date=${prevDay(date)}`} className={pagerClass}>{t('wod.navPrev')}</Link>
           )}
           <div className="text-center">
             <div className="text-sm font-semibold text-ink">{formatDate(date)}</div>
             {!isToday && (
               <Link href="/dashboard/wod" className="text-xs text-accent-ink transition-colors hover:text-ink">
-                Back to today
+                {t('wod.backToToday')}
               </Link>
             )}
           </div>
           {(!isStaff && date >= wEnd) ? (
-            <span className={pagerDisabledClass}>Next →</span>
+            <span className={pagerDisabledClass}>{t('wod.navNext')}</span>
           ) : (
-            <Link href={`/dashboard/wod?date=${nextDay(date)}`} className={pagerClass}>Next →</Link>
+            <Link href={`/dashboard/wod?date=${nextDay(date)}`} className={pagerClass}>{t('wod.navNext')}</Link>
           )}
         </Card>
 
@@ -165,7 +168,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
         {wod?.strength_title && (
           <Card className="mb-3 p-5">
             <div className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3">
-              Strength
+              {t('wod.section.strength')}
             </div>
             <div className={cn('font-display text-xl font-bold tracking-[-0.02em] text-ink', wod.strength_description && 'mb-2.5')}>
               {wod.strength_title}
@@ -184,6 +187,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
             liftValue={wod.strength_lift}
             sets={(wod.strength_sets ?? []) as StrengthSet[]}
             oneRmGrams={myLift?.one_rm_grams ?? null}
+            t={t}
           />
         )}
 
@@ -203,13 +207,13 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
               </pre>
               {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).length > 0 && (
                 <div className="mt-4 flex flex-col gap-2.5">
-                  {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).map((t, i) => (
+                  {((wod.scaling ?? []) as import('./_lib/validation').ScalingTier[]).map((tier, i) => (
                     <div key={i}>
                       <span className="font-mono text-xs font-bold uppercase tracking-[0.06em] text-[#C8F135]">
-                        {t.label}
+                        {tier.label}
                       </span>
                       <div className="mt-0.5 whitespace-pre-wrap font-mono text-[13.5px] text-[#FAFAFA]/80">
-                        {t.description}
+                        {tier.description}
                       </div>
                     </div>
                   ))}
@@ -252,7 +256,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
 
         {!wod && !isStaff && (
           <Card className="px-6 py-12 text-center text-[13px] text-ink-3">
-            No WOD posted for this day yet.
+            {t('wod.empty')}
           </Card>
         )}
       </div>

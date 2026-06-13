@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { updateMember } from '../_actions/update-member'
 import { BLOOD_TYPES } from '../_lib/member-fields-validation'
+import { IdFields } from '../../_components/id-fields'
 
 const inputClass =
   'h-9 rounded-lg border border-line-strong bg-surface px-3 text-[13.5px] text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
@@ -29,9 +30,11 @@ type Props = {
   bloodType: string | null
   allergies: string | null
   dateOfBirth: string | null
+  idType: string | null
+  idNumber: string | null
 }
 
-export function EditMemberForm({ memberId, fullName, phone, role, viewerRole, emergencyContactName, emergencyContactPhone, bloodType, allergies, dateOfBirth }: Props) {
+export function EditMemberForm({ memberId, fullName, phone, role, viewerRole, emergencyContactName, emergencyContactPhone, bloodType, allergies, dateOfBirth, idType, idNumber }: Props) {
   const [editing, setEditing] = useState(false)
   const [state, formAction] = useFormState(async (prev: { error: string | null }, fd: FormData) => {
     const result = await updateMember(prev, fd)
@@ -78,6 +81,7 @@ export function EditMemberForm({ memberId, fullName, phone, role, viewerRole, em
         {BLOOD_TYPES.map((b) => <option key={b} value={b}>{b}</option>)}
       </select>
       <input name="dateOfBirth" type="date" defaultValue={dateOfBirth ?? ''} className={`${inputClass} w-[150px]`} />
+      <IdFields defaultType={idType ?? 'emirates_id'} defaultNumber={idNumber ?? ''} />
       <textarea
         name="allergies"
         defaultValue={allergies ?? ''}

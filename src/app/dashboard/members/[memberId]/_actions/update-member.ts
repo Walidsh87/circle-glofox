@@ -4,6 +4,7 @@ import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { validateMemberFields } from '../_lib/member-fields-validation'
+import { validateIdDocument, normalizeIdNumber } from '@/lib/national-id'
 
 type State = { error: string | null }
 
@@ -17,6 +18,8 @@ export async function updateMember(prevState: State, formData: FormData): Promis
   const bloodType = (formData.get('bloodType') as string)?.trim() || null
   const allergies = (formData.get('allergies') as string)?.trim() || null
   const dateOfBirth = (formData.get('dateOfBirth') as string)?.trim() || null
+  const idType = (formData.get('idType') as string)?.trim() || 'emirates_id'
+  const idNumber = (formData.get('idNumber') as string)?.trim() || null
 
   if (!memberId || !fullName) return { error: 'Name is required.' }
 
@@ -24,11 +27,17 @@ export async function updateMember(prevState: State, formData: FormData): Promis
   if ('error' in auth) return { error: auth.error }
   const { profile: viewer } = auth
 
+  const today = new Date().toISOString().slice(0, 10)
   const fieldsError = validateMemberFields(
     { emergencyContactName, emergencyContactPhone, bloodType, allergies, dateOfBirth },
-    new Date().toISOString().slice(0, 10),
+    today,
   )
   if (fieldsError) return { error: fieldsError }
+
+  const idError = validateIdDocument(idType, idNumber, today)
+  if (idError) return { error: idError }
+
+  const normalizedId = idNumber ? normalizeIdNumber(idType, idNumber) : null
 
   const update: Record<string, string | null> = {
     full_name: fullName,
@@ -38,6 +47,8 @@ export async function updateMember(prevState: State, formData: FormData): Promis
     blood_type: bloodType,
     allergies,
     date_of_birth: dateOfBirth,
+    id_type: normalizedId ? idType : null,
+    id_number: normalizedId,
   }
 
   // Only owners can change roles; never allow promoting to owner

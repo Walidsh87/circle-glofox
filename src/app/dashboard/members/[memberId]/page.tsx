@@ -117,7 +117,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, email, phone, role, created_at, emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth, household_id')
+      .select('id, full_name, email, phone, role, created_at, emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth, household_id, id_type, id_number')
       .eq('id', params.memberId)
       .eq('box_id', viewer.box_id)
       .single(),
@@ -370,6 +370,8 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
             bloodType={member.blood_type ?? null}
             allergies={member.allergies ?? null}
             dateOfBirth={member.date_of_birth ?? null}
+            idType={member.id_type ?? null}
+            idNumber={member.id_number ?? null}
           />
         ) : undefined
       }

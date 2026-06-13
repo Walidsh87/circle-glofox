@@ -3,6 +3,7 @@
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { TIMEZONE_OFFSETS } from '@/lib/timezone'
+import { inRamadanWindow } from '@/lib/hijri'
 
 function utcDayOfWeek(dateStr: string): number {
   return new Date(dateStr + 'T00:00:00Z').getUTCDay()
@@ -20,28 +21,28 @@ function buildStartsAt(dateStr: string, timeStr: string, offsetHours: number): s
   return `${dateStr}T${timeStr}${offset}`
 }
 
-type Result = { created: number; skipped: number; error: string | null }
+type Result = { created: number; skipped: number; error: string | null; ramadanGap: boolean }
 
 export async function generateInstances(startDate: string): Promise<Result> {
   const auth = await requireProgrammingAction('Only owners and coaches can generate instances.')
-  if ('error' in auth) return { created: 0, skipped: 0, error: auth.error }
+  if ('error' in auth) return { created: 0, skipped: 0, error: auth.error, ramadanGap: false }
   const { supabase, profile } = auth
 
   // Fetch active templates + box timezone in parallel
   const [{ data: templates }, { data: box }] = await Promise.all([
     supabase
       .from('class_templates')
-      .select('id, weekday, start_time, duration_minutes, capacity, coach_id')
+      .select('id, weekday, start_time, duration_minutes, capacity, coach_id, season')
       .eq('box_id', profile.box_id)
       .eq('active', true),
     supabase
       .from('boxes')
-      .select('timezone')
+      .select('timezone, ramadan_start, ramadan_end')
       .eq('id', profile.box_id)
       .single(),
   ])
 
-  if (!templates?.length) return { created: 0, skipped: 0, error: null }
+  if (!templates?.length) return { created: 0, skipped: 0, error: null, ramadanGap: false }
 
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
@@ -64,12 +65,16 @@ export async function generateInstances(startDate: string): Promise<Result> {
     (existing ?? []).map((e) => `${e.template_id}|${e.starts_at.slice(0, 10)}`)
   )
 
+  const rStart = box?.ramadan_start ?? null
+  const rEnd = box?.ramadan_end ?? null
   const toInsert: object[] = []
 
   for (const date of dates) {
     const dow = utcDayOfWeek(date)
+    const wantSeason = inRamadanWindow(date, rStart, rEnd) ? 'ramadan' : 'default'
     for (const t of templates) {
       if (t.weekday !== dow) continue
+      if ((t.season ?? 'default') !== wantSeason) continue
       const key = `${t.id}|${date}`
       if (existingKeys.has(key)) continue
       toInsert.push({
@@ -84,11 +89,14 @@ export async function generateInstances(startDate: string): Promise<Result> {
     }
   }
 
-  if (!toInsert.length) return { created: 0, skipped: (existing ?? []).length, error: null }
+  const hasRamadanTemplates = templates.some((t) => (t.season ?? 'default') === 'ramadan')
+  const ramadanGap = dates.some((d) => inRamadanWindow(d, rStart, rEnd)) && !hasRamadanTemplates
+
+  if (!toInsert.length) return { created: 0, skipped: (existing ?? []).length, error: null, ramadanGap }
 
   const { error } = await supabase.from('class_instances').insert(toInsert)
-  if (error) return { created: 0, skipped: 0, error: error.message }
+  if (error) return { created: 0, skipped: 0, error: error.message, ramadanGap }
 
   revalidatePath('/dashboard/classes')
-  return { created: toInsert.length, skipped: (existing ?? []).length, error: null }
+  return { created: toInsert.length, skipped: (existing ?? []).length, error: null, ramadanGap }
 }

@@ -6,7 +6,7 @@ import { generateInstances } from '../_actions/generate-instances'
 
 export function GenerateForm() {
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ created: number; skipped: number } | null>(null)
+  const [result, setResult] = useState<{ created: number; skipped: number; ramadanGap: boolean } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const today = new Date().toISOString().split('T')[0]
@@ -21,7 +21,7 @@ export function GenerateForm() {
     if (res.error) {
       setError(res.error)
     } else {
-      setResult({ created: res.created, skipped: res.skipped })
+      setResult({ created: res.created, skipped: res.skipped, ramadanGap: res.ramadanGap })
     }
   }
 
@@ -43,6 +43,11 @@ export function GenerateForm() {
         <span className="text-[13px] text-ink-3">
           {result.created} instance{result.created !== 1 ? 's' : ''} created
           {result.skipped > 0 ? `, ${result.skipped} already existed` : ''}.
+        </span>
+      )}
+      {result?.ramadanGap && (
+        <span role="alert" className="text-[13px] text-warn">
+          Ramadan window is active but you haven&apos;t built a Ramadan schedule — those days generated nothing.
         </span>
       )}
       {error && <span role="alert" className="text-[13px] text-danger">{error}</span>}

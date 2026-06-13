@@ -20,6 +20,7 @@ import { MyDetailsCard } from './_components/my-details-card'
 import { SelfAgreementsCard } from './_components/self-agreements-card'
 import { ParqCard } from './_components/parq-card'
 import { flaggedQuestions } from '@/lib/parq'
+import { ID_TYPE_LABELS, formatIdNumber, type IdType } from '@/lib/national-id'
 import type { TaskRow as FollowupTaskRow } from '@/app/dashboard/tasks/_components/task-item'
 import { ReferCard } from './_components/refer-card'
 import { ChangePasswordCard } from './_components/change-password-card'
@@ -545,6 +546,12 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
             <Field label="Date of birth" value={member.date_of_birth ? `${member.date_of_birth}${ageFromDob(member.date_of_birth, today) !== null ? ` · ${ageFromDob(member.date_of_birth, today)}y` : ''}` : '—'} />
             <Field label="Blood type" value={member.blood_type ?? '—'} />
             <Field label="Emergency contact" value={member.emergency_contact_name ? `${member.emergency_contact_name}${member.emergency_contact_phone ? ` · ${member.emergency_contact_phone}` : ''}` : '—'} />
+            <Field
+              label="ID document"
+              value={member.id_number
+                ? `${ID_TYPE_LABELS[member.id_type as IdType] ?? 'ID'} · ${formatIdNumber(member.id_type ?? '', member.id_number)}`
+                : 'No ID on file'}
+            />
           </div>
           <div className="mt-3">
             <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">Allergies / medical notes</div>

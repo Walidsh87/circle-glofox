@@ -35,6 +35,7 @@ import { env } from '@/env'
 import { ChecklistCard } from './_components/checklist-card'
 import { mergeChecklist, type ChecklistKind } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
+import { getServerT } from '@/lib/i18n/server'
 
 const ROLE_TONES: Record<string, 'accent' | 'ok' | 'neutral'> = {
   owner: 'accent',
@@ -103,6 +104,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const params = await ctx.params
   const { supabase, user, profile: viewer, boxName, box } = await requirePage()
   if (!(ALL_STAFF_ROLES as readonly string[]).includes(viewer.role) && user.id !== params.memberId) redirect('/dashboard')
+  const t = await getServerT()
 
   const boxSlug = box.slug
   const isSelf = user.id === params.memberId
@@ -352,7 +354,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
             href="/dashboard/members"
             className="font-sans text-[13px] font-normal tracking-normal text-ink-3 transition-colors hover:text-ink"
           >
-            ← Members
+            {t('profile.backToMembers')}
           </Link>
           <span className="text-base font-normal text-line-strong">/</span>
           <span>{member.full_name}</span>
@@ -391,22 +393,22 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               <div className="flex flex-wrap gap-4">
                 {member.email && <span className="text-[13.5px] text-ink-2">{member.email}</span>}
                 {member.phone && <span className="font-mono text-[13px] text-ink-3">{member.phone}</span>}
-                <span className="text-xs text-ink-3">Joined {formatDate(member.created_at)}</span>
+                <span className="text-xs text-ink-3">{t('profile.joined', { date: formatDate(member.created_at) })}</span>
               </div>
             </div>
 
             {activeMembership && (
-              <div className="text-right">
+              <div className="text-end">
                 <div className="mb-1 text-[13px] font-semibold text-ink">{activeMembership.plan_name}</div>
                 <div className="flex items-center justify-end gap-2">
                   {activeMembership.is_trial && (
                     <span className="font-mono text-[11px] font-bold text-accent-ink">
-                      Trial{activeMembership.end_date ? ` · ends ${activeMembership.end_date}` : ''}
+                      {t('profile.trial')}{activeMembership.end_date ? ` · ${t('profile.trialEnds', { date: activeMembership.end_date })}` : ''}
                     </span>
                   )}
                   {activeMembership.monthly_price_aed && (
                     <span className="font-mono text-[13px] text-ink-3">
-                      AED {activeMembership.monthly_price_aed}/mo
+                      {t('profile.monthlyPrice', { price: activeMembership.monthly_price_aed })}
                     </span>
                   )}
                   <Badge tone={STATUS_TONES[activeMembership.payment_status] ?? 'warn'} className="capitalize">
@@ -415,7 +417,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                 </div>
                 {activeMembership.last_paid_date && (
                   <div className="mt-1 font-mono text-[11.5px] text-ink-3">
-                    Last paid {activeMembership.last_paid_date}
+                    {t('profile.lastPaid', { date: activeMembership.last_paid_date })}
                   </div>
                 )}
               </div>
@@ -441,19 +443,19 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {/* Consistency (Committed Club) */}
-        <Section label="Consistency">
+        <Section label={t('profile.consistency.section')}>
           <div className="flex flex-wrap items-baseline gap-5">
             <div>
               <span className="font-mono text-xl font-bold text-ink">{consistencyStreak > 0 ? `🔥 ${consistencyStreak}` : '—'}</span>{' '}
-              <span className="text-xs text-ink-3">week streak</span>
+              <span className="text-xs text-ink-3">{t('profile.consistency.weekStreak')}</span>
             </div>
             <div>
               <span className="font-mono text-xl font-bold text-ink">{consistencyTotal}</span>{' '}
-              <span className="text-xs text-ink-3">check-ins{consistencyBadge !== null ? ` · 🏅 ${consistencyBadge} Club` : ''}</span>
+              <span className="text-xs text-ink-3">{t('profile.consistency.checkIns')}{consistencyBadge !== null ? ` · ${t('profile.consistency.club', { badge: consistencyBadge })}` : ''}</span>
             </div>
           </div>
           {consistencyNext && (
-            <div className="mt-2 text-[11.5px] text-ink-3">{consistencyNext.remaining} to the {consistencyNext.threshold} Club</div>
+            <div className="mt-2 text-[11.5px] text-ink-3">{t('profile.consistency.nextMilestone', { remaining: consistencyNext.remaining, threshold: consistencyNext.threshold })}</div>
           )}
         </Section>
 
@@ -481,7 +483,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {isSelf && viewer.role === 'athlete' && referLink && (
-          <Section label="Refer a friend">
+          <Section label={t('profile.refer.section')}>
             <ReferCard link={referLink} referred={referredCount} joined={joinedCount} />
           </Section>
         )}
@@ -493,13 +495,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {isSelf && (
-          <Section label="My details">
+          <Section label={t('profile.myDetails.section')}>
             <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: member.emergency_contact_name, emergencyContactPhone: member.emergency_contact_phone, bloodType: member.blood_type, allergies: member.allergies }} />
           </Section>
         )}
 
         {isSelf && viewer.role === 'athlete' && (
-          <Section label="Membership">
+          <Section label={t('profile.membership.section')}>
             <MembershipCard
               currentPlanName={activeMembership?.plan_name ?? null}
               currentPriceAed={activeMembership?.monthly_price_aed ?? null}
@@ -510,7 +512,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {isSelf && viewer.role === 'athlete' && member.household_id && household && (
-          <Section label="My family">
+          <Section label={t('profile.family.section')}>
             <FamilyCard
               householdName={household.name}
               members={(householdMembers ?? []) as { id: string; full_name: string | null }[]}
@@ -521,7 +523,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {isSelf && viewer.role === 'athlete' && (
-          <Section label="Agreements">
+          <Section label={t('profile.agreements.section')}>
             <SelfAgreementsCard waiverSig={waiverSig} termsSig={termsSig} waiverText={waiverText} termsDoc={termsDoc}
               parqResponse={parqResponse ? { parq_version: parqResponse.parq_version, answers: parqResponse.answers, signed_at: parqResponse.signed_at } : null}
               parqDoc={parqDoc} />
@@ -541,20 +543,20 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {/* Personal & medical */}
-        <Section label="Personal & medical">
+        <Section label={t('profile.personalMedical.section')}>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
-            <Field label="Date of birth" value={member.date_of_birth ? `${member.date_of_birth}${ageFromDob(member.date_of_birth, today) !== null ? ` · ${ageFromDob(member.date_of_birth, today)}y` : ''}` : '—'} />
-            <Field label="Blood type" value={member.blood_type ?? '—'} />
-            <Field label="Emergency contact" value={member.emergency_contact_name ? `${member.emergency_contact_name}${member.emergency_contact_phone ? ` · ${member.emergency_contact_phone}` : ''}` : '—'} />
+            <Field label={t('profile.personalMedical.dob')} value={member.date_of_birth ? `${member.date_of_birth}${ageFromDob(member.date_of_birth, today) !== null ? ` · ${ageFromDob(member.date_of_birth, today)}y` : ''}` : '—'} />
+            <Field label={t('profile.personalMedical.bloodType')} value={member.blood_type ?? '—'} />
+            <Field label={t('profile.personalMedical.emergencyContact')} value={member.emergency_contact_name ? `${member.emergency_contact_name}${member.emergency_contact_phone ? ` · ${member.emergency_contact_phone}` : ''}` : '—'} />
             <Field
-              label="ID document"
+              label={t('profile.personalMedical.idDocument')}
               value={member.id_number
                 ? `${ID_TYPE_LABELS[member.id_type as IdType] ?? 'ID'} · ${formatIdNumber(member.id_type ?? '', member.id_number)}`
-                : 'No ID on file'}
+                : t('profile.personalMedical.noId')}
             />
           </div>
           <div className="mt-3">
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">Allergies / medical notes</div>
+            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">{t('profile.personalMedical.allergies')}</div>
             {member.allergies
               ? <div className="rounded-lg bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn">⚠️ {member.allergies}</div>
               : <div className="text-[13px] text-ink-3">—</div>}
@@ -583,7 +585,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
           {/* 1RM Lifts */}
           <Card className="overflow-hidden">
             <div className="border-b border-line bg-surface-2 px-4 py-3">
-              <span className="text-[13px] font-semibold text-ink">1RM Lifts</span>
+              <span className="text-[13px] font-semibold text-ink">{t('profile.lifts.section')}</span>
             </div>
             {lifts && lifts.length > 0 ? (
               <table className="w-full">
@@ -591,7 +593,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                   {lifts.map((lift) => (
                     <tr key={lift.lift_name} className={rowClass}>
                       <td className="px-4 py-2.5 text-[13.5px] text-ink-2">{formatLiftName(lift.lift_name)}</td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-2.5 text-end">
                         <span className="font-mono text-[15px] font-bold text-ink">
                           {(lift.one_rm_grams / 1000).toFixed(1)} kg
                         </span>
@@ -601,14 +603,14 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                 </tbody>
               </table>
             ) : (
-              <div className="px-4 py-7 text-center text-[13px] text-ink-3">No lifts logged yet.</div>
+              <div className="px-4 py-7 text-center text-[13px] text-ink-3">{t('profile.lifts.empty')}</div>
             )}
           </Card>
 
           {/* Recent WOD Scores */}
           <Card className="overflow-hidden">
             <div className="border-b border-line bg-surface-2 px-4 py-3">
-              <span className="text-[13px] font-semibold text-ink">WOD Score History</span>
+              <span className="text-[13px] font-semibold text-ink">{t('profile.scores.section')}</span>
             </div>
             {scores && scores.length > 0 ? (
               <table className="w-full">
@@ -618,10 +620,10 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                     return (
                       <tr key={i} className={rowClass}>
                         <td className="px-4 py-2.5 text-[13px] text-ink-2">{wod?.title ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-right">
+                        <td className="px-4 py-2.5 text-end">
                           <div className="flex items-center justify-end gap-1.5">
                             {s.rx && (
-                              <span className="rounded bg-ok-soft px-1 py-px font-mono text-[9.5px] font-bold text-ok">RX</span>
+                              <span className="rounded bg-ok-soft px-1 py-px font-mono text-[9.5px] font-bold text-ok">{t('common.rx')}</span>
                             )}
                             <span className="font-mono text-sm font-bold text-ink">
                               {wod ? formatScore(s.score_value, wod.scoring_type) : s.score_value}
@@ -634,7 +636,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                 </tbody>
               </table>
             ) : (
-              <div className="px-4 py-7 text-center text-[13px] text-ink-3">No scores logged yet.</div>
+              <div className="px-4 py-7 text-center text-[13px] text-ink-3">{t('profile.scores.empty')}</div>
             )}
           </Card>
         </div>
@@ -642,7 +644,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         {/* Recent Bookings */}
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-line bg-surface-2 px-4 py-3">
-            <span className="text-[13px] font-semibold text-ink">Recent Bookings</span>
+            <span className="text-[13px] font-semibold text-ink">{t('profile.bookings.section')}</span>
           </div>
           {bookings && bookings.length > 0 ? (
             <table className="w-full">
@@ -654,13 +656,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                   return (
                     <tr key={b.id} className={rowClass}>
                       <td className="px-4 py-2.5 text-[13px] text-ink-2">{tmpl?.name ?? '—'}</td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-2.5 text-end">
                         <span className="font-mono text-xs text-ink-3">
                           {startsAt ? formatDate(startsAt.toISOString()) : '—'}
                         </span>
                       </td>
-                      <td className="w-[60px] px-4 py-2.5 text-right">
-                        {b.checked_in && <span className="text-[11.5px] font-semibold text-ok">✓ In</span>}
+                      <td className="w-[60px] px-4 py-2.5 text-end">
+                        {b.checked_in && <span className="text-[11.5px] font-semibold text-ok">{t('profile.bookings.checkedIn')}</span>}
                       </td>
                     </tr>
                   )
@@ -668,7 +670,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
               </tbody>
             </table>
           ) : (
-            <div className="px-4 py-7 text-center text-[13px] text-ink-3">No bookings yet.</div>
+            <div className="px-4 py-7 text-center text-[13px] text-ink-3">{t('profile.bookings.empty')}</div>
           )}
         </Card>
 
@@ -676,7 +678,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         {(invoices ?? []).length > 0 && (
           <Card className="mt-5 overflow-hidden">
             <div className="border-b border-line bg-surface-2 px-4 py-3">
-              <span className="text-[13px] font-semibold text-ink">VAT Invoices</span>
+              <span className="text-[13px] font-semibold text-ink">{t('profile.invoices.section')}</span>
             </div>
             <table className="w-full">
               <tbody>
@@ -693,15 +695,15 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
                           {inv.invoice_number}
                         </Link>
                         {refunded > 0 && (
-                          <Badge tone="warn" className="ml-2 text-[10.5px]">
-                            {refunded >= Number(inv.total_aed) - 0.001 ? 'Refunded' : 'Partial refund'}
+                          <Badge tone="warn" className="ms-2 text-[10.5px]">
+                            {refunded >= Number(inv.total_aed) - 0.001 ? t('profile.invoices.refunded') : t('profile.invoices.partialRefund')}
                           </Badge>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-2.5 text-end">
                         <span className="font-mono text-xs text-ink-3">{formatDate(inv.issued_at)}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">
+                      <td className="px-4 py-2.5 text-end tabular-nums">
                         <span className="text-[13px] font-semibold text-ink">
                           AED {Number(inv.total_aed).toFixed(2)}
                         </span>

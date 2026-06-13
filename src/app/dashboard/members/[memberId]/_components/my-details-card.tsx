@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/components/i18n/locale-provider'
 import { updateOwnProfile } from '../_actions/update-own-profile'
 import { BLOOD_TYPES } from '../_lib/member-fields-validation'
 
@@ -11,6 +12,7 @@ const fieldClass =
 const labelClass = 'mb-1 block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3'
 
 export function MyDetailsCard({ initial }: { initial: { phone: string | null; emergencyContactName: string | null; emergencyContactPhone: string | null; bloodType: string | null; allergies: string | null } }) {
+  const t = useT()
   const router = useRouter()
   const [phone, setPhone] = useState(initial.phone ?? '')
   const [ecName, setEcName] = useState(initial.emergencyContactName ?? '')
@@ -41,18 +43,18 @@ export function MyDetailsCard({ initial }: { initial: { phone: string | null; em
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        <div><span className={labelClass}>Phone</span><input className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="05x xxx xxxx" /></div>
-        <div><span className={labelClass}>Blood type</span>
+        <div><span className={labelClass}>{t('profile.myDetails.phone')}</span><input className={fieldClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="05x xxx xxxx" /></div>
+        <div><span className={labelClass}>{t('profile.myDetails.bloodType')}</span>
           <select className={fieldClass} value={bloodType} onChange={(e) => setBloodType(e.target.value)}>
             <option value="">—</option>
             {BLOOD_TYPES.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
         </div>
-        <div><span className={labelClass}>Emergency contact</span><input className={fieldClass} value={ecName} onChange={(e) => setEcName(e.target.value)} placeholder="Name" /></div>
-        <div><span className={labelClass}>Emergency phone</span><input className={fieldClass} value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} placeholder="Any format" /></div>
+        <div><span className={labelClass}>{t('profile.myDetails.emergencyContact')}</span><input className={fieldClass} value={ecName} onChange={(e) => setEcName(e.target.value)} placeholder="Name" /></div>
+        <div><span className={labelClass}>{t('profile.myDetails.emergencyPhone')}</span><input className={fieldClass} value={ecPhone} onChange={(e) => setEcPhone(e.target.value)} placeholder="Any format" /></div>
       </div>
       <div>
-        <span className={labelClass}>Allergies / medical notes</span>
+        <span className={labelClass}>{t('profile.myDetails.allergies')}</span>
         <textarea
           className="min-h-16 w-full resize-y rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13.5px] text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           value={allergies}
@@ -60,8 +62,8 @@ export function MyDetailsCard({ initial }: { initial: { phone: string | null; em
         />
       </div>
       <div className="flex items-center gap-2.5">
-        <Button size="sm" onClick={onSave} disabled={pending}>{pending ? 'Saving…' : 'Save'}</Button>
-        {saved && !error && <span className="text-xs text-ok">Saved</span>}
+        <Button size="sm" onClick={onSave} disabled={pending}>{pending ? t('common.saving') : t('profile.myDetails.save')}</Button>
+        {saved && !error && <span className="text-xs text-ok">{t('profile.myDetails.saved')}</span>}
         {error && <span role="alert" className="text-xs text-danger">{error}</span>}
       </div>
     </div>

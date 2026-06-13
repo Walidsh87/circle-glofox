@@ -11,7 +11,6 @@ import { rosterFirstNames } from '@/lib/roster'
 import { CalendarSyncCard } from './_components/calendar-sync-card'
 import { PushCard } from './_components/push-card'
 import { getServerT, getLocale } from '@/lib/i18n/server'
-import { LanguageToggle } from '@/components/i18n/language-toggle'
 
 function formatDateTime(startsAt: string, timezone: string, locale: 'en' | 'ar') {
   const date = new Date(startsAt)
@@ -90,7 +89,6 @@ export default async function SchedulePage() {
       title={t('schedule.title')}
       actions={
         <span className="flex items-center gap-2 font-mono text-xs text-ink-3">
-          {profile.role === 'athlete' && <LanguageToggle />}
           {formatHijri(todayIso)}
           {inRamadanWindow(todayIso, box?.ramadan_start ?? null, box?.ramadan_end ?? null) && (
             <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[11px] font-bold text-warn">{t('schedule.ramadanBadge')}</span>

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Sidebar } from '@/components/sidebar'
+import { LanguageToggle } from '@/components/i18n/language-toggle'
 
 /**
  * The standard dashboard page chrome — replaces the byte-identical wrapper
@@ -31,7 +32,12 @@ export function DashboardShell({
           <h1 className="font-display text-xl font-semibold tracking-[-0.01em] text-ink">
             {title}
           </h1>
-          {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+          {(userRole === 'athlete' || actions) && (
+            <div className="flex shrink-0 items-center gap-2">
+              {userRole === 'athlete' && <LanguageToggle />}
+              {actions}
+            </div>
+          )}
         </header>
         <main className="flex-1 overflow-y-auto p-5 pb-24 md:p-8 md:pb-8">
           {children}

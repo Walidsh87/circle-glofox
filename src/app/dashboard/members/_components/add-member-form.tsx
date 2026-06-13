@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { addMember } from '../_actions/add-member'
 import { useEffect, useRef } from 'react'
+import { IdFields } from './id-fields'
 
 const inputClass =
   'h-9 rounded-lg border border-line-strong bg-surface px-3 text-[13.5px] text-ink placeholder:text-ink-faint transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
@@ -35,6 +36,7 @@ export function AddMemberForm({ roles = [{ value: 'athlete', label: 'Athlete' }]
       <select name="role" required defaultValue={roles[0].value} className={`${inputClass} w-[130px]`}>
         {roles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
       </select>
+      <IdFields />
       <SubmitButton />
       {state.error && <span role="alert" className="text-xs text-danger">{state.error}</span>}
     </form>

@@ -1,5 +1,7 @@
 import { requirePage } from '@/lib/auth/page-guards'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
+import { formatHijri, inRamadanWindow } from '@/lib/hijri'
+import { todayInTimezone } from '@/lib/timezone'
 import { cn } from '@/lib/utils'
 import { BookingButton } from './_components/booking-button'
 import { FamilyBookingRow } from './_components/family-booking-row'
@@ -38,7 +40,7 @@ export default async function SchedulePage() {
       .gte('starts_at', now)
       .order('starts_at')
       .limit(30),
-    supabase.from('boxes').select('timezone, roster_public').eq('id', profile.box_id).single(),
+    supabase.from('boxes').select('timezone, roster_public, ramadan_start, ramadan_end').eq('id', profile.box_id).single(),
     supabase.from('bookings').select('class_instance_id').eq('athlete_id', user.id),
     supabase.from('class_waitlist').select('class_instance_id, athlete_id, created_at').eq('box_id', profile.box_id),
     supabase.from('profiles').select('calendar_token').eq('id', user.id).single(),
@@ -46,6 +48,7 @@ export default async function SchedulePage() {
 
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const rosterPublic = box?.roster_public === true
+  const todayIso = todayInTimezone(timezone)
 
   // Family (#84): co-members this athlete can book for.
   let coMembers: { id: string; name: string }[] = []
@@ -84,6 +87,14 @@ export default async function SchedulePage() {
       userRole={profile.role}
       boxName={boxName}
       title="Book a Class"
+      actions={
+        <span className="flex items-center gap-2 font-mono text-xs text-ink-3">
+          {formatHijri(todayIso)}
+          {inRamadanWindow(todayIso, box?.ramadan_start ?? null, box?.ramadan_end ?? null) && (
+            <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[11px] font-bold text-warn">Ramadan timetable</span>
+          )}
+        </span>
+      }
     >
       <div className="max-w-[640px]">
         <CalendarSyncCard feedUrl={feedUrl} />

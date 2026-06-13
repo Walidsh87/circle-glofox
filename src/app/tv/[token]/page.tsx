@@ -7,6 +7,7 @@ import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { sortLeaderboard } from '../_lib/leaderboard'
 import { AutoRefresh } from '../_components/auto-refresh'
 import { todayInTimezone } from '@/lib/timezone'
+import { formatHijri, inRamadanWindow } from '@/lib/hijri'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +37,7 @@ export default async function TvBoardPage(ctx: { params: Promise<{ token: string
 
   const { data: box } = await service
     .from('boxes')
-    .select('id, name, timezone')
+    .select('id, name, timezone, ramadan_start, ramadan_end')
     .eq('tv_token', token)
     .maybeSingle()
   if (!box) notFound()
@@ -100,7 +101,13 @@ export default async function TvBoardPage(ctx: { params: Promise<{ token: string
           <span className="font-mono text-sm uppercase tracking-[0.06em] text-accent-ink">Live</span>
         </div>
         <div className="flex-1" />
-        <div className="font-mono text-base text-ink-3">{today}</div>
+        <div className="flex items-center gap-2.5 font-mono text-base text-ink-3">
+          <span>{today}</span>
+          <span className="text-ink-faint">· {formatHijri(todayIso)}</span>
+          {inRamadanWindow(todayIso, box.ramadan_start ?? null, box.ramadan_end ?? null) && (
+            <span className="rounded bg-warn-soft px-2 py-0.5 text-sm font-bold text-warn">Ramadan timetable</span>
+          )}
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-[26px] px-10 py-9">

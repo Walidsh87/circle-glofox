@@ -9,6 +9,7 @@ import { loadForPercent } from '@/lib/percentage'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { currentStreakWeeks } from '@/lib/consistency'
 import { TIMEZONE_OFFSETS, todayInTimezone } from '@/lib/timezone'
+import { formatHijri, inRamadanWindow } from '@/lib/hijri'
 
 function todayWindow(timezone: string): { start: string; end: string } {
   const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
@@ -33,7 +34,7 @@ export default async function WhiteboardPage() {
 
   const { data: box } = await supabase
     .from('boxes')
-    .select('name, timezone')
+    .select('name, timezone, ramadan_start, ramadan_end')
     .eq('id', profile.box_id)
     .single()
 
@@ -154,7 +155,13 @@ export default async function WhiteboardPage() {
 
         <div className="flex-1" />
 
-        <div className="font-mono text-[15px] text-ink-3">{today}</div>
+        <div className="flex items-center gap-2 font-mono text-[15px] text-ink-3">
+          <span>{today}</span>
+          <span className="text-ink-faint">· {formatHijri(todayIso)}</span>
+          {inRamadanWindow(todayIso, box?.ramadan_start ?? null, box?.ramadan_end ?? null) && (
+            <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[11px] font-bold text-warn">Ramadan timetable</span>
+          )}
+        </div>
 
         <Link href="/dashboard" className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink-3 transition-colors hover:text-ink">
           ← Dashboard

@@ -7,6 +7,7 @@ import { validateMessage, messagePreview, withinSessionWindow } from '@/lib/inbo
 import { normalizeUaePhone } from '@/lib/sms'
 import { sendWhatsAppText } from '@/lib/twilio'
 import { sendPushTo } from '@/lib/push'
+import { getT, resolveLocale } from '@/lib/i18n'
 
 export async function sendMessage(memberId: string, body: string): Promise<{ error: string | null; conversationId?: string }> {
   const supabase = await createClient()
@@ -65,8 +66,10 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
   // Staff replies nudge the member's phone (#22 infra: no-ops without VAPID, never throws).
   if (isStaff) {
     const service = createServiceClient()
+    const { data: rp } = await service.from('profiles').select('language').eq('id', targetMemberId).maybeSingle()
+    const t = getT(resolveLocale(rp?.language as string | null))
     await sendPushTo(service, targetMemberId, {
-      title: 'New message from the gym',
+      title: t('comms.newMessage.title'),
       body: messagePreview(text),
       url: '/dashboard/messages',
     })

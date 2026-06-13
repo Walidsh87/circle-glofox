@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { env } from '@/env'
 import { emailShell, emailButton } from './email-shell'
+import { getT, type Locale, type TFn } from '@/lib/i18n'
 import type { ReminderStage } from '@/lib/billing-reminders'
 
 const resend = new Resend(env.RESEND_API_KEY)
@@ -13,6 +14,7 @@ export type ReminderEmailInput = {
   stage: ReminderStage
   dueDate: string
   amountAed: number
+  locale: Locale
 }
 
 function formatDate(iso: string): string {
@@ -24,32 +26,15 @@ function formatDate(iso: string): string {
   })
 }
 
-function buildSubject(stage: ReminderStage, gymName: string, dueDate: string): string {
-  if (stage === 'pre') return `Your ${gymName} membership is due ${formatDate(dueDate)}`
-  if (stage === 'due') return `Membership due today — ${gymName}`
-  return `Payment overdue — ${gymName}`
+function buildSubject(t: TFn, stage: ReminderStage, gymName: string, dueDate: string): string {
+  return t(`comms.billing.subject.${stage}`, { gymName, date: formatDate(dueDate) })
 }
 
-function buildBody(input: ReminderEmailInput): string {
-  const { athleteName, gymName, stage, dueDate, amountAed } = input
-  const date = formatDate(dueDate)
-  const amount = `${amountAed.toLocaleString()} AED`
-
-  if (stage === 'pre') {
-    return `<p>Hey ${athleteName},</p>
-<p>Just a heads-up — your monthly membership at <strong>${gymName}</strong> is due on <strong>${date}</strong> (${amount}). Drop by the front desk anytime to renew.</p>
-<p>— ${gymName}</p>`
-  }
-
-  if (stage === 'due') {
-    return `<p>Hi ${athleteName},</p>
-<p>Your monthly membership at <strong>${gymName}</strong> is due today (${amount}). Please renew at the front desk or contact us.</p>
-<p>— ${gymName}</p>`
-  }
-
-  return `<p>Hi ${athleteName},</p>
-<p>Your <strong>${gymName}</strong> membership payment is 3 days overdue (${amount}). Your gym check-ins may be blocked until you renew. Please drop by or contact us today.</p>
-<p>— ${gymName}</p>`
+function buildBody(t: TFn, input: ReminderEmailInput): string {
+  const amount = `${input.amountAed.toLocaleString()} AED`
+  return t(`comms.billing.body.${input.stage}`, {
+    athleteName: input.athleteName, gymName: input.gymName, date: formatDate(input.dueDate), amount,
+  })
 }
 
 export type CardFailedEmailInput = {
@@ -60,36 +45,26 @@ export type CardFailedEmailInput = {
   attemptCount: number
   maxRetries: number
   updatePaymentUrl: string
+  locale: Locale
 }
 
 export async function sendCardFailedEmail(
   input: CardFailedEmailInput
 ): Promise<{ id: string | null; error: string | null }> {
-  const { athleteName, gymName, amountAed, attemptCount, maxRetries, updatePaymentUrl, to } = input
+  const { athleteName, gymName, amountAed, attemptCount, maxRetries, updatePaymentUrl, to, locale } = input
+  const t = getT(locale)
   const amount = `${amountAed.toLocaleString()} AED`
-  const isFinal = attemptCount >= maxRetries
-
-  const subject = isFinal
-    ? `Action required — ${gymName} payment failed`
-    : `Heads up — ${gymName} payment couldn't be processed`
-
-  const body = isFinal
-    ? `<p>Hi ${athleteName},</p>
-<p>We tried ${attemptCount} times to charge ${amount} for your <strong>${gymName}</strong> membership and your card was declined each time. Your account is now <strong>past due</strong>, which means your check-ins may be blocked.</p>
-${emailButton('Update your card', updatePaymentUrl)}
-<p>Once you update your card, we'll automatically retry the charge.</p>
-<p>— ${gymName}</p>`
-    : `<p>Hi ${athleteName},</p>
-<p>We tried to charge ${amount} for your <strong>${gymName}</strong> membership but your card was declined (attempt ${attemptCount} of ${maxRetries}). We'll retry automatically, but updating your card now will speed things up.</p>
-${emailButton('Update payment method', updatePaymentUrl)}
-<p>— ${gymName}</p>`
+  const variant = attemptCount >= maxRetries ? 'final' : 'retry'
+  const button = emailButton(t(`comms.cardFailed.cta.${variant}`), updatePaymentUrl)
+  const subject = t(`comms.cardFailed.subject.${variant}`, { gymName })
+  const body = t(`comms.cardFailed.body.${variant}`, { athleteName, gymName, amount, attemptCount, maxRetries, button })
 
   try {
     const { data, error } = await resend.emails.send({
       from: env.RESEND_FROM_EMAIL,
       to,
       subject,
-      html: emailShell(body),
+      html: emailShell(body, locale),
     })
     if (error) return { id: null, error: error.message }
     return { id: data?.id ?? null, error: null }
@@ -105,21 +80,22 @@ export type WaitlistEmailInput = {
   classTime: string
   gymName: string
   bookUrl: string
+  locale: Locale
 }
 
 export async function sendWaitlistEmail(
   input: WaitlistEmailInput
 ): Promise<{ id: string | null; error: string | null }> {
-  const body = `<p>Hi ${input.athleteName},</p>
-<p>A spot just opened in <strong>${input.className}</strong> (${input.classTime}) at ${input.gymName}. Spots go fast — book now:</p>
-${emailButton('Book now', input.bookUrl)}
-<p>— ${input.gymName}</p>`
+  const t = getT(input.locale)
+  const button = emailButton(t('comms.waitlist.cta'), input.bookUrl)
+  const body = t('comms.waitlist.body', { athleteName: input.athleteName, className: input.className, classTime: input.classTime, gymName: input.gymName, button })
+  const subject = t('comms.waitlist.subject', { className: input.className, gymName: input.gymName })
   try {
     const { data, error } = await resend.emails.send({
       from: env.RESEND_FROM_EMAIL,
       to: input.to,
-      subject: `A spot opened in ${input.className} at ${input.gymName}`,
-      html: emailShell(body),
+      subject,
+      html: emailShell(body, input.locale),
     })
     if (error) return { id: null, error: error.message }
     return { id: data?.id ?? null, error: null }
@@ -149,13 +125,14 @@ export async function sendBroadcastEmails(
 export async function sendBillingReminderEmail(
   input: ReminderEmailInput
 ): Promise<{ id: string | null; error: string | null }> {
+  const t = getT(input.locale)
   try {
     const { data, error } = await resend.emails.send({
       from: env.RESEND_FROM_EMAIL,
       to: input.to,
       bcc: input.stage === 'overdue' && input.bcc ? [input.bcc] : undefined,
-      subject: buildSubject(input.stage, input.gymName, input.dueDate),
-      html: emailShell(buildBody(input)),
+      subject: buildSubject(t, input.stage, input.gymName, input.dueDate),
+      html: emailShell(buildBody(t, input), input.locale),
     })
 
     if (error) return { id: null, error: error.message }

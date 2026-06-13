@@ -5,6 +5,7 @@ import { decideAfterFailedCharge, resetAfterSuccess } from '@/lib/dunning'
 import { sendCardFailedEmail } from '@/lib/email'
 import { signPortalToken } from '@/lib/portal-token'
 import { findProviderForIncomingWebhook, type NormalisedEvent } from '@/lib/psp'
+import { resolveLocale } from '@/lib/i18n'
 import { env } from '@/env'
 
 export const dynamic = 'force-dynamic'
@@ -140,7 +141,7 @@ async function handlePaymentFailed(
 
   const { data: membership } = await service
     .from('memberships')
-    .select('id, failed_charge_attempts, monthly_price_aed, athlete_id, profiles:athlete_id(full_name, email)')
+    .select('id, failed_charge_attempts, monthly_price_aed, athlete_id, profiles:athlete_id(full_name, email, language)')
     .eq('provider_subscription_ref', event.subscriptionRef)
     .eq('box_id', boxId)
     .single()
@@ -183,6 +184,7 @@ async function handlePaymentFailed(
         attemptCount: decision.newAttemptCount,
         maxRetries,
         updatePaymentUrl: `${baseUrl}/portal/${portalToken}`,
+        locale: resolveLocale((membership as { profiles?: { language?: string | null } | null }).profiles?.language),
       })
       await service
         .from('memberships')

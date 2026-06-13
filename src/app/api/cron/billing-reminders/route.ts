@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { getDueDate, getReminderStage } from '@/lib/billing-reminders'
 import { sendBillingReminderEmail } from '@/lib/email'
+import { loadRecipientLocalesByEmail } from '@/lib/i18n/recipients'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +43,10 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = (data ?? []) as Row[]
+  const localeMap = await loadRecipientLocalesByEmail(
+    supabase,
+    rows.map((r) => r.athlete_email).filter((e): e is string => Boolean(e)),
+  )
   let processed = 0, sent = 0, skipped = 0
   const errors: string[] = []
 
@@ -83,6 +88,7 @@ export async function GET(request: NextRequest) {
       stage,
       dueDate,
       amountAed: r.monthly_price_aed ?? 0,
+      locale: localeMap.get(r.athlete_email.toLowerCase()) ?? 'en',
     })
 
     if (sendError) {

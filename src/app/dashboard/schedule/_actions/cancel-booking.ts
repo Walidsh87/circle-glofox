@@ -8,6 +8,7 @@ import { sendPushTo } from '@/lib/push'
 import { env } from '@/env'
 import { isLateCancel } from '@/lib/booking-policy'
 import { resolveBookingTarget } from '@/lib/family'
+import { getT, resolveLocale } from '@/lib/i18n'
 
 export async function cancelBooking(instanceId: string, forAthleteId?: string): Promise<{ error: string | null; forfeited?: boolean }> {
   const supabase = await createClient()
@@ -83,7 +84,7 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
         .limit(1)
         .maybeSingle()
       if (next) {
-        const { data: athlete } = await svc.from('profiles').select('email, full_name').eq('id', next.athlete_id).single()
+        const { data: athlete } = await svc.from('profiles').select('email, full_name, language').eq('id', next.athlete_id).single()
         const { data: inst } = await svc
           .from('class_instances')
           .select('starts_at, class_templates(name), boxes(name, timezone)')
@@ -99,6 +100,7 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
             minute: '2-digit',
             hour12: false,
           }).format(new Date(inst.starts_at))
+          const locale = resolveLocale(athlete.language)
           await sendWaitlistEmail({
             to: athlete.email,
             athleteName: athlete.full_name ?? 'there',
@@ -106,10 +108,12 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
             classTime,
             gymName: box?.name ?? 'your gym',
             bookUrl: `${env.NEXT_PUBLIC_APP_URL}/dashboard/schedule`,
+            locale,
           })
+          const t = getT(locale)
           await sendPushTo(svc, next.athlete_id, {
-            title: 'A spot opened!',
-            body: `${tmpl?.name ?? 'Your class'} ${classTime} — book it before someone else does`,
+            title: t('comms.waitlistPush.title'),
+            body: t('comms.waitlistPush.body', { className: tmpl?.name ?? 'Your class', classTime }),
             url: '/dashboard/schedule',
           })
         }

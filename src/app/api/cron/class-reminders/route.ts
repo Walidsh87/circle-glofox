@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { buildDigestPushes, sendPushTo, type DigestRow } from '@/lib/push'
+import { loadRecipientLocales } from '@/lib/i18n/recipients'
 import { TIMEZONE_OFFSETS } from '@/lib/timezone'
 
 export const dynamic = 'force-dynamic'
@@ -51,7 +52,8 @@ export async function GET(request: NextRequest) {
     const withSubs = new Set(((subs ?? []) as { athlete_id: string }[]).map((s) => s.athlete_id))
     const filtered = digestRows.filter((r) => withSubs.has(r.athlete_id))
 
-    for (const d of buildDigestPushes(filtered, tz)) {
+    const localeMap = await loadRecipientLocales(service, athleteIds)
+    for (const d of buildDigestPushes(filtered, tz, localeMap)) {
       pushed += await sendPushTo(service, d.athleteId, d.payload)
     }
   }

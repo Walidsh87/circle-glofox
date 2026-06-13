@@ -74,6 +74,10 @@
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.005em;
   }
+  [lang='ar'] body {
+    font-family: var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0;
+  }
 }
 
 /* Motion — prefers-reduced-motion kills all durations */

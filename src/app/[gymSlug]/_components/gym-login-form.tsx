@@ -1,7 +1,9 @@
 import { AuthLayout, BrandPanel } from '@/components/auth/auth-layout'
 import { LoginForm } from '@/components/auth/login-form'
+import { LanguageToggle } from '@/components/i18n/language-toggle'
+import { getServerT } from '@/lib/i18n/server'
 
-export function GymLoginForm({
+export async function GymLoginForm({
   gymName,
   gymSlug,
   redirectTo,
@@ -10,14 +12,16 @@ export function GymLoginForm({
   gymSlug: string
   redirectTo?: string
 }) {
+  const t = await getServerT()
   return (
     <AuthLayout
+      headerExtra={<LanguageToggle />}
       panel={
         <BrandPanel
-          eyebrow="Member Portal"
+          eyebrow={t('login.brandEyebrow')}
           headline={gymName}
-          description="Book classes, track your WODs, and manage your membership — all in one place."
-          footerNote="Powered by Circle"
+          description={t('login.brandDescription')}
+          footerNote={t('login.poweredBy')}
         />
       }
     >
@@ -25,11 +29,8 @@ export function GymLoginForm({
         redirectTo={redirectTo ?? `/join/${gymSlug}`}
         newUserHint={
           <>
-            New to {gymName}?{' '}
-            <span className="font-semibold text-ink">
-              Sign in with a code to create your account
-            </span>
-            .
+            {t('login.newToGym', { gym: gymName })}{' '}
+            <span className="font-semibold text-ink">{t('login.createAccountHint')}</span>.
           </>
         }
       />

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
+import { useT } from '@/components/i18n/locale-provider'
 
 export function LoginForm({
   redirectTo,
@@ -12,6 +13,7 @@ export function LoginForm({
   redirectTo: string
   newUserHint: React.ReactNode
 }) {
+  const t = useT()
   const [mode, setMode] = useState<'password' | 'code'>('password')
   const [codeSent, setCodeSent] = useState(false)
   const [code, setCode] = useState('')
@@ -73,30 +75,27 @@ export function LoginForm({
   return (
     <div className="c-stage-in">
       <div className="mb-3.5 font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
-        Sign in
+        {t('login.eyebrow')}
       </div>
       <h1 className="mb-2 font-display text-4xl font-semibold leading-[1.05] tracking-[-0.02em] text-ink">
-        The best hour
+        {t('login.headline1')}
         <br />
-        of your day.
+        {t('login.headline2')}
       </h1>
       <p className="mb-8 text-sm text-ink-2">
         {mode === 'password' ? (
-          'Sign in with your email and password.'
+          t('login.passwordSubtitle')
         ) : codeSent ? (
-          <>
-            We sent a 6-digit code to{' '}
-            <span className="font-mono font-semibold text-ink">{email}</span>.
-          </>
+          <>{t('login.codeSentTo', { email })}</>
         ) : (
-          "Enter your email and we'll send a 6-digit sign-in code."
+          t('login.codeSubtitle')
         )}
       </p>
 
       {mode === 'password' && (
         <form onSubmit={handleSignIn} className="flex flex-col gap-3.5">
           <Field
-            label="Email"
+            label={t('login.emailLabel')}
             type="email"
             required
             disabled={loading}
@@ -105,7 +104,7 @@ export function LoginForm({
             onChange={(e) => setEmail(e.target.value)}
           />
           <Field
-            label="Password"
+            label={t('login.passwordLabel')}
             type="password"
             autoComplete="current-password"
             required
@@ -120,7 +119,7 @@ export function LoginForm({
             </p>
           )}
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Signing in…' : 'Sign in →'}
+            {loading ? t('login.signingIn') : t('login.signIn')}
           </Button>
         </form>
       )}
@@ -128,7 +127,7 @@ export function LoginForm({
       {mode === 'code' && !codeSent && (
         <form onSubmit={handleSendCode} className="flex flex-col gap-3.5">
           <Field
-            label="Email"
+            label={t('login.emailLabel')}
             type="email"
             required
             disabled={loading}
@@ -142,7 +141,7 @@ export function LoginForm({
             </p>
           )}
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Sending…' : 'Send code →'}
+            {loading ? t('login.sending') : t('login.sendCode')}
           </Button>
         </form>
       )}
@@ -150,7 +149,7 @@ export function LoginForm({
       {mode === 'code' && codeSent && (
         <form onSubmit={handleVerifyCode} className="flex flex-col gap-3.5">
           <Field
-            label="6-digit code"
+            label={t('login.codeLabel')}
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -168,7 +167,7 @@ export function LoginForm({
             </p>
           )}
           <Button type="submit" disabled={loading || code.length !== 6} className="w-full">
-            {loading ? 'Verifying…' : 'Sign in →'}
+            {loading ? t('login.verifying') : t('login.signIn')}
           </Button>
           <Button
             type="button"
@@ -181,7 +180,7 @@ export function LoginForm({
               setError(null)
             }}
           >
-            ← Use a different email
+            {t('login.differentEmail')}
           </Button>
         </form>
       )}
@@ -192,7 +191,7 @@ export function LoginForm({
         onClick={() => switchMode(mode === 'password' ? 'code' : 'password')}
         className="mt-4 text-sm font-semibold text-ink underline underline-offset-4 transition-colors hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"
       >
-        {mode === 'password' ? 'Sign in with a code instead' : 'Use a password instead'}
+        {mode === 'password' ? t('login.useCodeInstead') : t('login.usePasswordInstead')}
       </button>
 
       {newUserHint && <p className="mt-5 text-xs text-ink-2">{newUserHint}</p>}

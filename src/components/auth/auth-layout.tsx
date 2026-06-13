@@ -1,15 +1,21 @@
+'use client'
+
 import * as React from 'react'
 import { CircleMark } from '@/components/circle-mark'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { useT } from '@/components/i18n/locale-provider'
 
 /** Split-screen auth shell: form column (always) + brand panel (lg and up). */
 export function AuthLayout({
   children,
   panel,
+  headerExtra,
 }: {
   children: React.ReactNode
   panel: React.ReactNode
+  headerExtra?: React.ReactNode
 }) {
+  const t = useT()
   return (
     <div className="grid min-h-screen grid-cols-1 bg-canvas lg:grid-cols-2">
       {/* Left — form column */}
@@ -19,16 +25,19 @@ export function AuthLayout({
             <CircleMark size={24} />
             <span>Circle</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            {headerExtra}
+            <ThemeToggle />
+          </div>
         </header>
 
         <div className="w-full max-w-sm">{children}</div>
 
         <footer className="flex items-center justify-between text-xs text-ink-3">
-          <div className="font-mono">© Circle · GCC</div>
+          <div className="font-mono">{t('login.copyright')}</div>
           <div className="flex gap-3.5">
-            <span>Privacy</span>
-            <span>Terms</span>
+            <span>{t('login.footerPrivacy')}</span>
+            <span>{t('login.footerTerms')}</span>
           </div>
         </footer>
       </section>
@@ -56,6 +65,7 @@ export function BrandPanel({
   description: string
   footerNote: string
 }) {
+  const t = useT()
   return (
     <div className="relative flex h-full flex-col justify-between overflow-hidden bg-[#0A0A0A] p-12 text-[#FAFAFA]">
       {/* Decorative rings + barbell bar */}
@@ -90,7 +100,7 @@ export function BrandPanel({
       <div className="relative flex items-center gap-4 text-xs text-[#FAFAFA]/60">
         <div className="flex items-center gap-2">
           <span className="c-pulse h-[7px] w-[7px] shrink-0 rounded-full bg-[#C8F135]" />
-          <span className="font-mono uppercase tracking-[0.06em]">Live platform</span>
+          <span className="font-mono uppercase tracking-[0.06em]">{t('login.livePlatform')}</span>
         </div>
         <div className="h-3.5 w-px bg-[#333]" />
         <span className="font-mono">{footerNote}</span>

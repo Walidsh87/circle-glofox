@@ -139,6 +139,7 @@ export function Sidebar({
   const boxInitial = boxName ? boxName[0].toUpperCase() : 'C'
 
   async function handleSignOut() {
+    document.cookie = 'locale=; Max-Age=0; path=/'
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/')

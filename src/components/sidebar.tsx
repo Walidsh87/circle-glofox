@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CircleMark } from '@/components/circle-mark'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { useT } from '@/components/i18n/locale-provider'
 import { cn } from '@/lib/utils'
 
 type NavItem = {
   key: string
   label: string
+  labelKey?: string
   href: string
   icon: string
   badge?: string
@@ -18,6 +20,7 @@ type NavItem = {
 
 type NavGroup = {
   section: string
+  sectionKey?: string
   items: NavItem[]
 }
 
@@ -65,17 +68,17 @@ function getNavGroups(role: string): NavGroup[] {
   }
 
   const athleteItems: NavItem[] = []
-  if (!isStaff) athleteItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
-  athleteItems.push({ key: 'schedule', label: 'Book a class', href: '/dashboard/schedule', icon: 'book' })
-  athleteItems.push({ key: 'timer', label: 'Timer', href: '/dashboard/timer', icon: 'clock' })
-  if (!isStaff) athleteItems.push({ key: 'shop', label: 'Buy a pack', href: '/dashboard/shop', icon: 'tag' })
-  athleteItems.push({ key: 'lifts', label: 'My 1RMs', href: '/dashboard/lifts', icon: 'barbell' })
-  athleteItems.push({ key: 'skills', label: 'Skills', href: '/dashboard/skills', icon: 'medal' })
-  athleteItems.push({ key: 'feed', label: 'Activity Feed', href: '/dashboard/feed', icon: 'activity' })
-  athleteItems.push({ key: 'committed-club', label: 'Committed Club', href: '/dashboard/committed-club', icon: 'trophy' })
-  athleteItems.push({ key: 'messages', label: 'Messages', href: '/dashboard/messages', icon: 'chat' })
-  athleteItems.push({ key: 'profile', label: 'My Profile', href: '/dashboard/profile', icon: 'person' })
-  groups.push({ section: 'Athletes', items: athleteItems })
+  if (!isStaff) athleteItems.push({ key: 'wod', label: 'Daily WOD', labelKey: 'nav.dailyWod', href: '/dashboard/wod', icon: 'flame' })
+  athleteItems.push({ key: 'schedule', label: 'Book a class', labelKey: 'nav.bookClass', href: '/dashboard/schedule', icon: 'book' })
+  athleteItems.push({ key: 'timer', label: 'Timer', labelKey: 'nav.timer', href: '/dashboard/timer', icon: 'clock' })
+  if (!isStaff) athleteItems.push({ key: 'shop', label: 'Buy a pack', labelKey: 'nav.buyPack', href: '/dashboard/shop', icon: 'tag' })
+  athleteItems.push({ key: 'lifts', label: 'My 1RMs', labelKey: 'nav.my1rms', href: '/dashboard/lifts', icon: 'barbell' })
+  athleteItems.push({ key: 'skills', label: 'Skills', labelKey: 'nav.skills', href: '/dashboard/skills', icon: 'medal' })
+  athleteItems.push({ key: 'feed', label: 'Activity Feed', labelKey: 'nav.activityFeed', href: '/dashboard/feed', icon: 'activity' })
+  athleteItems.push({ key: 'committed-club', label: 'Committed Club', labelKey: 'nav.committedClub', href: '/dashboard/committed-club', icon: 'trophy' })
+  athleteItems.push({ key: 'messages', label: 'Messages', labelKey: 'nav.messages', href: '/dashboard/messages', icon: 'chat' })
+  athleteItems.push({ key: 'profile', label: 'My Profile', labelKey: 'nav.myProfile', href: '/dashboard/profile', icon: 'person' })
+  groups.push({ section: 'Athletes', sectionKey: 'nav.athletesSection', items: athleteItems })
 
   return groups
 }
@@ -134,6 +137,7 @@ export function Sidebar({
   boxName: string
 }) {
   const router = useRouter()
+  const t = useT()
   const groups = getNavGroups(userRole)
   const userInitials = initials(userName)
   const boxInitial = boxName ? boxName[0].toUpperCase() : 'C'
@@ -180,7 +184,7 @@ export function Sidebar({
         {groups.map((group) => (
           <div key={group.section} className="flex flex-col gap-0.5">
             <div className="font-mono px-2.5 pb-1.5 pt-0.5 text-xs uppercase tracking-[0.1em] text-ink-3">
-              {group.section}
+              {group.sectionKey ? t(group.sectionKey) : group.section}
             </div>
             {group.items.map((item) => {
               const on = item.key === active
@@ -197,7 +201,7 @@ export function Sidebar({
                   )}
                 >
                   <CIcon name={item.icon} size={15} />
-                  <span className="flex-1">{item.label}</span>
+                  <span className="flex-1">{item.labelKey ? t(item.labelKey) : item.label}</span>
                   {item.badge && (
                     <span
                       className={cn(
@@ -231,7 +235,7 @@ export function Sidebar({
             title="Sign out"
             className="rounded-md px-1.5 py-1 text-xs text-ink-3 transition-colors hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
-            Sign out
+            {t('nav.signOut')}
           </button>
         </div>
       </aside>
@@ -252,7 +256,7 @@ export function Sidebar({
             >
               <CIcon name={item.icon} size={22} />
               <span className={cn('text-[11px]', on ? 'font-bold' : 'font-medium')}>
-                {item.label}
+                {item.labelKey ? t(item.labelKey) : item.label}
               </span>
             </Link>
           )

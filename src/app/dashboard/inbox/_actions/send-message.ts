@@ -66,7 +66,9 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
   // Staff replies nudge the member's phone (#22 infra: no-ops without VAPID, never throws).
   if (isStaff) {
     const service = createServiceClient()
-    const { data: rp } = await service.from('profiles').select('language').eq('id', targetMemberId).maybeSingle()
+    // Recipient language via the RLS client (staff can read a box member's profile,
+    // same as the phone read above) — keeps the service client out of an RLS-safe read.
+    const { data: rp } = await supabase.from('profiles').select('language').eq('id', targetMemberId).maybeSingle()
     const t = getT(resolveLocale(rp?.language as string | null))
     await sendPushTo(service, targetMemberId, {
       title: t('comms.newMessage.title'),

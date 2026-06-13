@@ -10,13 +10,16 @@ export function emailButton(label: string, url: string): string {
 }
 
 export function emailShell(inner: string, locale: Locale = 'en'): string {
-  const dir = locale === 'ar' ? 'rtl' : 'ltr'
-  const align = locale === 'ar' ? 'right' : 'left'
+  // RTL markup is added ONLY for Arabic; English output stays byte-identical
+  // (no dir attribute, no direction/text-align — LTR is the client default).
+  const rtl = locale === 'ar'
+  const htmlTag = rtl ? '<html dir="rtl">' : '<html>'
+  const cellRtl = rtl ? ';direction:rtl;text-align:right' : ''
   return `<!DOCTYPE html>
-<html dir="${dir}">
+${htmlTag}
 <body style="margin:0;padding:0;background:#F6F4ED">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F4ED"><tr><td align="center" style="padding:32px 16px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E3DFD2;border-radius:12px"><tr><td style="padding:32px 28px;font-family:${FONT};font-size:15px;line-height:1.6;color:#15150F;direction:${dir};text-align:${align}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E3DFD2;border-radius:12px"><tr><td style="padding:32px 28px;font-family:${FONT};font-size:15px;line-height:1.6;color:#15150F${cellRtl}">
 ${inner}
 </td></tr></table>
 </td></tr></table>

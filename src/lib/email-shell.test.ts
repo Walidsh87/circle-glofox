@@ -14,8 +14,12 @@ describe('emailShell', () => {
     expect(html).toContain('dir="rtl"')
     expect(html).toContain('text-align:right')
   })
-  it('defaults to LTR', () => {
-    expect(emailShell('<p>Hi</p>')).toContain('dir="ltr"')
+  it('English default carries no RTL markup (byte-unchanged)', () => {
+    const html = emailShell('<p>Hi</p>')
+    expect(html).not.toContain('dir="rtl"')
+    expect(html).not.toContain('text-align:right')
+    expect(html).not.toContain('direction:')
+    expect(html).toContain('<html>')
   })
 })
 

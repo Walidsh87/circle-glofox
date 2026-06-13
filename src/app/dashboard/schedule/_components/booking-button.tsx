@@ -7,6 +7,7 @@ import { bookClass } from '../_actions/book-class'
 import { cancelBooking } from '../_actions/cancel-booking'
 import { joinWaitlist } from '../_actions/join-waitlist'
 import { leaveWaitlist } from '../_actions/leave-waitlist'
+import { useT } from '@/components/i18n/locale-provider'
 
 export function BookingButton({
   instanceId,
@@ -21,6 +22,7 @@ export function BookingButton({
   isWaitlisted: boolean
   waitlistPosition: number | null
 }) {
+  const t = useT()
   const [loading, setLoading] = useState(false)
   const [needsCredits, setNeedsCredits] = useState(false)
 
@@ -33,7 +35,7 @@ export function BookingButton({
     } else if (res.error) {
       alert(res.error)
     } else if ('forfeited' in res && res.forfeited) {
-      alert('Late cancel — your class credit wasn’t refunded.')
+      alert(t('schedule.lateCancel'))
     }
     setLoading(false)
   }
@@ -57,14 +59,14 @@ export function BookingButton({
       return (
         <div className="flex items-center gap-2">
           <span className="font-mono text-[11px] font-semibold text-ink-3">
-            On waitlist · #{waitlistPosition ?? '–'}
+            {t('schedule.onWaitlist', { n: waitlistPosition ?? '–' })}
           </span>
           <button
             onClick={handleLeave}
             disabled={loading}
             className="h-7 rounded-[7px] border border-line bg-transparent px-2.5 text-xs font-semibold text-ink-2 transition-colors hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Leave
+            {t('schedule.leave')}
           </button>
         </div>
       )
@@ -75,7 +77,7 @@ export function BookingButton({
         disabled={loading}
         className="h-[30px] rounded-[7px] border border-line-strong bg-surface px-3.5 text-[12.5px] font-bold text-ink-2 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? '…' : 'Join waitlist'}
+        {loading ? '…' : t('schedule.joinWaitlist')}
       </button>
     )
   }
@@ -92,11 +94,11 @@ export function BookingButton({
             : 'bg-accent text-accent-contrast hover:bg-accent-hover'
         )}
       >
-        {loading ? '…' : isBooked ? 'Cancel' : 'Book'}
+        {loading ? '…' : isBooked ? t('schedule.cancel') : t('schedule.book')}
       </button>
       {needsCredits && (
         <Link href="/dashboard/shop" className="text-[11px] text-accent-ink underline">
-          Need a class credit — buy a pack
+          {t('schedule.needCredit')}
         </Link>
       )}
     </div>

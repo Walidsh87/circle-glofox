@@ -10,15 +10,14 @@ import { env } from '@/env'
 import { rosterFirstNames } from '@/lib/roster'
 import { CalendarSyncCard } from './_components/calendar-sync-card'
 import { PushCard } from './_components/push-card'
+import { getServerT, getLocale } from '@/lib/i18n/server'
+import { LanguageToggle } from '@/components/i18n/language-toggle'
 
-function formatDateTime(startsAt: string, timezone: string) {
+function formatDateTime(startsAt: string, timezone: string, locale: 'en' | 'ar') {
   const date = new Date(startsAt)
-  const dayLabel = new Intl.DateTimeFormat('en-GB', {
-    timeZone: timezone, weekday: 'long', day: 'numeric', month: 'short',
-  }).format(date)
-  const time = new Intl.DateTimeFormat('en-GB', {
-    timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false,
-  }).format(date)
+  const intlLocale = locale === 'ar' ? 'ar' : 'en-GB'
+  const dayLabel = new Intl.DateTimeFormat(intlLocale, { timeZone: timezone, weekday: 'long', day: 'numeric', month: 'short' }).format(date)
+  const time = new Intl.DateTimeFormat(intlLocale, { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false }).format(date)
   return { dayLabel, time }
 }
 
@@ -49,6 +48,8 @@ export default async function SchedulePage() {
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const rosterPublic = box?.roster_public === true
   const todayIso = todayInTimezone(timezone)
+  const locale = await getLocale()
+  const t = await getServerT()
 
   // Family (#84): co-members this athlete can book for.
   let coMembers: { id: string; name: string }[] = []
@@ -86,12 +87,13 @@ export default async function SchedulePage() {
       userName={profile.full_name!}
       userRole={profile.role}
       boxName={boxName}
-      title="Book a Class"
+      title={t('schedule.title')}
       actions={
         <span className="flex items-center gap-2 font-mono text-xs text-ink-3">
+          {profile.role === 'athlete' && <LanguageToggle />}
           {formatHijri(todayIso)}
           {inRamadanWindow(todayIso, box?.ramadan_start ?? null, box?.ramadan_end ?? null) && (
-            <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[11px] font-bold text-warn">Ramadan timetable</span>
+            <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[11px] font-bold text-warn">{t('schedule.ramadanBadge')}</span>
           )}
         </span>
       }
@@ -102,20 +104,20 @@ export default async function SchedulePage() {
       </div>
       {grouped.size === 0 && (
         <div className="max-w-[640px] rounded-[14px] border border-line bg-surface px-6 py-12 text-center text-[13px] text-ink-3">
-          No upcoming classes. Generate instances from the Class Schedule page.
+          {t('schedule.empty')}
         </div>
       )}
 
       <div className="flex max-w-[640px] flex-col gap-6">
         {Array.from(grouped.entries()).map(([, dayInstances]) => {
           const first = dayInstances![0]
-          const { dayLabel } = formatDateTime(first.starts_at, timezone)
+          const { dayLabel } = formatDateTime(first.starts_at, timezone, locale)
           return (
             <div key={dayLabel}>
               <div className="mb-2.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.1em] text-ink-3">{dayLabel}</div>
               <div className="flex flex-col gap-2">
                 {dayInstances!.map((instance) => {
-                  const { time } = formatDateTime(instance.starts_at, timezone)
+                  const { time } = formatDateTime(instance.starts_at, timezone, locale)
                   const bookings = instance.bookings as { athlete_id: string; profiles: { full_name: string } | { full_name: string }[] | null }[] | null
                   const bookedCount = bookings?.length ?? 0
                   const isFull = bookedCount >= instance.capacity
@@ -138,7 +140,7 @@ export default async function SchedulePage() {
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-ink">{className}</div>
                         <div className="mt-0.5 font-mono text-[11.5px] text-ink-3">
-                          {coachName ?? 'No coach'}
+                          {coachName ?? t('schedule.noCoach')}
                         </div>
                         {/* Capacity bar */}
                         <div className="mt-2 flex items-center gap-2">
@@ -151,7 +153,7 @@ export default async function SchedulePage() {
                         </div>
                         {rosterPublic && bookedCount > 0 && (
                           <details className="mt-1.5">
-                            <summary className="cursor-pointer text-[11.5px] text-ink-3">Who&apos;s coming ({bookedCount})</summary>
+                            <summary className="cursor-pointer text-[11.5px] text-ink-3">{t('schedule.whosComing', { n: bookedCount })}</summary>
                             <p className="mt-1 text-xs text-ink-2">
                               {rosterFirstNames((bookings ?? []).map((b) => { const p = b.profiles; return Array.isArray(p) ? (p[0]?.full_name ?? null) : (p?.full_name ?? null) })).join(', ')}
                             </p>

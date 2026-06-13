@@ -9,6 +9,14 @@ describe('emailShell', () => {
     expect(html).toContain('#FFFFFF') // white card
     expect(html).toContain('<p>Hello</p>')
   })
+  it('renders RTL for Arabic', () => {
+    const html = emailShell('<p>مرحبا</p>', 'ar')
+    expect(html).toContain('dir="rtl"')
+    expect(html).toContain('text-align:right')
+  })
+  it('defaults to LTR', () => {
+    expect(emailShell('<p>Hi</p>')).toContain('dir="ltr"')
+  })
 })
 
 describe('emailButton', () => {

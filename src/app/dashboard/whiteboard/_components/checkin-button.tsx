@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { checkIn } from '../_actions/check-in'
+import { uncheckIn } from '../_actions/uncheck-in'
 import { OverrideModal } from './override-modal'
 import type { MembershipStatus } from '@/lib/membership-status'
+
+const DISARM_MS = 3000
 
 export function CheckInButton({
   instanceId,
@@ -25,12 +28,39 @@ export function CheckInButton({
 }) {
   const [done, setDone] = useState(checkedIn)
   const [loading, setLoading] = useState(false)
+  const [armed, setArmed] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [blockReason, setBlockReason] = useState<'unpaid' | 'no_membership' | 'frozen'>('unpaid')
   const [modalLastPaid, setModalLastPaid] = useState<string | null>(null)
+  const disarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function clearDisarm() {
+    if (disarmTimer.current) { clearTimeout(disarmTimer.current); disarmTimer.current = null }
+  }
+  useEffect(() => clearDisarm, [])
 
   async function handleTap() {
-    if (done) return
+    if (loading) return
+
+    // Already checked in: first tap arms the undo, second tap reverts.
+    if (done) {
+      if (!armed) {
+        setArmed(true)
+        clearDisarm()
+        disarmTimer.current = setTimeout(() => setArmed(false), DISARM_MS)
+        return
+      }
+      clearDisarm()
+      setLoading(true)
+      const result = await uncheckIn(instanceId, athleteId)
+      setLoading(false)
+      if (result.error) { alert(result.error); return }
+      setArmed(false)
+      setDone(false)
+      return
+    }
+
+    // Not checked in: existing check-in flow (entitlement gate may open the override modal).
     setLoading(true)
     const result = await checkIn(instanceId, athleteId)
     setLoading(false)
@@ -57,11 +87,13 @@ export function CheckInButton({
     <>
       <button
         onClick={handleTap}
-        disabled={loading || done}
+        disabled={loading}
         className={cn(
           'flex w-full items-center gap-2.5 rounded-xl border px-4 py-3.5 text-left text-[15px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          done
-            ? 'cursor-default border-ok-soft bg-ok-soft text-ok'
+          done && armed
+            ? 'cursor-pointer border-warn-soft bg-warn-soft text-warn'
+            : done
+            ? 'cursor-pointer border-ok-soft bg-ok-soft text-ok'
             : 'border-line bg-surface-2 text-ink hover:border-line-strong'
         )}
       >
@@ -77,7 +109,7 @@ export function CheckInButton({
             Pack
           </span>
         )}
-        <span className="flex-1">{athleteName}</span>
+        <span className="flex-1">{done && armed ? 'Tap to undo' : athleteName}</span>
         {loading && <span className="text-[11px] text-ink-faint">…</span>}
       </button>
       <OverrideModal

@@ -102,43 +102,18 @@ async function main() {
   // --- the REAL base schema -------------------------------------------------
   await client.query(readFileSync(join(ROOT, 'schema.sql'), 'utf8'))
 
-  // --- reconstruct ad-hoc prod drift not captured by any committed SQL ------
-  // Two objects exist in production and are referenced by the app + migrations,
-  // but are created by NO committed SQL — the disaster-recovery rebuild
-  // documented in migrations/README.md is therefore incomplete and the
-  // migrations cannot replay without them. CI-only scaffolding until the drift
-  // is reconciled into real migrations.
-  //
-  //  * `leads` — app reads/writes it (src/app/embed/lead/.../submit-lead.ts),
-  //    root migration add-leads-rls.sql adds RLS to it, and migrations
-  //    019/048/049/058/068 reference it (FK + RLS). schema.sql omits it and
-  //    add-leads-rls.sql only adds policies, assuming it already exists.
-  //  * `boxes.logo_url` — used by 4 app files; 019_rls_hardening.sql GRANTs
-  //    column SELECT on it but no migration ever ADDs the column.
-  //
-  // Created here — after schema.sql (so `boxes` exists) and after ALTER DEFAULT
-  // PRIVILEGES is active (so Supabase's baseline grants apply, and 019's
-  // column-scoped GRANT/REVOKE behaves as in prod). Columns inferred from app
-  // usage + the FK references.
-  await client.query(`alter table public.boxes add column if not exists logo_url text;`)
-  await client.query(`create table if not exists public.leads (
-    id         uuid primary key default gen_random_uuid(),
-    box_id     uuid not null references public.boxes(id) on delete cascade,
-    full_name  text not null,
-    email      text,
-    phone      text,
-    source     text,
-    status     text not null default 'new',
-    created_at timestamptz not null default now()
-  );`)
-
   // --- the out-of-band root migrations (pre-numbering) ----------------------
   // Per migrations/README.md, a disaster-recovery rebuild is: schema.sql, then
-  // these four root .sql files, then the numbered 008+ migrations. The numbered
-  // migrations DEPEND on columns/tables these create (e.g. 016 reads
-  // boxes.stripe_secret_key from stripe-billing-migration.sql), so they must run
-  // here to reproduce production. They are plain DDL/RLS — no Supabase-only bits.
-  for (const f of ['add-slug-migration.sql', 'stripe-billing-migration.sql', 'add-leads-rls.sql', 'feed-progress-migration.sql']) {
+  // these root .sql files, then the numbered 008+ migrations. The numbered
+  // migrations DEPEND on objects these create (e.g. 016 reads
+  // boxes.stripe_secret_key from stripe-billing-migration.sql; 019/048/049/058/068
+  // reference `leads`), so they must run here to reproduce production. They are
+  // plain DDL/RLS — no Supabase-only bits.
+  //
+  // add-leads-table-migration.sql creates the `leads` table + `boxes.logo_url` —
+  // two ad-hoc prod objects once missing from all committed SQL (drift reconciled
+  // 2026-06-14). It runs BEFORE add-leads-rls.sql, which enables RLS on `leads`.
+  for (const f of ['add-slug-migration.sql', 'stripe-billing-migration.sql', 'add-leads-table-migration.sql', 'add-leads-rls.sql', 'feed-progress-migration.sql']) {
     try {
       await client.query(readFileSync(join(ROOT, f), 'utf8'))
     } catch (e) {

@@ -120,7 +120,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, full_name, email, phone, role, created_at, emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth, household_id, id_type, id_number')
+      .select('id, full_name, email, phone, role, created_at, household_id')
       .eq('id', params.memberId)
       .eq('box_id', viewer.box_id)
       .single(),
@@ -175,6 +175,30 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const isManager = ['owner', 'admin'].includes(viewer.role)
   const isStaff = (ALL_STAFF_ROLES as readonly string[]).includes(viewer.role)
   const today = new Date().toISOString().slice(0, 10)
+
+  // PII columns are restricted to service-role after migration 071.
+  // Only staff (owner/coach/admin) or the member themselves may see them.
+  const canSeePii = isStaff || isSelf
+  const PII_COLUMNS = 'emergency_contact_name, emergency_contact_phone, blood_type, allergies, date_of_birth, id_type, id_number' as const
+  const pii = canSeePii
+    ? (await createServiceClient()
+        .from('profiles')
+        .select(PII_COLUMNS)
+        .eq('id', params.memberId)
+        .eq('box_id', viewer.box_id)
+        .single()
+      ).data
+    : null
+  const memberWithPii = {
+    ...member,
+    emergency_contact_name: pii?.emergency_contact_name ?? null,
+    emergency_contact_phone: pii?.emergency_contact_phone ?? null,
+    blood_type: pii?.blood_type ?? null,
+    allergies: pii?.allergies ?? null,
+    date_of_birth: pii?.date_of_birth ?? null,
+    id_type: pii?.id_type ?? null,
+    id_number: pii?.id_number ?? null,
+  }
 
   // Onboarding/offboarding checklist (#38) kind is stage-driven off the memberships above.
   const memberStatus = getMembershipStatus((memberships ?? []) as MembershipRow[], today)
@@ -368,13 +392,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
             phone={member.phone}
             role={member.role}
             viewerRole={viewer.role}
-            emergencyContactName={member.emergency_contact_name ?? null}
-            emergencyContactPhone={member.emergency_contact_phone ?? null}
-            bloodType={member.blood_type ?? null}
-            allergies={member.allergies ?? null}
-            dateOfBirth={member.date_of_birth ?? null}
-            idType={member.id_type ?? null}
-            idNumber={member.id_number ?? null}
+            emergencyContactName={memberWithPii.emergency_contact_name ?? null}
+            emergencyContactPhone={memberWithPii.emergency_contact_phone ?? null}
+            bloodType={memberWithPii.blood_type ?? null}
+            allergies={memberWithPii.allergies ?? null}
+            dateOfBirth={memberWithPii.date_of_birth ?? null}
+            idType={memberWithPii.id_type ?? null}
+            idNumber={memberWithPii.id_number ?? null}
           />
         ) : undefined
       }
@@ -496,7 +520,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
 
         {isSelf && (
           <Section label={t('profile.myDetails.section')}>
-            <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: member.emergency_contact_name, emergencyContactPhone: member.emergency_contact_phone, bloodType: member.blood_type, allergies: member.allergies }} />
+            <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: memberWithPii.emergency_contact_name, emergencyContactPhone: memberWithPii.emergency_contact_phone, bloodType: memberWithPii.blood_type, allergies: memberWithPii.allergies }} />
           </Section>
         )}
 
@@ -542,26 +566,28 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
           </Section>
         )}
 
-        {/* Personal & medical */}
-        <Section label={t('profile.personalMedical.section')}>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
-            <Field label={t('profile.personalMedical.dob')} value={member.date_of_birth ? `${member.date_of_birth}${ageFromDob(member.date_of_birth, today) !== null ? ` · ${ageFromDob(member.date_of_birth, today)}y` : ''}` : '—'} />
-            <Field label={t('profile.personalMedical.bloodType')} value={member.blood_type ?? '—'} />
-            <Field label={t('profile.personalMedical.emergencyContact')} value={member.emergency_contact_name ? `${member.emergency_contact_name}${member.emergency_contact_phone ? ` · ${member.emergency_contact_phone}` : ''}` : '—'} />
-            <Field
-              label={t('profile.personalMedical.idDocument')}
-              value={member.id_number
-                ? `${ID_TYPE_LABELS[member.id_type as IdType] ?? 'ID'} · ${formatIdNumber(member.id_type ?? '', member.id_number)}`
-                : t('profile.personalMedical.noId')}
-            />
-          </div>
-          <div className="mt-3">
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">{t('profile.personalMedical.allergies')}</div>
-            {member.allergies
-              ? <div className="rounded-lg bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn">⚠️ {member.allergies}</div>
-              : <div className="text-[13px] text-ink-3">—</div>}
-          </div>
-        </Section>
+        {/* Personal & medical — staff or self only */}
+        {canSeePii && (
+          <Section label={t('profile.personalMedical.section')}>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
+              <Field label={t('profile.personalMedical.dob')} value={memberWithPii.date_of_birth ? `${memberWithPii.date_of_birth}${ageFromDob(memberWithPii.date_of_birth, today) !== null ? ` · ${ageFromDob(memberWithPii.date_of_birth, today)}y` : ''}` : '—'} />
+              <Field label={t('profile.personalMedical.bloodType')} value={memberWithPii.blood_type ?? '—'} />
+              <Field label={t('profile.personalMedical.emergencyContact')} value={memberWithPii.emergency_contact_name ? `${memberWithPii.emergency_contact_name}${memberWithPii.emergency_contact_phone ? ` · ${memberWithPii.emergency_contact_phone}` : ''}` : '—'} />
+              <Field
+                label={t('profile.personalMedical.idDocument')}
+                value={memberWithPii.id_number
+                  ? `${ID_TYPE_LABELS[memberWithPii.id_type as IdType] ?? 'ID'} · ${formatIdNumber(memberWithPii.id_type ?? '', memberWithPii.id_number)}`
+                  : t('profile.personalMedical.noId')}
+              />
+            </div>
+            <div className="mt-3">
+              <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">{t('profile.personalMedical.allergies')}</div>
+              {memberWithPii.allergies
+                ? <div className="rounded-lg bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn">⚠️ {memberWithPii.allergies}</div>
+                : <div className="text-[13px] text-ink-3">—</div>}
+            </div>
+          </Section>
+        )}
 
         {isStaff && member.role === 'athlete' && (
           <Section label="PAR-Q">

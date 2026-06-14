@@ -21,7 +21,10 @@ beforeEach(() => {
 it('subscription quote: converts buyer, creates the membership, opens subscription checkout with quoteId', async () => {
   const svc = makeSupabaseMock({
     results: {
-      quotes: { data: { id: 'q1', status: 'accepted', box_id: 'b1', mode: 'subscription', plan_id: 'plan-1', athlete_id: 'ath-1', lead_id: null, membership_id: null, buyer_email: 'sara@x.com', buyer_name: 'Sara', title: 'Unlimited', quote_number: 'QUO-1', total_aed: 315, valid_until: null }, error: null },
+      quotes: [
+        { data: { id: 'q1', status: 'accepted', box_id: 'b1', mode: 'subscription', plan_id: 'plan-1', athlete_id: 'ath-1', lead_id: null, membership_id: null, buyer_email: 'sara@x.com', buyer_name: 'Sara', title: 'Unlimited', quote_number: 'QUO-1', total_aed: 315, valid_until: null }, error: null },
+        { data: { membership_id: 'mem-1' }, error: null }, // the atomic CAS claim returns the winning membership
+      ],
       membership_plans: { data: { id: 'plan-1', name: 'Unlimited', monthly_price_aed: 315, provider_plan_ref: 'price_1' }, error: null },
       memberships: [{ data: { id: 'mem-1' }, error: null }, { data: { provider_customer_ref: null }, error: null }],
       profiles: { data: null, error: null },

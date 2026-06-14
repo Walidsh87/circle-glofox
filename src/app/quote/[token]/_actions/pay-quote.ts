@@ -85,8 +85,20 @@ async function paySubscriptionQuote(
       provider_plan_ref: plan.provider_plan_ref,
     }).select('id').single()
     if (mErr || !m) return setupFail
-    membershipId = m.id as string
-    await service.from('quotes').update({ membership_id: membershipId }).eq('id', q.id as string)
+    // Atomically claim this membership onto the quote. The conditional UPDATE lets
+    // exactly one of N concurrent Pay clicks win (this is a public, unrate-limited
+    // action) — preventing duplicate memberships/subscriptions for one quote.
+    const { data: claimed } = await service.from('quotes')
+      .update({ membership_id: m.id }).eq('id', q.id as string).is('membership_id', null)
+      .select('membership_id').maybeSingle()
+    if (claimed && claimed.membership_id === m.id) {
+      membershipId = m.id as string
+    } else {
+      // Lost the race — discard our row and use the winner's membership.
+      await service.from('memberships').delete().eq('id', m.id as string)
+      const { data: q2 } = await service.from('quotes').select('membership_id').eq('id', q.id as string).maybeSingle()
+      membershipId = (q2?.membership_id as string | null) ?? (m.id as string)
+    }
   }
 
   try {

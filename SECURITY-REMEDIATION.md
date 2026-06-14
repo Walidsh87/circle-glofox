@@ -277,7 +277,7 @@ You've hand-run 69 migrations with **no automated test proving isolation still h
 ## Final acceptance checklist
 
 - [x] `070` **applied to prod + verified 2026-06-14** — 0 unpinned definer functions; `cron_eligible_memberships` no longer EXECUTE-able by `authenticated`/`anon` (dry-run caught that `REVOKE … FROM PUBLIC` alone was insufficient — Supabase grants those roles directly; migration revokes them explicitly). `service_role` still works.
-- [~] App PII reads **rerouted through service role (W3a, shipped + reviewed)**; `071` authored + dry-run-safe but **NOT yet applied** — apply only after the app deploy (W3a) is live on Vercel.
+- [x] App PII reads **rerouted through service role (W3a, shipped + reviewed)**; `071` **applied to prod + verified 2026-06-14** (after the W3a deploy went live) — all 7 PII columns now deny SELECT for `authenticated` + `anon`; `full_name`/`box_id`/`phone` still readable by `authenticated`; `anon` gets no columns. Staff/self PII views render via the service role.
 - [x] `072` **applied to prod + verified 2026-06-14** — `score_reactions.box_read` narrowed to `FOR SELECT` (corrected from the draft, which left box-wide DELETE open); reaction writes own-scoped; athlete-own SELECT policies box-pinned; conversations member-insert/update/staff preserved.
 - [x] `/quote` + `/checkin` rate-limited; cron uses constant-time compare; `sendPushTo` box-scoped + `sendMessage` in-box guard; `env.PORTAL_SIGN_SECRET` used. (Shipped + reviewed, gate green.)
 - [ ] **W4** — Secrets rotated (if prod) and dev pointed at a separate Supabase project; Upstash set in prod. *(operational — owner)*

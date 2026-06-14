@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  lineTotal, computeQuoteTotals, validateQuoteDraft, canTransition,
+  lineTotal, computeQuoteTotals, computeSubscriptionTotal, validateQuoteDraft, canTransition,
   formatQuoteNumber, isExpired, type QuoteLineInput,
 } from './quotes'
 
@@ -58,6 +58,36 @@ describe('validateQuoteDraft', () => {
   })
   it('rejects a total that nets to zero or below', () => {
     expect(validateQuoteDraft({ ...base, lines: [pkgLine, { kind: 'discount', label: 'd', quantity: 1, unitAmountAed: -500 }] })).toMatch(/total/i)
+  })
+})
+
+describe('computeSubscriptionTotal', () => {
+  it('splits VAT out of an inclusive monthly price', () => {
+    const t = computeSubscriptionTotal(105, 5)
+    expect(t).toEqual({ subtotalAed: 100, vatAed: 5, totalAed: 105 })
+  })
+  it('returns zeros for a non-positive price', () => {
+    expect(computeSubscriptionTotal(0, 5)).toEqual({ subtotalAed: 0, vatAed: 0, totalAed: 0 })
+  })
+})
+
+describe('validateQuoteDraft — subscription mode', () => {
+  const base = {
+    mode: 'subscription' as const,
+    buyer: { athleteId: 'a1' } as const,
+    title: 'Unlimited Monthly',
+    lines: [],
+    planId: 'plan-1' as string | null,
+    monthlyPriceAed: 300,
+    validUntil: null as string | null,
+    vatRatePercent: 5,
+    nowIso: '2026-06-14T10:00:00.000Z',
+  }
+  it('passes a valid subscription draft', () => { expect(validateQuoteDraft(base)).toBeNull() })
+  it('requires a plan', () => { expect(validateQuoteDraft({ ...base, planId: null })).toMatch(/plan/i) })
+  it('requires a positive monthly price', () => { expect(validateQuoteDraft({ ...base, monthlyPriceAed: 0 })).toMatch(/price/i) })
+  it('rejects line items on a subscription quote', () => {
+    expect(validateQuoteDraft({ ...base, lines: [{ kind: 'custom', label: 'x', quantity: 1, unitAmountAed: 5 }] })).toMatch(/no line items/i)
   })
 })
 

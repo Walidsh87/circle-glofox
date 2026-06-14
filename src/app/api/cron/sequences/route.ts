@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { matchAutomation, type TriggerType } from '@/lib/automations'
+import { unauthorizedCron } from '@/lib/cron-auth'
 import { loadAutoMembers } from '@/lib/auto-members'
 import { nextDueStep, enrollmentStillValid, type SequenceStep } from '@/lib/sequences'
 import { renderEmail, firstNameOf } from '@/lib/broadcast-render'
@@ -13,9 +14,8 @@ type SequenceRow = { id: string; box_id: string; name: string; trigger_type: Tri
 type EnrollmentRow = { id: string; sequence_id: string; athlete_id: string; enrolled_on: string; enroll_key: string; status: string }
 
 export async function GET(request: NextRequest) {
-  if (request.headers.get('authorization') !== `Bearer ${env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = unauthorizedCron(request)
+  if (denied) return denied
   const today = new Date().toISOString().slice(0, 10)
   const service = createServiceClient({
     global: { fetch: (i: RequestInfo | URL, init?: RequestInit) => fetch(i, { ...init, cache: 'no-store' }) },

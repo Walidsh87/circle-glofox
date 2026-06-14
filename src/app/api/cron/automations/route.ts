@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 import { matchAutomation, type AutomationRule } from '@/lib/automations'
+import { unauthorizedCron } from '@/lib/cron-auth'
 import { loadAutoMembers } from '@/lib/auto-members'
 import { renderEmail, firstNameOf } from '@/lib/broadcast-render'
 import { type Block } from '@/lib/email-blocks'
@@ -17,9 +18,8 @@ const CHUNK = 100
 type AutomationRow = AutomationRule & { box_id: string; name: string; subject: string; body_blocks: Block[]; channel: string; wa_template_id: string | null; wa_var_values: Record<string, string> | null }
 
 export async function GET(request: NextRequest) {
-  if (request.headers.get('authorization') !== `Bearer ${env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = unauthorizedCron(request)
+  if (denied) return denied
   const today = new Date().toISOString().slice(0, 10)
   const service = createServiceClient({
     global: { fetch: (i: RequestInfo | URL, init?: RequestInit) => fetch(i, { ...init, cache: 'no-store' }) },

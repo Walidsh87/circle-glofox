@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { env } from '@/env'
 import { buildDigestPushes, sendPushTo, type DigestRow } from '@/lib/push'
+import { unauthorizedCron } from '@/lib/cron-auth'
 import { loadRecipientLocales } from '@/lib/i18n/recipients'
 import { TIMEZONE_OFFSETS } from '@/lib/timezone'
 
@@ -15,9 +15,8 @@ function one<T>(v: Embedded<T>): T | null {
 type Row = { athlete_id: string; class_instances: Embedded<{ starts_at: string; class_templates: Embedded<{ name: string }> }> }
 
 export async function GET(request: NextRequest) {
-  if (request.headers.get('authorization') !== `Bearer ${env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = unauthorizedCron(request)
+  if (denied) return denied
   const service = createServiceClient()
 
   const { data: boxes } = await service.from('boxes').select('id, timezone')

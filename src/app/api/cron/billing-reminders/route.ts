@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { env } from '@/env'
 import { getDueDate, getReminderStage } from '@/lib/billing-reminders'
+import { unauthorizedCron } from '@/lib/cron-auth'
 import { sendBillingReminderEmail } from '@/lib/email'
 import { loadRecipientLocalesByEmail } from '@/lib/i18n/recipients'
 
@@ -22,10 +22,8 @@ type Row = {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get('authorization')
-  if (auth !== `Bearer ${env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = unauthorizedCron(request)
+  if (denied) return denied
 
   const today = new Date().toISOString().slice(0, 10)
 

@@ -37,7 +37,7 @@ export function CheckInButton({
   function clearDisarm() {
     if (disarmTimer.current) { clearTimeout(disarmTimer.current); disarmTimer.current = null }
   }
-  useEffect(() => clearDisarm, [])
+  useEffect(() => () => { if (disarmTimer.current) clearTimeout(disarmTimer.current) }, [])
 
   async function handleTap() {
     if (loading) return

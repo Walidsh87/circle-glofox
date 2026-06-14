@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`067` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`072` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,46 @@ Reverse procedures for migrations `008`–`067` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 072_rls_defense_in_depth
+```sql
+-- Restore the pre-hardening policy bodies (re-opens the W8 defense-in-depth gaps).
+DROP POLICY IF EXISTS athlete_own_invoices ON invoices;
+CREATE POLICY athlete_own_invoices ON invoices FOR SELECT USING (athlete_id = auth.uid());
+DROP POLICY IF EXISTS athlete_own_credit_notes ON credit_notes;
+CREATE POLICY athlete_own_credit_notes ON credit_notes FOR SELECT USING (athlete_id = auth.uid());
+DROP POLICY IF EXISTS conversations_member_select ON conversations;
+CREATE POLICY conversations_member_select ON conversations FOR SELECT USING (member_id = auth.uid());
+DROP POLICY IF EXISTS box_read ON score_reactions;
+DROP POLICY IF EXISTS reactions_self_insert ON score_reactions;
+DROP POLICY IF EXISTS reactions_self_delete ON score_reactions;
+CREATE POLICY box_read ON score_reactions FOR ALL USING (box_id = auth_box_id());
+CREATE POLICY self_write ON score_reactions FOR ALL WITH CHECK (athlete_id = auth.uid() AND box_id = auth_box_id());
+```
+
+### 071_profiles_pii_lockdown
+```sql
+-- ⚠️ Re-exposes the 7 PII columns (medical + government ID) to every co-member. Restores the
+-- pre-lockdown table grant. Run the W3a app revert too, or service-role reads still work fine.
+GRANT SELECT ON public.profiles TO authenticated, anon;
+```
+
+### 070_security_hardening
+```sql
+-- ⚠️ Re-opens BOTH HIGH holes (cross-tenant cron RPC + unpinned definer search_path).
+GRANT EXECUTE ON FUNCTION cron_eligible_memberships(date) TO PUBLIC;
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT n.nspname AS schema, p.proname AS name, pg_get_function_identity_arguments(p.oid) AS args
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.prosecdef
+  LOOP
+    EXECUTE format('ALTER FUNCTION %I.%I(%s) RESET search_path', r.schema, r.name, r.args);
+  END LOOP;
+END $$;
+```
 
 ### 067_member_language
 ```sql

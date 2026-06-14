@@ -14,6 +14,11 @@ export async function uncheckIn(
 
   const service = createServiceClient()
 
+  // We deliberately do NOT revoke member_achievements here. Streaks/totals are
+  // recomputed live from checked_in everywhere except the activity feed (which
+  // reads the persisted ledger); the ledger is idempotent and self-heals on the
+  // next legitimate check-in, so an undo right after a milestone leaves only a
+  // transient feed post — not worth un-awarding a badge that briefly appeared.
   const { error } = await service
     .from('bookings')
     .update({ checked_in: false, checked_in_at: null, overridden_by: null, overridden_reason: null, overridden_at: null })

@@ -9,7 +9,10 @@
 -- Idempotent. DRY RUN: wrap in BEGIN; … ROLLBACK; run the probes, confirm, then COMMIT.
 
 -- 1) W1 — lock the cross-tenant cron RPC to the service role only.
-REVOKE EXECUTE ON FUNCTION cron_eligible_memberships(date) FROM PUBLIC;
+--    NOTE: a dry-run proved REVOKE … FROM PUBLIC alone is NOT enough — Supabase
+--    grants EXECUTE directly to `authenticated` and `anon`, so they must be revoked
+--    explicitly (FROM PUBLIC only would leave both roles still able to call it).
+REVOKE EXECUTE ON FUNCTION cron_eligible_memberships(date) FROM PUBLIC, authenticated, anon;
 GRANT  EXECUTE ON FUNCTION cron_eligible_memberships(date) TO service_role;
 
 -- 2) W2 — pin search_path on EVERY SECURITY DEFINER function in `public` that lacks one.

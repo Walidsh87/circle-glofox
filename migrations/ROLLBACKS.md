@@ -35,7 +35,7 @@ GRANT SELECT ON public.profiles TO authenticated, anon;
 ### 070_security_hardening
 ```sql
 -- ⚠️ Re-opens BOTH HIGH holes (cross-tenant cron RPC + unpinned definer search_path).
-GRANT EXECUTE ON FUNCTION cron_eligible_memberships(date) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION cron_eligible_memberships(date) TO PUBLIC, authenticated, anon;
 DO $$
 DECLARE r record;
 BEGIN

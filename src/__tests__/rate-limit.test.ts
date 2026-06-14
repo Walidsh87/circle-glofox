@@ -23,6 +23,14 @@ describe('shouldRateLimit', () => {
     expect(shouldRateLimit('/embed/schedule/demo')).toBe(true)
   })
 
+  test('limits the public quote flow (W5/W10 — service-role, abuse-prone)', () => {
+    expect(shouldRateLimit('/quote/abc')).toBe(true)
+  })
+
+  test('limits the public check-in flow (W10 — service-role, abuse-prone)', () => {
+    expect(shouldRateLimit('/checkin/xyz')).toBe(true)
+  })
+
   test('does NOT limit the Stripe webhook (signature-verified, high volume)', () => {
     expect(shouldRateLimit('/api/webhooks/stripe')).toBe(false)
   })

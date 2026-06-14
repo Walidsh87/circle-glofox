@@ -1,6 +1,7 @@
 import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { signPortalToken } from '@/lib/portal-token'
+import { env } from '@/env'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -313,7 +314,7 @@ export default async function PaymentsPage() {
                       {m.failed_charge_attempts} card {m.failed_charge_attempts === 1 ? 'failure' : 'failures'}
                       {' · '}
                       <a
-                        href={`/portal/${signPortalToken(m.id, process.env.PORTAL_SIGN_SECRET ?? '')}`}
+                        href={`/portal/${signPortalToken(m.id, env.PORTAL_SIGN_SECRET)}`}
                         target="_blank"
                         rel="noreferrer"
                         className="text-ink underline transition-colors hover:text-accent-ink"

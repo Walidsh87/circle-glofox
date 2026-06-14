@@ -176,7 +176,7 @@ async function handlePaymentFailed(
     const profile = (membership as { profiles?: { full_name?: string; email?: string } | null }).profiles
     if (profile?.email) {
       const baseUrl = env.NEXT_PUBLIC_APP_URL
-      const portalToken = signPortalToken(membership.id, process.env.PORTAL_SIGN_SECRET ?? '')
+      const portalToken = signPortalToken(membership.id, env.PORTAL_SIGN_SECRET)
       await sendCardFailedEmail({
         to: profile.email,
         gymName: boxRow?.name ?? 'your gym',

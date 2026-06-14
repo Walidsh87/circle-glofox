@@ -30,6 +30,20 @@ jobs:
       - name: Test (with coverage thresholds)
         run: npm run test:coverage
 
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Fail on known high/critical advisories in the dependency tree.
+      # Tighten to `--audit-level=moderate` over time; if a transitive advisory
+      # has no fix yet, pin/override it in package.json rather than lowering this.
+      - run: npm audit --audit-level=high
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
@@ -40,3 +54,36 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  rls-isolation:
+    # DB-level multi-tenant gate (W12). Replays schema.sql + every migration on a
+    # throwaway Postgres, then asserts cross-box SELECT/UPDATE/DELETE -> 0 rows,
+    # cross-box INSERT -> 42501, and in-box writes succeed — via SET ROLE
+    # authenticated + request.jwt.claims, so RLS is ENFORCED (not bypassed). Also
+    # runs the hardening probes (W1 cron RPC not anon/authenticated-callable,
+    # W2 no unpinned definer fn, W3 PII columns deny). A migration that weakens a
+    # policy or regresses a hardening REVOKE fails this job. See tests/rls/.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: RLS tenant-isolation gate
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+        run: npm run test:rls

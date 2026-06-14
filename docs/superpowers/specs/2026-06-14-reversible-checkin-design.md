@@ -48,8 +48,13 @@ uncheckIn(instanceId: string, athleteId: string): Promise<{ error: string | null
 ```
 
 - `requireStaffAction('Only staff can change attendance.')` — same guard as `checkIn`.
-- Service-role client `update({ checked_in: false, checked_in_at: null })` scoped by
+- Service-role client `update({ checked_in: false, checked_in_at: null, overridden_by: null,
+  overridden_reason: null, overridden_at: null })` scoped by
   `.eq('class_instance_id', instanceId).eq('athlete_id', athleteId).eq('box_id', profile.box_id)`.
+  The override audit columns (set by `override-check-in.ts`) are cleared too so a reversed
+  override-check-in stops appearing in the payments override report (`.not('overridden_at','is',null)`);
+  it's a safe no-op for normal check-ins where those columns are already null. *(Added during code
+  review — completes the reversal.)*
 - **Skips** `assessCheckInEntitlement` — removing access never needs a paywall check.
 - **No credit logic** — credits are consumed at booking time (`book-class`), never at check-in, so
   reversing a check-in has no credit/billing effect.

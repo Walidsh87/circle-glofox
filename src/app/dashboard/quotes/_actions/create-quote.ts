@@ -3,8 +3,8 @@
 import { requireStaffAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import {
-  validateQuoteDraft, computeQuoteTotals, lineTotal,
-  type QuoteLineInput, type QuoteBuyerInput,
+  validateQuoteDraft, computeQuoteTotals, computeSubscriptionTotal, lineTotal,
+  type QuoteLineInput, type QuoteBuyerInput, type QuoteMode,
 } from '@/lib/quotes'
 
 export type CreateQuoteInput = {
@@ -13,6 +13,8 @@ export type CreateQuoteInput = {
   terms: string
   validUntil: string | null
   lines: QuoteLineInput[]
+  mode?: QuoteMode
+  planId?: string | null
 }
 
 export async function createQuote(
@@ -25,9 +27,28 @@ export async function createQuote(
   const { data: box } = await supabase.from('boxes').select('vat_rate').eq('id', caller.box_id).single()
   const vatRate = Number(box?.vat_rate ?? 5)
 
+  const mode: QuoteMode = input.mode ?? 'one_off'
+  let planRowId: string | null = null
+  let planMonthly = 0
+  let planName = ''
+  if (mode === 'subscription') {
+    const { data: plan } = await supabase.from('membership_plans')
+      .select('id, name, monthly_price_aed, provider_plan_ref, is_trial, active')
+      .eq('id', input.planId ?? '').eq('box_id', caller.box_id).single()
+    if (!plan || !plan.active || plan.is_trial || !plan.provider_plan_ref || !(Number(plan.monthly_price_aed) > 0)) {
+      return { error: 'Pick an active paid (non-trial) plan that has a Stripe price.', quoteId: null }
+    }
+    planRowId = plan.id as string
+    planMonthly = Number(plan.monthly_price_aed)
+    planName = plan.name as string
+  }
+
+  const effectiveTitle = input.title.trim() || planName
+
   const verr = validateQuoteDraft({
-    buyer: input.buyer, title: input.title, lines: input.lines,
+    buyer: input.buyer, title: effectiveTitle, lines: input.lines,
     validUntil: input.validUntil, vatRatePercent: vatRate, nowIso: new Date().toISOString(),
+    mode, planId: input.planId ?? null, monthlyPriceAed: planMonthly,
   })
   if (verr) return { error: verr, quoteId: null }
 
@@ -59,7 +80,9 @@ export async function createQuote(
   }
   if (!buyerEmail) return { error: 'The buyer needs an email to receive the quote.', quoteId: null }
 
-  const { subtotalAed, vatAed, totalAed } = computeQuoteTotals(input.lines, vatRate)
+  const { subtotalAed, vatAed, totalAed } = mode === 'subscription'
+    ? computeSubscriptionTotal(planMonthly, vatRate)
+    : computeQuoteTotals(input.lines, vatRate)
 
   const { data: quote, error: qErr } = await supabase.from('quotes').insert({
     box_id: caller.box_id,
@@ -67,7 +90,9 @@ export async function createQuote(
     lead_id: leadId,
     buyer_name: buyerName,
     buyer_email: buyerEmail,
-    title: input.title.trim(),
+    title: effectiveTitle,
+    mode,
+    plan_id: planRowId,
     terms: input.terms ?? '',
     valid_until: input.validUntil,
     subtotal_aed: subtotalAed,
@@ -78,14 +103,16 @@ export async function createQuote(
   }).select('id').single()
   if (qErr || !quote) return { error: qErr?.message ?? 'Could not create the quote.', quoteId: null }
 
-  const lineRows = input.lines.map((l: QuoteLineInput, i: number) => ({
-    quote_id: quote.id, box_id: caller.box_id, kind: l.kind,
-    package_id: l.kind === 'package' ? (l.packageId ?? null) : null,
-    label: l.label.trim(), quantity: l.quantity,
-    unit_amount_aed: l.unitAmountAed, line_total_aed: lineTotal(l), sort_order: i,
-  }))
-  const { error: linesErr } = await supabase.from('quote_line_items').insert(lineRows)
-  if (linesErr) return { error: linesErr.message, quoteId: null }
+  if (mode === 'one_off' && input.lines.length) {
+    const lineRows = input.lines.map((l: QuoteLineInput, i: number) => ({
+      quote_id: quote.id, box_id: caller.box_id, kind: l.kind,
+      package_id: l.kind === 'package' ? (l.packageId ?? null) : null,
+      label: l.label.trim(), quantity: l.quantity,
+      unit_amount_aed: l.unitAmountAed, line_total_aed: lineTotal(l), sort_order: i,
+    }))
+    const { error: linesErr } = await supabase.from('quote_line_items').insert(lineRows)
+    if (linesErr) return { error: linesErr.message, quoteId: null }
+  }
 
   revalidatePath('/dashboard/quotes')
   return { error: null, quoteId: quote.id as string }

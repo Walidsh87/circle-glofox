@@ -42,3 +42,38 @@ describe('createQuote', () => {
     expect(svc.builder('quote_line_items').insert).toHaveBeenCalled()
   })
 })
+
+describe('createQuote — subscription', () => {
+  beforeEach(() => guard.mockReset())
+
+  it('rejects a trial/inactive/price-less plan', async () => {
+    const svc = makeSupabaseMock({
+      results: {
+        boxes: { data: { vat_rate: 5 }, error: null },
+        membership_plans: { data: { id: 'plan-1', name: 'Trial', monthly_price_aed: 0, provider_plan_ref: null, is_trial: true, active: true }, error: null },
+      },
+    })
+    guard.mockResolvedValue({ supabase: svc, user: { id: 'u1' }, profile: { box_id: 'box-1', role: 'owner', full_name: 'O' } })
+    const res = await createQuote({ buyer: { athleteId: 'a1' }, title: '', terms: '', validUntil: null, lines: [], mode: 'subscription', planId: 'plan-1' })
+    expect(res.error).toMatch(/active paid/i)
+    expect(res.quoteId).toBeNull()
+  })
+
+  it('creates a subscription quote with plan totals and no line items', async () => {
+    const svc = makeSupabaseMock({
+      results: {
+        boxes: { data: { vat_rate: 5 }, error: null },
+        membership_plans: { data: { id: 'plan-1', name: 'Unlimited', monthly_price_aed: 315, provider_plan_ref: 'price_1', is_trial: false, active: true }, error: null },
+        profiles: { data: { full_name: 'Sara', email: 'sara@x.com' }, error: null },
+        quotes: { data: { id: 'quote-7' }, error: null },
+      },
+    })
+    guard.mockResolvedValue({ supabase: svc, user: { id: 'u1' }, profile: { box_id: 'box-1', role: 'owner', full_name: 'O' } })
+    const res = await createQuote({ buyer: { athleteId: 'a1' }, title: '', terms: '', validUntil: null, lines: [], mode: 'subscription', planId: 'plan-1' })
+    expect(res).toEqual({ error: null, quoteId: 'quote-7' })
+    expect(svc.builder('quotes').insert).toHaveBeenCalledWith(expect.objectContaining({
+      mode: 'subscription', plan_id: 'plan-1', title: 'Unlimited', total_aed: 315, subtotal_aed: 300, vat_aed: 15,
+    }))
+    expect(svc.builder('quote_line_items')).toBeUndefined()
+  })
+})

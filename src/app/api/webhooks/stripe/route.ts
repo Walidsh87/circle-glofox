@@ -6,6 +6,7 @@ import { sendCardFailedEmail } from '@/lib/email'
 import { signPortalToken } from '@/lib/portal-token'
 import { findProviderForIncomingWebhook, type NormalisedEvent } from '@/lib/psp'
 import { resolveLocale } from '@/lib/i18n'
+import { convertLeadCore } from '@/lib/convert-lead'
 import { env } from '@/env'
 
 export const dynamic = 'force-dynamic'
@@ -200,6 +201,11 @@ async function handleCheckoutCompleted(
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'checkout_completed' }>,
 ): Promise<NextResponse> {
+  // Quote payment → convert lead (if any) + issue invoice + grant credits + mark paid.
+  if (event.quoteId) {
+    return handleQuotePayment(boxId, event)
+  }
+
   // Package one-shot purchase → grant credits + issue invoice.
   if (event.packageId && event.athleteId && event.paymentRef) {
     return grantPackageCredits(boxId, event)
@@ -297,6 +303,85 @@ async function grantPackageCredits(
   }
 
   return NextResponse.json({ received: true })
+}
+
+async function handleQuotePayment(
+  boxId: string,
+  event: Extract<NormalisedEvent, { kind: 'checkout_completed' }>,
+): Promise<NextResponse> {
+  const quoteId = event.quoteId as string
+  const paymentRef = event.paymentRef
+  if (!paymentRef) return NextResponse.json({ received: true })
+
+  if (!(await claimEvent(boxId, event.rawId, 'quote_paid'))) {
+    return NextResponse.json({ received: true, duplicate: true })
+  }
+
+  const { data: quote } = await service.from('quotes')
+    .select('id, status, title, total_aed, buyer_name, buyer_email, athlete_id, lead_id')
+    .eq('id', quoteId).eq('box_id', boxId).maybeSingle()
+  if (!quote) return NextResponse.json({ received: true })
+  if (quote.status === 'paid') return NextResponse.json({ received: true, duplicate: true })
+
+  // Resolve the member — convert the lead if the buyer was a prospect.
+  let athleteId = (quote.athlete_id as string | null) ?? null
+  if (!athleteId && quote.lead_id) {
+    const { athleteId: converted, error } = await convertLeadCore(service, quote.lead_id as string, boxId)
+    if (error) console.error('quote lead conversion failed:', error)
+    else athleteId = converted
+  }
+
+  // One invoice for the whole quote (dedup on paymentRef inside issueInvoice).
+  const invoiceId = await issueInvoice({
+    boxId, membershipId: null, athleteId,
+    customerName: quote.buyer_name as string,
+    customerEmail: quote.buyer_email as string,
+    description: quote.title as string,
+    amountAed: Number(quote.total_aed),
+    chargeRef: paymentRef,
+    paymentRef,
+  })
+
+  // Grant package credits for each package line (only if we have a member).
+  if (athleteId) {
+    const { data: lines } = await service.from('quote_line_items')
+      .select('id, package_id, quantity').eq('quote_id', quoteId).eq('kind', 'package')
+    for (const line of (lines ?? [])) {
+      if (!line.package_id) continue
+      await grantQuotePackageCredit(
+        boxId, athleteId, line.package_id as string,
+        Number(line.quantity), invoiceId, `${paymentRef}:${line.id}`,
+      )
+    }
+  }
+
+  await service.from('quotes').update({
+    status: 'paid', paid_at: new Date().toISOString(),
+    invoice_id: invoiceId, provider_payment_ref: paymentRef, athlete_id: athleteId,
+  }).eq('id', quoteId).eq('box_id', boxId)
+
+  return NextResponse.json({ received: true })
+}
+
+async function grantQuotePackageCredit(
+  boxId: string, athleteId: string, packageId: string,
+  quantity: number, invoiceId: string | null, chargeRef: string,
+): Promise<void> {
+  const { data: pkg } = await service.from('packages')
+    .select('type, credit_count, expiry_days').eq('id', packageId).eq('box_id', boxId).single()
+  if (!pkg) return
+  const kind = pkg.type === 'pt_block' ? 'pt_session' : 'class'
+  const expiresAt = pkg.expiry_days
+    ? new Date(Date.now() + Number(pkg.expiry_days) * 86_400_000).toISOString().slice(0, 10)
+    : null
+  const total = Number(pkg.credit_count) * quantity
+  const { error } = await service.from('package_credits').insert({
+    box_id: boxId, athlete_id: athleteId, package_id: packageId,
+    kind, credits_total: total, credits_remaining: total,
+    expires_at: expiresAt, invoice_id: invoiceId, provider_charge_ref: chargeRef,
+  })
+  // 23505 = a concurrent delivery already granted this line — safe.
+  if (error && error.code !== '23505') console.error('quote package_credits insert failed:', error)
 }
 
 async function handleSubscriptionCancelled(

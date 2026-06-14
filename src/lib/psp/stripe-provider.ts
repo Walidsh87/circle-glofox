@@ -55,7 +55,7 @@ export class StripeProvider implements PaymentProvider {
       ...(input.customerEmail && !input.customerRef ? { customer_email: input.customerEmail } : {}),
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
-      metadata: { membership_id: input.membershipId },
+      metadata: { membership_id: input.membershipId, ...(input.quoteId ? { quote_id: input.quoteId } : {}) },
     })
     if (!session.url) throw new Error('Stripe did not return a checkout URL.')
     return { url: session.url, sessionId: session.id }

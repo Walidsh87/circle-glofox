@@ -15,6 +15,7 @@ export type CreateCheckoutInput = {
   successUrl: string
   cancelUrl: string
   membershipId: string
+  quoteId?: string | null
 }
 
 // One-shot package purchase. Deliberately guest-style: no `customerRef` (unlike

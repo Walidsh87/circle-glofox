@@ -16,7 +16,7 @@ export async function uncheckIn(
 
   const { error } = await service
     .from('bookings')
-    .update({ checked_in: false, checked_in_at: null })
+    .update({ checked_in: false, checked_in_at: null, overridden_by: null, overridden_reason: null, overridden_at: null })
     .eq('class_instance_id', instanceId)
     .eq('athlete_id', athleteId)
     .eq('box_id', profile.box_id)

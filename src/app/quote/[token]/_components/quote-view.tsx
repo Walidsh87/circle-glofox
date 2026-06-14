@@ -17,6 +17,8 @@ type Props = {
   vatAed: number
   totalAed: number
   paid: boolean
+  mode?: string
+  planName?: string | null
 }
 
 const inputClass =
@@ -51,21 +53,31 @@ export function QuoteView(props: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <table className="w-full text-[13px]">
-        <tbody>
-          {props.lines.map((l) => (
-            <tr key={l.id} className="border-b border-line">
-              <td className="py-1.5">{l.label}{l.quantity > 1 ? ` ×${l.quantity}` : ''}</td>
-              <td className="py-1.5 text-end font-mono text-ink-3">{l.line_total_aed.toFixed(2)} AED</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="text-[13px] text-ink-3">
-        <div className="flex justify-between"><span>Subtotal</span><span className="font-mono">{props.subtotalAed.toFixed(2)} AED</span></div>
-        <div className="flex justify-between"><span>VAT</span><span className="font-mono">{props.vatAed.toFixed(2)} AED</span></div>
-        <div className="flex justify-between font-semibold text-ink"><span>Total</span><span className="font-mono">{props.totalAed.toFixed(2)} AED</span></div>
-      </div>
+      {props.mode === 'subscription' ? (
+        <div className="rounded-lg border border-line p-3 text-[13px]">
+          <div className="font-semibold text-ink">{props.planName ?? 'Monthly membership'}</div>
+          <div className="mt-1 font-mono text-ink-3">{props.totalAed.toFixed(2)} AED / month</div>
+          <div className="mt-1 text-xs text-ink-3">Billed monthly. Cancel anytime per the terms below.</div>
+        </div>
+      ) : (
+        <>
+          <table className="w-full text-[13px]">
+            <tbody>
+              {props.lines.map((l) => (
+                <tr key={l.id} className="border-b border-line">
+                  <td className="py-1.5">{l.label}{l.quantity > 1 ? ` ×${l.quantity}` : ''}</td>
+                  <td className="py-1.5 text-end font-mono text-ink-3">{l.line_total_aed.toFixed(2)} AED</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="text-[13px] text-ink-3">
+            <div className="flex justify-between"><span>Subtotal</span><span className="font-mono">{props.subtotalAed.toFixed(2)} AED</span></div>
+            <div className="flex justify-between"><span>VAT</span><span className="font-mono">{props.vatAed.toFixed(2)} AED</span></div>
+            <div className="flex justify-between font-semibold text-ink"><span>Total</span><span className="font-mono">{props.totalAed.toFixed(2)} AED</span></div>
+          </div>
+        </>
+      )}
 
       {props.terms && (
         <details className="rounded-lg border border-line p-3 text-[13px] text-ink-3">

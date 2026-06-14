@@ -13,13 +13,14 @@ export default async function PublicQuotePage(ctx: {
   const service = createServiceClient()
 
   const { data: q } = await service.from('quotes')
-    .select('id, box_id, title, terms, status, buyer_name, subtotal_aed, vat_aed, total_aed')
+    .select('id, box_id, title, terms, status, buyer_name, subtotal_aed, vat_aed, total_aed, mode, plan_id')
     .eq('public_token', token).maybeSingle()
   if (!q) notFound()
 
-  const [{ data: box }, { data: lines }] = await Promise.all([
+  const [{ data: box }, { data: lines }, { data: plan }] = await Promise.all([
     service.from('boxes').select('name, logo_url').eq('id', q.box_id).single(),
     service.from('quote_line_items').select('id, label, quantity, line_total_aed, kind').eq('quote_id', q.id).order('sort_order'),
+    q.plan_id ? service.from('membership_plans').select('name').eq('id', q.plan_id).single() : Promise.resolve({ data: null }),
   ])
 
   const expiredOrDead = ['declined', 'expired', 'void'].includes(q.status as string)
@@ -48,6 +49,8 @@ export default async function PublicQuotePage(ctx: {
             vatAed={Number(q.vat_aed)}
             totalAed={Number(q.total_aed)}
             paid={paid === '1' || q.status === 'paid'}
+            mode={q.mode as string}
+            planName={(plan?.name as string | null) ?? null}
           />
         )}
       </div>

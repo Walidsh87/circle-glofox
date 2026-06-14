@@ -12,12 +12,14 @@ export default async function QuoteDetailPage(ctx: { params: Promise<{ quoteId: 
   const { supabase, profile, boxName } = await requireStaffPage()
 
   const { data: q } = await supabase.from('quotes')
-    .select('id, quote_number, title, status, buyer_name, buyer_email, terms, valid_until, subtotal_aed, vat_aed, total_aed, public_token, signed_name, signed_at, invoice_id')
+    .select('id, quote_number, title, status, buyer_name, buyer_email, terms, valid_until, subtotal_aed, vat_aed, total_aed, public_token, signed_name, signed_at, invoice_id, mode, plan_id, membership_id')
     .eq('id', quoteId).eq('box_id', profile.box_id).single()
   if (!q) notFound()
 
-  const { data: lines } = await supabase.from('quote_line_items')
-    .select('id, label, quantity, line_total_aed').eq('quote_id', quoteId).order('sort_order')
+  const [{ data: lines }, { data: plan }] = await Promise.all([
+    supabase.from('quote_line_items').select('id, label, quantity, line_total_aed').eq('quote_id', quoteId).order('sort_order'),
+    q.plan_id ? supabase.from('membership_plans').select('name').eq('id', q.plan_id).single() : Promise.resolve({ data: null }),
+  ])
 
   const publicUrl = q.public_token ? `${env.NEXT_PUBLIC_APP_URL}/quote/${q.public_token}` : null
 
@@ -32,16 +34,23 @@ export default async function QuoteDetailPage(ctx: { params: Promise<{ quoteId: 
           <Badge tone={q.status === 'paid' ? 'ok' : 'neutral'}>{q.status}</Badge>
         </div>
 
-        <table className="mb-3 w-full text-[13px]">
-          <tbody>
-            {lines?.map((l) => (
-              <tr key={l.id} className="border-b border-line">
-                <td className="py-1.5">{l.label}{l.quantity > 1 ? ` ×${l.quantity}` : ''}</td>
-                <td className="py-1.5 text-end font-mono text-ink-3">{Number(l.line_total_aed).toFixed(2)} AED</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {q.mode === 'subscription' ? (
+          <div className="mb-3 rounded-lg border border-line p-3 text-[13px]">
+            <span className="font-semibold text-ink">{(plan?.name as string | null) ?? 'Monthly membership'}</span>
+            <span className="ms-2 font-mono text-ink-3">{Number(q.total_aed).toFixed(2)} AED / month</span>
+          </div>
+        ) : (
+          <table className="mb-3 w-full text-[13px]">
+            <tbody>
+              {lines?.map((l) => (
+                <tr key={l.id} className="border-b border-line">
+                  <td className="py-1.5">{l.label}{l.quantity > 1 ? ` ×${l.quantity}` : ''}</td>
+                  <td className="py-1.5 text-end font-mono text-ink-3">{Number(l.line_total_aed).toFixed(2)} AED</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
         <div className="text-[13px] text-ink-3">
           <div className="flex justify-between"><span>Subtotal</span><span className="font-mono">{Number(q.subtotal_aed).toFixed(2)} AED</span></div>
           <div className="flex justify-between"><span>VAT</span><span className="font-mono">{Number(q.vat_aed).toFixed(2)} AED</span></div>
@@ -53,6 +62,9 @@ export default async function QuoteDetailPage(ctx: { params: Promise<{ quoteId: 
         )}
         {q.invoice_id && (
           <Link href={`/dashboard/invoices/${q.invoice_id}`} className="mt-2 inline-block text-[13px] text-accent-ink underline">View invoice</Link>
+        )}
+        {q.membership_id && (
+          <Link href="/dashboard/payments" className="mt-2 inline-block text-[13px] text-accent-ink underline">View membership</Link>
         )}
       </Card>
 

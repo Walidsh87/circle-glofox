@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { it, expect, vi, beforeEach } from 'vitest'
 import { makeSupabaseMock } from '@/__tests__/helpers/supabase-mock'
 
 const { serviceCreate, getProvider, createCheckoutSession, createCustomer } = vi.hoisted(() => ({

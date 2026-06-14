@@ -12,7 +12,7 @@ function one<T>(v: Embedded<T>): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v
 }
 
-type Row = { athlete_id: string; box_id: string; class_instances: Embedded<{ starts_at: string; class_templates: Embedded<{ name: string }> }> }
+type Row = { athlete_id: string; class_instances: Embedded<{ starts_at: string; class_templates: Embedded<{ name: string }> }> }
 
 export async function GET(request: NextRequest) {
   const denied = unauthorizedCron(request)
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       .map((r) => {
         const ci = one(r.class_instances)
         if (!ci) return null
-        return { athlete_id: r.athlete_id, box_id: r.box_id, starts_at: ci.starts_at, class_name: one(ci.class_templates)?.name ?? 'Class' }
+        return { athlete_id: r.athlete_id, box_id: box.id, starts_at: ci.starts_at, class_name: one(ci.class_templates)?.name ?? 'Class' }
       })
       .filter((r): r is DigestRow => r !== null)
 

@@ -8,6 +8,7 @@ import type { QuoteLineInput, QuoteBuyerInput } from '@/lib/quotes'
 
 type Pkg = { id: string; name: string; type: string; price_aed: number }
 type Person = { id: string; full_name: string | null; email: string | null }
+type Plan = { id: string; name: string; monthly_price_aed: number }
 type DraftLine = QuoteLineInput & { key: string }
 
 const inputClass =
@@ -16,8 +17,8 @@ const inputClass =
 let counter = 0
 const newKey = () => `l${counter++}`
 
-export function QuoteBuilder({ packages, members, leads, defaultTerms }: {
-  packages: Pkg[]; members: Person[]; leads: Person[]; defaultTerms: string
+export function QuoteBuilder({ packages, members, leads, plans, defaultTerms }: {
+  packages: Pkg[]; members: Person[]; leads: Person[]; plans: Plan[]; defaultTerms: string
 }) {
   const router = useRouter()
   const [pending, start] = useTransition()
@@ -28,6 +29,9 @@ export function QuoteBuilder({ packages, members, leads, defaultTerms }: {
   const [leadId, setLeadId] = useState('')
   const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
+
+  const [mode, setMode] = useState<'one_off' | 'subscription'>('one_off')
+  const [planId, setPlanId] = useState('')
 
   const [title, setTitle] = useState('')
   const [terms, setTerms] = useState(defaultTerms)
@@ -51,7 +55,11 @@ export function QuoteBuilder({ packages, members, leads, defaultTerms }: {
     start(async () => {
       const res = await createQuote({
         buyer, title, terms, validUntil: validUntil || null,
-        lines: lines.map(({ kind, packageId, label, quantity, unitAmountAed }) => ({ kind, packageId, label, quantity, unitAmountAed })),
+        mode,
+        planId: mode === 'subscription' ? planId : null,
+        lines: mode === 'subscription'
+          ? []
+          : lines.map(({ kind, packageId, label, quantity, unitAmountAed }) => ({ kind, packageId, label, quantity, unitAmountAed })),
       })
       if (res.error) setError(res.error)
       else if (res.quoteId) router.push(`/dashboard/quotes/${res.quoteId}`)
@@ -90,7 +98,16 @@ export function QuoteBuilder({ packages, members, leads, defaultTerms }: {
 
       <input className={inputClass} placeholder="Quote title (e.g. Ramadan PT Bundle)" value={title} onChange={(e) => setTitle(e.target.value)} />
 
+      <div className="flex flex-col gap-2">
+        <label className="text-[13px] font-semibold text-ink">What are you selling?</label>
+        <select className={inputClass} value={mode} onChange={(e) => setMode(e.target.value as 'one_off' | 'subscription')}>
+          <option value="one_off">One-off (packages / fees)</option>
+          <option value="subscription">Monthly membership (subscription)</option>
+        </select>
+      </div>
+
       {/* Lines */}
+      {mode === 'one_off' && (
       <div className="flex flex-col gap-2">
         <label className="text-[13px] font-semibold text-ink">Line items</label>
         {lines.map((l) => (
@@ -115,6 +132,18 @@ export function QuoteBuilder({ packages, members, leads, defaultTerms }: {
         ))}
         <button type="button" className="self-start text-xs text-accent-ink underline" onClick={() => setLines((ls) => [...ls, { key: newKey(), kind: 'package', packageId: '', label: '', quantity: 1, unitAmountAed: 0 }])}>+ Add line</button>
       </div>
+      )}
+
+      {mode === 'subscription' && (
+        <div className="flex flex-col gap-2">
+          <label className="text-[13px] font-semibold text-ink">Membership plan</label>
+          <select className={inputClass} value={planId} onChange={(e) => setPlanId(e.target.value)}>
+            <option value="">Select a plan…</option>
+            {plans.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.monthly_price_aed.toFixed(2)} AED/month</option>)}
+          </select>
+          {plans.length === 0 && <p className="text-xs text-ink-3">No eligible plans. Create an active, non-trial plan with a Stripe price in Payments first.</p>}
+        </div>
+      )}
 
       <textarea className={`${inputClass} min-h-24`} placeholder="Terms (shown on the quote)" value={terms} onChange={(e) => setTerms(e.target.value)} />
       <div className="flex flex-col gap-1">

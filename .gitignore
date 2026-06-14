@@ -38,3 +38,9 @@ next-env.d.ts
 
 # superpowers skill artifacts
 .superpowers/
+
+# claude code (local config — permission allowlist + session state)
+.claude/
+
+# playwright mcp run artifacts (console logs + page snapshots)
+.playwright-mcp/

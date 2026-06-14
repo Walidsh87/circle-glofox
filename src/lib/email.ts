@@ -6,6 +6,10 @@ import type { ReminderStage } from '@/lib/billing-reminders'
 
 const resend = new Resend(env.RESEND_API_KEY)
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 export type ReminderEmailInput = {
   to: string
   bcc?: string | null
@@ -135,6 +139,47 @@ export async function sendBillingReminderEmail(
       html: emailShell(buildBody(t, input), input.locale),
     })
 
+    if (error) return { id: null, error: error.message }
+    return { id: data?.id ?? null, error: null }
+  } catch (e) {
+    return { id: null, error: e instanceof Error ? e.message : 'Unknown error' }
+  }
+}
+
+export type QuoteEmailInput = {
+  to: string
+  buyerName: string
+  gymName: string
+  quoteTitle: string
+  quoteNumber: string
+  totalAed: number
+  quoteUrl: string
+}
+
+export function buildQuoteEmail(input: QuoteEmailInput): { subject: string; html: string } {
+  const button = emailButton('View your quote', input.quoteUrl)
+  const body = `<p>Hi ${escapeHtml(input.buyerName)},</p>
+<p><strong>${escapeHtml(input.gymName)}</strong> has prepared a quote for you — <strong>${escapeHtml(input.quoteTitle)}</strong> (${escapeHtml(input.quoteNumber)}), total <strong>AED ${input.totalAed.toFixed(2)}</strong>.</p>
+<p>Review the details, accept, and pay securely online:</p>
+${button}
+<p>— ${escapeHtml(input.gymName)}</p>`
+  return {
+    subject: `Your quote from ${input.gymName} — ${input.quoteNumber}`,
+    html: emailShell(body, 'en'),
+  }
+}
+
+export async function sendQuoteEmail(
+  input: QuoteEmailInput,
+): Promise<{ id: string | null; error: string | null }> {
+  const { subject, html } = buildQuoteEmail(input)
+  try {
+    const { data, error } = await resend.emails.send({
+      from: env.RESEND_FROM_EMAIL,
+      to: input.to,
+      subject,
+      html,
+    })
     if (error) return { id: null, error: error.message }
     return { id: data?.id ?? null, error: null }
   } catch (e) {

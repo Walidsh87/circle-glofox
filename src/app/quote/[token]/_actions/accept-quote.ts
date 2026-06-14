@@ -25,10 +25,12 @@ export async function acceptQuote(token: string, signedName: string): Promise<{ 
   const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || null
   const ua = h.get('user-agent') ?? null
   const now = new Date().toISOString()
+  // Guard on status so two concurrent accepts can't both win and overwrite the
+  // signer — only the first sent→accepted transition takes effect.
   const { error } = await service.from('quotes').update({
     status: 'accepted', accepted_at: now,
     signed_name: name, signed_at: now, signed_ip: ip, signed_user_agent: ua,
-  }).eq('id', q.id)
+  }).eq('id', q.id).eq('status', 'sent')
   if (error) return { error: error.message }
   return { error: null }
 }

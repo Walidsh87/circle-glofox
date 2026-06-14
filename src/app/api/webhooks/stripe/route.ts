@@ -321,14 +321,26 @@ async function handleQuotePayment(
     .select('id, status, title, total_aed, buyer_name, buyer_email, athlete_id, lead_id')
     .eq('id', quoteId).eq('box_id', boxId).maybeSingle()
   if (!quote) return NextResponse.json({ received: true })
-  if (quote.status === 'paid') return NextResponse.json({ received: true, duplicate: true })
+  // Only an accepted (signed) quote may be paid+provisioned. Already-paid (replay)
+  // or staff-killed (void/declined/expired after checkout started) quotes are ignored.
+  if (quote.status !== 'accepted') {
+    return NextResponse.json({ received: true, duplicate: quote.status === 'paid' })
+  }
 
-  // Resolve the member — convert the lead if the buyer was a prospect.
+  // Resolve the member. Prefer an existing profile with the buyer's email (the
+  // "lead" may already be a member) before creating a new account — this avoids
+  // charging a buyer who then gets no credits when convertLeadCore hits a duplicate
+  // email, and makes a crash-retry idempotent (the profile already exists).
   let athleteId = (quote.athlete_id as string | null) ?? null
-  if (!athleteId && quote.lead_id) {
-    const { athleteId: converted, error } = await convertLeadCore(service, quote.lead_id as string, boxId)
-    if (error) console.error('quote lead conversion failed:', error)
-    else athleteId = converted
+  if (!athleteId) {
+    const { data: existing } = await service.from('profiles')
+      .select('id').eq('box_id', boxId).eq('email', quote.buyer_email as string).maybeSingle()
+    if (existing) athleteId = existing.id as string
+    else if (quote.lead_id) {
+      const { athleteId: converted, error } = await convertLeadCore(service, quote.lead_id as string, boxId)
+      if (error) console.error('quote lead conversion failed:', error)
+      else athleteId = converted
+    }
   }
 
   // One invoice for the whole quote (dedup on paymentRef inside issueInvoice).
@@ -358,7 +370,7 @@ async function handleQuotePayment(
   await service.from('quotes').update({
     status: 'paid', paid_at: new Date().toISOString(),
     invoice_id: invoiceId, provider_payment_ref: paymentRef, athlete_id: athleteId,
-  }).eq('id', quoteId).eq('box_id', boxId)
+  }).eq('id', quoteId).eq('box_id', boxId).eq('status', 'accepted')
 
   return NextResponse.json({ received: true })
 }

@@ -37,7 +37,7 @@ describe('stripe webhook — quote payment', () => {
     const svc = makeSupabaseMock({
       results: {
         payment_events: { data: null, error: null },
-        quotes: { data: { id: 'quote-1', status: 'sent', title: 'PT Bundle', total_aed: 525, buyer_name: 'Sara', buyer_email: 'sara@x.com', athlete_id: null, lead_id: 'lead-1' }, error: null },
+        quotes: { data: { id: 'quote-1', status: 'accepted', title: 'PT Bundle', total_aed: 525, buyer_name: 'Sara', buyer_email: 'sara@x.com', athlete_id: null, lead_id: 'lead-1' }, error: null },
         leads: { data: { full_name: 'Sara', phone: null, email: 'sara@x.com', referred_by: null, source: 'sales' }, error: null },
         // issueInvoice queries invoices TWICE: (1) dedup .maybeSingle() → none, (2) insert .single() → the id.
         invoices: [{ data: null, error: null }, { data: { id: 'inv-1' }, error: null }],

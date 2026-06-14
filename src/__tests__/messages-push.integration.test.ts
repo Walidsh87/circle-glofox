@@ -16,7 +16,11 @@ beforeEach(() => vi.clearAllMocks())
 
 test('a staff reply pushes to the member', async () => {
   serverCreate.mockResolvedValue(makeSupabaseMock({ user: { id: 'o1' }, results: {
-    profiles: { data: { box_id: 'b1', role: 'owner' }, error: null },
+    profiles: [
+      { data: { box_id: 'b1', role: 'owner' }, error: null }, // caller lookup
+      { data: { id: 'm1' }, error: null },                     // box-membership guard
+      { data: { language: null }, error: null },               // recipient language
+    ],
     conversations: [
       { data: { last_wa_inbound_at: null }, error: null }, // session-window lookup
       { data: { id: 'conv1' }, error: null },              // upsert
@@ -26,7 +30,7 @@ test('a staff reply pushes to the member', async () => {
   serviceCreate.mockReturnValue(makeSupabaseMock({}))
   const res = await sendMessage('m1', 'See you at 7am!')
   expect(res.error).toBeNull()
-  expect(pushSpy).toHaveBeenCalledWith(expect.anything(), 'm1', expect.objectContaining({
+  expect(pushSpy).toHaveBeenCalledWith(expect.anything(), 'm1', 'b1', expect.objectContaining({
     url: '/dashboard/messages',
   }))
 })

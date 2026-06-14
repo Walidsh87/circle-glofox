@@ -87,7 +87,7 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
         const { data: athlete } = await svc.from('profiles').select('email, full_name, language').eq('id', next.athlete_id).single()
         const { data: inst } = await svc
           .from('class_instances')
-          .select('starts_at, class_templates(name), boxes(name, timezone)')
+          .select('starts_at, class_templates(name), boxes(id, name, timezone)')
           .eq('id', instanceId)
           .single()
         if (athlete?.email && inst) {
@@ -111,7 +111,7 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
             locale,
           })
           const t = getT(locale)
-          await sendPushTo(svc, next.athlete_id, {
+          await sendPushTo(svc, next.athlete_id, box?.id ?? '', {
             title: t('comms.waitlistPush.title'),
             body: t('comms.waitlistPush.body', { className: tmpl?.name ?? 'Your class', classTime }),
             url: '/dashboard/schedule',

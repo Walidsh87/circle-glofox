@@ -21,9 +21,9 @@ beforeEach(() => {
 
 test('groups classes per athlete, sorted by start time', () => {
   const res = buildDigestPushes([
-    { athlete_id: 'a', starts_at: '2026-06-11T14:00:00Z', class_name: 'Yoga' },
-    { athlete_id: 'a', starts_at: '2026-06-11T03:00:00Z', class_name: 'CrossFit' },
-    { athlete_id: 'b', starts_at: '2026-06-11T14:00:00Z', class_name: 'Yoga' },
+    { athlete_id: 'a', box_id: 'box1', starts_at: '2026-06-11T14:00:00Z', class_name: 'Yoga' },
+    { athlete_id: 'a', box_id: 'box1', starts_at: '2026-06-11T03:00:00Z', class_name: 'CrossFit' },
+    { athlete_id: 'b', box_id: 'box1', starts_at: '2026-06-11T14:00:00Z', class_name: 'Yoga' },
   ], 'Asia/Dubai')
   expect(res).toHaveLength(2)
   const a = res.find((r) => r.athleteId === 'a')!
@@ -31,7 +31,7 @@ test('groups classes per athlete, sorted by start time', () => {
 })
 
 test('a single class reads as one entry', () => {
-  const res = buildDigestPushes([{ athlete_id: 'a', starts_at: '2026-06-11T14:00:00Z', class_name: 'CrossFit' }], 'Asia/Dubai')
+  const res = buildDigestPushes([{ athlete_id: 'a', box_id: 'box1', starts_at: '2026-06-11T14:00:00Z', class_name: 'CrossFit' }], 'Asia/Dubai')
   expect(res[0].payload.title).toBe('Today at the gym')
   expect(res[0].payload.body).toBe('CrossFit at 18:00')
   expect(res[0].payload.url).toBe('/dashboard/schedule')
@@ -49,7 +49,7 @@ test('sends the payload to every subscription of the athlete', async () => {
     { id: 's2', endpoint: 'https://p/2', p256dh: 'k2', auth: 'a2' },
   ], error: null } } })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sent = await sendPushTo(svc as any, 'ath1', { title: 'T', body: 'B', url: '/u' })
+  const sent = await sendPushTo(svc as any, 'ath1', 'box1', { title: 'T', body: 'B', url: '/u' })
   expect(sent).toBe(2)
   expect(webpushMock.sendNotification).toHaveBeenCalledTimes(2)
   expect(webpushMock.sendNotification.mock.calls[0][0]).toEqual({ endpoint: 'https://p/1', keys: { p256dh: 'k1', auth: 'a1' } })
@@ -63,7 +63,7 @@ test('prunes a subscription when the push service returns 410', async () => {
   ] } })
   webpushMock.sendNotification.mockRejectedValueOnce({ statusCode: 410 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sent = await sendPushTo(svc as any, 'ath1', { title: 'T', body: 'B', url: '/u' })
+  const sent = await sendPushTo(svc as any, 'ath1', 'box1', { title: 'T', body: 'B', url: '/u' })
   expect(sent).toBe(0)
   expect(svc.builder('push_subscriptions').delete).toHaveBeenCalled()
   expect(svc.builder('push_subscriptions').eq).toHaveBeenCalledWith('id', 's1')
@@ -73,7 +73,7 @@ test('returns 0 and never touches web-push when VAPID keys are missing', async (
   fakeEnv.env.VAPID_PRIVATE_KEY = undefined
   const svc = makeSupabaseMock({})
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sent = await sendPushTo(svc as any, 'ath1', { title: 'T', body: 'B', url: '/u' })
+  const sent = await sendPushTo(svc as any, 'ath1', 'box1', { title: 'T', body: 'B', url: '/u' })
   expect(sent).toBe(0)
   expect(webpushMock.sendNotification).not.toHaveBeenCalled()
   expect(svc.builder('push_subscriptions')).toBeUndefined()
@@ -83,7 +83,7 @@ test('a non-410 send failure is logged but does not prune or throw', async () =>
   const svc = makeSupabaseMock({ results: { push_subscriptions: { data: [{ id: 's1', endpoint: 'https://p/1', p256dh: 'k1', auth: 'a1' }], error: null } } })
   webpushMock.sendNotification.mockRejectedValueOnce({ statusCode: 500 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sent = await sendPushTo(svc as any, 'ath1', { title: 'T', body: 'B', url: '/u' })
+  const sent = await sendPushTo(svc as any, 'ath1', 'box1', { title: 'T', body: 'B', url: '/u' })
   expect(sent).toBe(0)
   expect(svc.builder('push_subscriptions').delete).not.toHaveBeenCalled()
 })

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildDigestPushes } from './push'
 
-const rows = [{ athlete_id: 'a', starts_at: '2026-06-13T06:00:00Z', class_name: 'CrossFit' }]
+const rows = [{ athlete_id: 'a', box_id: 'box1', starts_at: '2026-06-13T06:00:00Z', class_name: 'CrossFit' }]
 
 describe('buildDigestPushes', () => {
   it('English by default', () => {

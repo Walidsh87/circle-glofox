@@ -24,6 +24,12 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
   const targetMemberId = isStaff ? memberId : user.id
   if (!targetMemberId) return { error: 'Choose a member to message.' }
 
+  if (isStaff) {
+    const { data: inBox } = await supabase.from('profiles').select('id')
+      .eq('id', targetMemberId).eq('box_id', caller.box_id).maybeSingle()
+    if (!inBox) return { error: 'Member not found.' }
+  }
+
   const text = body.trim()
   const nowIso = new Date().toISOString()
 
@@ -70,7 +76,7 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
     // same as the phone read above) — keeps the service client out of an RLS-safe read.
     const { data: rp } = await supabase.from('profiles').select('language').eq('id', targetMemberId).maybeSingle()
     const t = getT(resolveLocale(rp?.language as string | null))
-    await sendPushTo(service, targetMemberId, {
+    await sendPushTo(service, targetMemberId, caller.box_id, {
       title: t('comms.newMessage.title'),
       body: messagePreview(text),
       url: '/dashboard/messages',

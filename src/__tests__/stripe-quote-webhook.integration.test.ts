@@ -71,4 +71,23 @@ describe('stripe webhook — quote payment', () => {
     const json = await res.json()
     expect(json.duplicate).toBe(true)
   })
+
+  it('subscription quote: backfills the membership and marks the quote paid', async () => {
+    findProvider.mockResolvedValue({
+      boxId: 'box-1',
+      event: {
+        kind: 'checkout_completed', rawId: 'evt_2', sessionId: 'cs_2',
+        subscriptionRef: 'sub_1', customerRef: 'cus_1', membershipId: 'mem-1',
+        packageId: null, athleteId: null, quoteId: 'quote-1',
+        paymentRef: null, amountAed: null,
+      },
+    })
+    const svc = makeSupabaseMock({ results: { memberships: { data: null, error: null }, quotes: { data: null, error: null } } })
+    serviceCreate.mockReturnValue(svc)
+    const POST = await loadPost()
+    const res = await POST(req())
+    expect(res.status).toBe(200)
+    expect(svc.builder('memberships').update).toHaveBeenCalledWith(expect.objectContaining({ provider_subscription_ref: 'sub_1' }))
+    expect(svc.builder('quotes').update).toHaveBeenCalledWith(expect.objectContaining({ status: 'paid', membership_id: 'mem-1' }))
+  })
 })

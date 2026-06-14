@@ -201,8 +201,9 @@ async function handleCheckoutCompleted(
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'checkout_completed' }>,
 ): Promise<NextResponse> {
-  // Quote payment → convert lead (if any) + issue invoice + grant credits + mark paid.
-  if (event.quoteId) {
+  // One-off quote (no membership) → the 75a handler. Subscription quotes carry a
+  // membershipId and fall through to the membership branch below.
+  if (event.quoteId && !event.membershipId) {
     return handleQuotePayment(boxId, event)
   }
 
@@ -221,6 +222,18 @@ async function handleCheckoutCompleted(
       })
       .eq('id', event.membershipId)
       .eq('box_id', boxId)
+
+    // Subscription QUOTE → mark it paid. The first + recurring invoices ride the
+    // existing invoice.payment_succeeded handler (the membership pre-exists with a
+    // customer ref). Status-guarded accepted→paid, so replays are no-ops.
+    if (event.quoteId) {
+      await service
+        .from('quotes')
+        .update({ status: 'paid', paid_at: new Date().toISOString(), membership_id: event.membershipId })
+        .eq('id', event.quoteId)
+        .eq('box_id', boxId)
+        .eq('status', 'accepted')
+    }
   }
   return NextResponse.json({ received: true })
 }

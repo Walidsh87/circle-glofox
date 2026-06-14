@@ -32,6 +32,16 @@ export type CreatePackageCheckoutInput = {
   cancelUrl: string
 }
 
+export type CreateOneOffCheckoutInput = {
+  amountAed: number
+  description: string
+  quoteId: string
+  boxId: string
+  customerEmail: string | null
+  successUrl: string
+  cancelUrl: string
+}
+
 export type CreateCustomerInput = {
   email: string | null
   name: string | null
@@ -99,6 +109,7 @@ export type NormalisedEvent =
       membershipId: string | null
       packageId: string | null
       athleteId: string | null
+      quoteId: string | null
       paymentRef: string | null
       amountAed: number | null
     }
@@ -111,6 +122,7 @@ export interface PaymentProvider {
   createCustomer(input: CreateCustomerInput): Promise<{ customerRef: string }>
   createCheckoutSession(input: CreateCheckoutInput): Promise<{ url: string; sessionId: string }>
   createPackageCheckout(input: CreatePackageCheckoutInput): Promise<{ url: string; sessionId: string }>
+  createOneOffCheckout(input: CreateOneOffCheckoutInput): Promise<{ url: string; sessionId: string }>
   createPortalSession(customerRef: string, returnUrl: string): Promise<{ url: string }>
   refund(input: RefundInput): Promise<{ refundRef: string }>
 

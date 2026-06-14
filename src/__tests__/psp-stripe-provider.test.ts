@@ -59,6 +59,7 @@ describe('StripeProvider.translate', () => {
       membershipId: 'mem_123',
       packageId: null,
       athleteId: null,
+      quoteId: null,
       paymentRef: null,
       amountAed: null,
     })
@@ -79,6 +80,7 @@ describe('StripeProvider.translate', () => {
       membershipId: null,
       packageId: 'pkg_1',
       athleteId: 'ath_1',
+      quoteId: null,
       paymentRef: 'pi_55',
       amountAed: 500,
     })

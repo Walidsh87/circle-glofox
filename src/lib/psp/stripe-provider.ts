@@ -3,6 +3,7 @@ import {
   PspConfigError,
   type CreateCheckoutInput,
   type CreateCustomerInput,
+  type CreateOneOffCheckoutInput,
   type CreatePackageCheckoutInput,
   type CreatePlanInput,
   type NormalisedEvent,
@@ -80,6 +81,26 @@ export class StripeProvider implements PaymentProvider {
     return { url: session.url, sessionId: session.id }
   }
 
+  async createOneOffCheckout(input: CreateOneOffCheckoutInput): Promise<{ url: string; sessionId: string }> {
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'aed',
+          product_data: { name: input.description },
+          unit_amount: Math.round(input.amountAed * 100),
+        },
+        quantity: 1,
+      }],
+      ...(input.customerEmail ? { customer_email: input.customerEmail } : {}),
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
+      metadata: { quote_id: input.quoteId, box_id: input.boxId },
+    })
+    if (!session.url) throw new Error('Stripe did not return a checkout URL.')
+    return { url: session.url, sessionId: session.id }
+  }
+
   async createPortalSession(customerRef: string, returnUrl: string): Promise<{ url: string }> {
     const session = await this.stripe.billingPortal.sessions.create({
       customer: customerRef,
@@ -152,6 +173,7 @@ export class StripeProvider implements PaymentProvider {
           membershipId: s.metadata?.membership_id ?? null,
           packageId: s.metadata?.package_id ?? null,
           athleteId: s.metadata?.athlete_id ?? null,
+          quoteId: s.metadata?.quote_id ?? null,
           paymentRef: typeof s.payment_intent === 'string' ? s.payment_intent : s.payment_intent?.id ?? null,
           amountAed: s.amount_total != null ? s.amount_total / 100 : null,
         }

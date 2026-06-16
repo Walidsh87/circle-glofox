@@ -31,7 +31,7 @@ export function makeSupabaseMock(opts: {
         : (configured as MockResult)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const b: any = {}
-    for (const m of ['select', 'insert', 'upsert', 'update', 'delete', 'eq', 'in', 'order', 'limit', 'is', 'not', 'gte', 'gt', 'ilike']) {
+    for (const m of ['select', 'insert', 'upsert', 'update', 'delete', 'eq', 'in', 'order', 'limit', 'is', 'not', 'gte', 'gt', 'ilike', 'or']) {
       b[m] = vi.fn(() => b)
     }
     b.single = vi.fn(() => Promise.resolve(next()))

@@ -40,6 +40,7 @@ function getNavGroups(role: string): NavGroup[] {
   if (isStaff) runTheGym.push({ key: 'retention', label: 'Retention', href: '/dashboard/retention', icon: 'activity' })
   if (isManager) runTheGym.push({ key: 'lifecycle', label: 'Lifecycle', href: '/dashboard/lifecycle', icon: 'funnel' })
   if (isStaff) runTheGym.push({ key: 'members', label: 'Member directory', href: '/dashboard/members', icon: 'users' })
+  if (isStaff) runTheGym.push({ key: 'desk', label: 'Front Desk', href: '/dashboard/desk', icon: 'desk' })
   if (isStaff) runTheGym.push({ key: 'quotes', label: 'Quotes', href: '/dashboard/quotes', icon: 'book' })
   if (isManager) runTheGym.push({ key: 'waivers', label: 'Waivers', href: '/dashboard/waivers', icon: 'shield' })
   if (isOwner) runTheGym.push({ key: 'payments', label: 'Payments', href: '/dashboard/payments', icon: 'card' })
@@ -91,6 +92,7 @@ function initials(name: string | null) {
 const ICON_PATHS: Record<string, React.ReactNode> = {
   home: <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V20h14V9.5" /></>,
   users: <><circle cx="9" cy="8" r="3.2" /><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6" /><circle cx="17" cy="9" r="2.5" /><path d="M15 19c0-2.5 1.8-4.5 4-4.5" /></>,
+  desk: <><rect x="3" y="9" width="18" height="3" rx="1" /><path d="M5 12v7M19 12v7M4 9l2-4h12l2 4M9 16h6" /></>,
   card: <><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10.5h18M7 15.5h3" /></>,
   calendar: <><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M3.5 9.5h17M8 3v4M16 3v4" /></>,
   flame: <><path d="M12 3c2 4 5 5 5 9a5 5 0 1 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-8z" /></>,

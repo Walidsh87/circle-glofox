@@ -38,3 +38,16 @@ test('empty query returns no hits, no error', async () => {
   const res = await searchPeople('   ')
   expect(res).toEqual({ error: null, hits: [] })
 })
+
+test('sanitizes PostgREST delimiters in the search query', async () => {
+  const rls = makeSupabaseMock({ user: { id: 'r1' }, results: {
+    profiles: [{ data: { box_id: 'b1', role: 'owner' }, error: null }, { data: [], error: null }],
+    leads: { data: [], error: null },
+  } })
+  serverCreate.mockResolvedValue(rls)
+  const res = await searchPeople('Sara, (Ali)')
+  expect(res.error).toBeNull()
+  const orArg = rls.builder('profiles').or.mock.calls[0][0] as string
+  expect(orArg).not.toContain('(')      // injected paren stripped from the value
+  expect(orArg).toContain('Sara Ali')   // comma+parens collapsed to a single space
+})

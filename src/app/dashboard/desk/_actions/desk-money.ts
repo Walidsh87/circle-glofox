@@ -63,7 +63,7 @@ export async function deskPaymentLink(membershipId: string): Promise<Link> {
   const { data: box } = await service.from('boxes').select('psp_credentials, stripe_secret_key').eq('id', profile.box_id).single()
   if (!(box?.psp_credentials || box?.stripe_secret_key)) return { error: 'Payment provider is not connected.', url: null }
 
-  const { data: athlete } = await service.from('profiles').select('email, full_name').eq('id', m.athlete_id).single()
+  const { data: athlete } = await service.from('profiles').select('email, full_name').eq('id', m.athlete_id).eq('box_id', profile.box_id).single()
 
   try {
     const provider = await getProviderForBox(profile.box_id)
@@ -71,7 +71,7 @@ export async function deskPaymentLink(membershipId: string): Promise<Link> {
     if (!customerRef) {
       const created = await provider.createCustomer({ email: athlete?.email ?? null, name: athlete?.full_name ?? null, metadata: { membership_id: membershipId, box_id: profile.box_id } })
       customerRef = created.customerRef
-      await service.from('memberships').update({ provider_customer_ref: customerRef }).eq('id', membershipId)
+      await service.from('memberships').update({ provider_customer_ref: customerRef }).eq('id', membershipId).eq('box_id', profile.box_id)
     }
     const baseUrl = env.NEXT_PUBLIC_APP_URL
     const session = await provider.createCheckoutSession({

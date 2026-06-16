@@ -149,7 +149,11 @@ export function WalkInPanel({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className={inputClass}
+            disabled={!!leadId}
           />
+          {leadId && (
+            <p className="text-[12px] text-ink-3">Contact details come from the existing lead record.</p>
+          )}
         </div>
 
         <div>
@@ -162,6 +166,7 @@ export function WalkInPanel({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={inputClass}
+            disabled={!!leadId}
           />
         </div>
 

@@ -14,9 +14,14 @@ export async function searchPeople(query: string): Promise<State> {
 
   const { supabase, profile } = auth
   const boxId = profile.box_id
-  const like = `%${q.replace(/[%_]/g, (c) => `\\${c}`)}%`
 
-  const { data: people } = await supabase
+  // Strip PostgREST .or() delimiters so pasted input ("Ali, Sara", "+971 (50)")
+  // can't malform the filter; collapse whitespace; then escape LIKE wildcards.
+  const cleaned = q.replace(/[,()\\*]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (cleaned.length < 1) return { error: null, hits: [] }
+  const like = `%${cleaned.replace(/[%_]/g, (c) => `\\${c}`)}%`
+
+  const { data: people, error: pErr } = await supabase
     .from('profiles')
     .select('id, full_name, email, phone')
     .eq('box_id', boxId)
@@ -24,12 +29,14 @@ export async function searchPeople(query: string): Promise<State> {
     .or(`full_name.ilike.${like},email.ilike.${like},phone.ilike.${like},id_number.ilike.${like}`)
     .limit(20)
 
-  const { data: leads } = await supabase
+  const { data: leads, error: lErr } = await supabase
     .from('leads')
     .select('id, full_name, email, phone, source, status')
     .eq('box_id', boxId)
     .or(`full_name.ilike.${like},email.ilike.${like},phone.ilike.${like}`)
     .limit(20)
+
+  if (pErr ?? lErr) console.error('desk search failed:', pErr ?? lErr)
 
   const ids = (people ?? []).map((p) => p.id)
   const today = new Date().toISOString().slice(0, 10)

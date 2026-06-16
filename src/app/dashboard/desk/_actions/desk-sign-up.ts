@@ -58,6 +58,8 @@ export async function deskSignUp(input: Input): Promise<State> {
     planId: input.planId,
     stripePriceId: input.stripePriceId ?? null,
   })
+  // Member now exists; if plan assignment failed we still return memberId so the
+  // operator can retry the plan/payment on the now-existing member (no orphan retry-create).
   if (assigned.error) return { error: assigned.error, memberId: athleteId }
 
   revalidatePath('/dashboard/desk')

@@ -3,7 +3,7 @@
 import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateMembershipInput } from '../_lib/validation'
-import { addDays } from '@/lib/date-utils'
+import { assignMembershipCore } from '@/lib/memberships'
 
 type State = { error: string | null }
 
@@ -22,42 +22,16 @@ export async function saveMembership(prevState: State, formData: FormData): Prom
   if ('error' in auth) return { error: auth.error }
   const { supabase, profile } = auth
 
-  // A trial plan creates a time-limited membership; fields derived server-side from the
-  // authoritative plan (the form can't forge a trial length).
-  let endDate: string | null = null
-  let isTrial = false
-  let trialPaymentStatus: 'paid' | 'unpaid' | null = null
-  if (planId) {
-    const { data: plan } = await supabase
-      .from('membership_plans')
-      .select('monthly_price_aed, is_trial, trial_days')
-      .eq('id', planId)
-      .eq('box_id', profile.box_id)
-      .single()
-    if (plan?.is_trial && plan.trial_days) {
-      isTrial = true
-      endDate = addDays(startDate, plan.trial_days)
-      trialPaymentStatus = (plan.monthly_price_aed == null || Number(plan.monthly_price_aed) === 0) ? 'paid' : 'unpaid'
-    }
-  }
-
-  const { error } = await supabase.from('memberships').insert({
-    box_id: profile.box_id,
-    athlete_id: athleteId,
-    plan_name: planName,
-    monthly_price_aed: monthlyPrice,
-    start_date: startDate,
-    payment_status: trialPaymentStatus ?? 'unpaid',
-    is_trial: isTrial,
-    ...(endDate ? { end_date: endDate } : {}),
-    ...(stripePriceId ? { provider_plan_ref: stripePriceId } : {}),
-    ...(planId ? { plan_id: planId } : {}),
+  const { error } = await assignMembershipCore(supabase, {
+    boxId: profile.box_id,
+    athleteId,
+    planName,
+    monthlyPrice,
+    startDate,
+    planId,
+    stripePriceId,
   })
-
-  if (error) {
-    console.error('saveMembership insert failed:', error)
-    return { error: 'Could not save the membership.' }
-  }
+  if (error) return { error }
 
   revalidatePath('/dashboard/payments')
   return { error: null }

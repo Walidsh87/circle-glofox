@@ -4,6 +4,7 @@ import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { validateIdDocument, normalizeIdNumber } from '@/lib/national-id'
+import { createMemberCore } from '@/lib/members'
 
 type State = { error: string | null }
 
@@ -30,36 +31,16 @@ export async function addMember(prevState: State, formData: FormData): Promise<S
   if (role !== 'athlete' && callerProfile.role !== 'owner') return { error: 'Only owners can add staff.' }
 
   const service = createServiceClient()
-
-  // Create auth user without sending an email
-  const { data: newUser, error: authError } = await service.auth.admin.createUser({
-    email,
-    email_confirm: true,
-  })
-
-  if (authError) {
-    if (authError.message.includes('already been registered')) {
-      return { error: 'A user with this email already exists.' }
-    }
-    return { error: authError.message }
-  }
-
-  const { error: profileError } = await service.from('profiles').insert({
-    id: newUser.user.id,
-    box_id: callerProfile.box_id,
-    role,
-    full_name: fullName,
+  const { error: coreError } = await createMemberCore(service, {
+    boxId: callerProfile.box_id,
+    fullName,
     email,
     phone,
-    id_type: normalizedId ? idType : null,
-    id_number: normalizedId,
+    role: role as never,
+    idType: normalizedId ? idType : null,
+    idNumber: normalizedId,
   })
-
-  if (profileError) {
-    // Roll back the auth user we just created
-    await service.auth.admin.deleteUser(newUser.user.id)
-    return { error: profileError.message }
-  }
+  if (coreError) return { error: coreError }
 
   revalidatePath('/dashboard/members')
   return { error: null }

@@ -2,7 +2,9 @@
 // actions + pure rendering helpers for the owner UI.
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type AuditAction = 'invoice.refund' | 'staff.role_change' | 'member.remove' | 'staff.mfa_reset'
+export type AuditAction =
+  | 'invoice.refund' | 'staff.role_change' | 'member.remove' | 'staff.mfa_reset'
+  | 'desk.cash_recorded' | 'desk.payment_link' | 'desk.package_sold'
 
 export type AuditEvent = {
   boxId: string
@@ -18,6 +20,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   'staff.role_change': 'Role change',
   'member.remove': 'Member removed',
   'staff.mfa_reset': 'MFA reset',
+  'desk.cash_recorded': 'Cash recorded',
+  'desk.payment_link': 'Payment link',
+  'desk.package_sold': 'Package sold',
 }
 
 /** Append-only audit write. NEVER throws — an audit hiccup must not break the action. */
@@ -53,6 +58,14 @@ export function describeAuditDetails(action: string, details: Record<string, unk
       const n = typeof d.factors === 'number' ? d.factors : null
       return n === null ? '' : `${n} factor${n === 1 ? '' : 's'} cleared`
     }
+    case 'desk.cash_recorded': {
+      const amt = typeof d.amount_aed === 'number' ? `AED ${d.amount_aed}` : 'Cash'
+      return d.plan ? `${amt} — ${String(d.plan)}` : amt
+    }
+    case 'desk.payment_link':
+      return d.plan ? `Link · ${String(d.plan)}` : 'Link'
+    case 'desk.package_sold':
+      return d.package ? String(d.package) : ''
     default:
       return ''
   }

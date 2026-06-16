@@ -44,3 +44,6 @@ next-env.d.ts
 
 # playwright mcp run artifacts (console logs + page snapshots)
 .playwright-mcp/
+
+# local dev DB rebuild bundles (generated, throwaway)
+circle-dev-rebuild-part*.sql

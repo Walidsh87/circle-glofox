@@ -1,255 +1,334 @@
-1. Think Before Coding
-Don't assume. Don't hide confusion. Surface tradeoffs.
+# Gym Platform — Project Brief for Claude Code
 
-Before implementing:
+## You are working with Walid
+Solo builder. Telecom engineer at du (Dubai) by day. Limited Next.js App Router experience — explain new concepts briefly when you introduce them. Direct, execution-oriented communication. Don't sugarcoat. Push back if I'm about to make a mistake.
 
-State your assumptions explicitly. If uncertain, ask.
-If multiple interpretations exist, present them - don't pick silently.
-If a simpler approach exists, say so. Push back when warranted.
-If something is unclear, stop. Name what's confusing. Ask.
-2. Simplicity First
-Minimum code that solves the problem. Nothing speculative.
-
-No features beyond what was asked.
-No abstractions for single-use code.
-No "flexibility" or "configurability" that wasn't requested.
-No error handling for impossible scenarios.
-If you write 200 lines and it could be 50, rewrite it.
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-3. Surgical Changes
-Touch only what you must. Clean up only your own mess.
-
-When editing existing code:
-
-Don't "improve" adjacent code, comments, or formatting.
-Don't refactor things that aren't broken.
-Match existing style, even if you'd do it differently.
-If you notice unrelated dead code, mention it - don't delete it.
-When your changes create orphans:
-
-Remove imports/variables/functions that YOUR changes made unused.
-Don't remove pre-existing dead code unless asked.
-The test: Every changed line should trace directly to the user's request.
-
-4. Goal-Driven Execution
-Define success criteria. Loop until verified.
-
-Transform tasks into verifiable goals:
-
-"Add validation" → "Write tests for invalid inputs, then make them pass"
-"Fix the bug" → "Write a test that reproduces it, then make it pass"
-"Refactor X" → "Ensure tests pass before and after"
-
-- For multi-step tasks, state a brief plan:
-
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
+## What we're building
+Multi-tenant SaaS gym management platform for CrossFit / hybrid boutique gyms in the GCC. Pilot customer: Circle Fitness (Al Quoz, Dubai), already a paying client.
 
 ---
 
-5. CI/CD & Quality Enforcement
+## HARD CONSTRAINTS — DO NOT VIOLATE
 
-Every project should have these four layers in place:
-
-## a) GitHub Actions CI (.github/workflows/ci.yml)
-Runs on push and PR to main. Three gates in order:
-1. `npm run lint` — ESLint (next lint)
-2. `npm run type-check` — TypeScript compiler check (tsc --noEmit)
-3. `npm run test` — Vitest unit tests
-
-```yaml
-name: CI
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-jobs:
-  ci:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run type-check
-      - run: npm run test
-```
-
-## b) Husky + lint-staged (pre-commit hook)
-Blocks commits that have ESLint errors.
-
-Install: `npm install --save-dev husky lint-staged`
-Init: `npx husky init`
-
-.husky/pre-commit:
-```sh
-npx lint-staged
-```
-
-package.json lint-staged config:
-```json
-"lint-staged": {
-  "**/*.{ts,tsx}": ["eslint --fix --max-warnings=0"]
-}
-```
-
-## c) Type-check script
-Add to package.json scripts:
-```json
-"type-check": "tsc --noEmit"
-```
-
-## d) Vitest coverage thresholds
-Install: `npm install --save-dev @vitest/coverage-v8`
-
-Add to package.json scripts:
-```json
-"test:coverage": "vitest run --coverage"
-```
-
-Add to vitest.config.ts:
-```ts
-coverage: {
-  provider: 'v8',
-  reporter: ['text', 'json', 'html'],
-  include: ['src/**/*.ts', 'src/**/*.tsx'],
-  exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/app/**/page.tsx', 'src/app/**/layout.tsx'],
-  thresholds: { lines: 70, functions: 70, branches: 60, statements: 70 },
-}
-```
-
-## Verification checklist for a new project
-- [ ] `npm run type-check` passes with 0 errors
-- [ ] `npm run test` all tests green
-- [ ] `npm run test:coverage` thresholds pass
-- [ ] Introduce a lint error → commit blocked by Husky
-- [ ] Push to GitHub → Actions tab shows green CI run
+| # | Constraint | Status |
+|---|---|---|
+| 1 | **80-hour build budget to v1 demo** (~6 weeks at ~17h/week, tracked honestly per session) | Tracking — honest TBD |
+| 2 | ~~**Kill switch: June 23, 2026**~~ — **LIFTED 2026-06-06.** Project continues regardless; build properly + sequence by dependency/correctness, not demo-speed-to-a-deadline | **Lifted** |
+| 3 | **Circle Fitness milestone: May 26, 2026** — one of {signed monthly fee / signed IP terms / written top-5 Glofox frustrations} | ✅ **Achieved** |
+| 4 | **Locked v1 scope** — only the 11 features below. Everything else defers to v2 | ✅ Closed — see v1 audit |
 
 ---
 
-6. Security & Production Hardening
+## Current status overview (scoreboard)
 
-Every project should have these layers before real users touch it:
+**As of 2026-06-06.** Read this section first; everything below is detail.
 
-## a) Security headers (next.config.mjs)
-Add via `headers()` — prevents clickjacking, MIME sniffing, and info leakage:
-```js
-async headers() {
-  return [{
-    source: '/(.*)',
-    headers: [
-      { key: 'X-Frame-Options', value: 'DENY' },
-      { key: 'X-Content-Type-Options', value: 'nosniff' },
-      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-    ],
-  }]
-},
-```
+| Bucket | Status |
+|---|---|
+| **v1 (11 features)** | 11 ✅ all shipped — v1 complete |
+| **v2 Tier 1 (revenue blockers)** | **#10 Packages on Stripe complete** ✅ (PR-1 catalog · PR-2a purchase + owner-sell · PR-2b member storefront · PR-3 entitlement — all merged to main); Tabby + mobile API deferred |
+| **v2 Tier 2–13 (~95 items)** | 13 ✅ (Tier 2: #11 WOD programming + batch import, #12 auto-PR, #13 coach prep, #14 whiteboard/TV, #16 AI parser, #17 scaling · Tier 3: #18 at-risk scoring, **#19 KPI dashboard**, **#20 Committed Club**, **#24 workout timer**, **#26 waitlist**, #23 1RM charts, #25 feed) · #21 mobile API ⬜ (deferred) · rest ⬜. **Tier 2 done bar #15. Tier 3 COMPLETE.** |
+| **Migrations** | 008–069 in repo. **Verified vs prod 2026-06-14: 020–069 all applied ✅** (`027 workout_scores.is_pr` was the lone gap — caught by a schema probe, fixed same day). 008–019 applied earlier (v1/Tier-1 era, not re-probed); RLS/function/enum-only migs 022/023/054/057/058 not directly probed but adjacent artifacts present. No pending migrations. |
+| **Next session priority** | ⚙️ set `ANTHROPIC_API_KEY` in Vercel for #16. ⚙️ enable Resend open/click tracking + register webhook `/api/webhooks/resend` + set `RESEND_WEBHOOK_SECRET` in Vercel for #41 analytics. ⚙️ Vercel crons `/api/cron/automations` (06:00) + `/api/cron/sequences` (06:15) use existing `CRON_SECRET` — no new env. ⚙️ for #42 SMS: set `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_SMS_FROM` in Vercel + register the Twilio status callback at `/api/webhooks/twilio`. ⚙️ for #39 WhatsApp: Meta business verification + WhatsApp sender via Twilio console, create/approve templates there, set `TWILIO_WHATSAPP_FROM` in Vercel; delivery callback `/api/webhooks/twilio-wa` passed per-message. **Tiers 3 + 4 COMPLETE; Tier 5 — #43 broadcasts + #41 email campaigns + #37 automation builder + #38 lifecycle board + #44 sequences + #42 SMS campaigns + #39 WhatsApp + #40 staff inbox (in-app chat core) + #45 lead-capture widget + #46 schedule widget + #47 follow-up tasks + #49 referrals + #48 attribution done — **Tier 5 COMPLETE (13/13)**. Deferred sub-items: #38 checklists ✅ + #40 WhatsApp inbound ✅ done 2026-06-10. **Only email inbound** remains (separate spec — needs an inbound-email vendor + MX; SMS inbound not viable on the alphanumeric sender).** Tier 5 + its deferred sub-items done; next is Tier 6+. ⚙️ also set the Twilio WhatsApp inbound webhook → `/api/webhooks/twilio-wa-inbound`. ✅ **Security follow-ups — ALL W-findings closed 2026-06-16** (detail in `SECURITY-REMEDIATION.md`): **W11** ✅ verified live — Upstash already connected in prod; a 40-parallel-request probe to `/auth/confirm` returned exactly 20×307 + 20×429 (the configured `slidingWindow(20,'10s')`). **W12** ✅ done — `ci`/`secret-scan`/`rls-isolation`/`supply-chain` all required status checks on `main` (set via `gh api`; CI `rls-isolation` job verified green against a real postgres:16 service container). VAPID keypair regenerated + deployed to Vercel prod (web push live). **Sentry token rotated + verified** 2026-06-16 — new token + `SENTRY_ORG`/`SENTRY_PROJECT` set → build log shows source maps uploading + a release created, no 401 (upload had been silently off; now live); **old leaked token revoked (owner-confirmed)**. ✅ **No security items open.** |
 
-## b) Environment variable validation (src/env.ts)
-Install: `npm install zod`
+---
 
-Create `src/env.ts` — validates all required env vars at startup, fails loud if any are missing:
-```ts
-import { z } from 'zod'
+## v1 audit (against the original 11-feature scope)
 
-const schema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  // add all required vars here
-})
+A fresh codebase audit on 2026-05-29 found 9 of 11 features shipped cleanly and 2 partial. The two partials must be backfilled next session before any more v2 work.
 
-export const env = schema.parse({
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-})
-```
+| # | v1 feature | Status | Notes |
+|---|---|---|---|
+| 1 | Multi-tenant schema with RLS | ✅ | `schema.sql`, `auth_box_id()` enforced on all box-scoped tables |
+| 2 | Auth + roles owner/coach/athlete (magic link, no passwords) | ✅ | Supabase OTP email flow, no password field |
+| 3 | Member directory (CRUD) | ✅ | Full CRUD + lead pipeline in `/dashboard/members` |
+| 4 | Class template CRUD (recurring weekly) | ✅ | Full CRUD — create, edit (modal), delete, toggle-active |
+| 5 | Class instance generator | ✅ | `generate-instances.ts` action with date range |
+| 6 | Class booking flow | ✅ | `/dashboard/schedule` athlete page + `book-class.ts` |
+| 7 | Whiteboard tablet view | ✅ | `/dashboard/whiteboard` with check-in, override modal, payment status badges |
+| 8 | Daily WOD form (one per box per day) | ✅ | `UNIQUE (box_id, date)` enforced; coach types title + description + scoring type |
+| 9 | Athlete 1RM tracking + percentage calculator (**THE WEDGE**) | ✅ | Structured % prescription on WOD form (lift dropdown + sets×reps@%). Whiteboard renders per-athlete kg next to each name. Athlete WOD page shows "Your loads" card. Fallback prompt when no 1RM logged. Lift catalog expanded to 29 movements. Migration 018 applied. |
+| 10 | Score logging + today's leaderboard | ✅ | `workout_scores` table + activity feed view |
+| 11 | Owner dashboard + manual payment tracking | ✅ | `/dashboard` overview + `/dashboard/payments` with `mark-paid` action |
 
-Also create `.env.example` with all keys listed (no values) — required for any new deployment or dev setup.
+### v1 backfill plan (next session)
 
-## c) Zod validation for server actions
-Use Zod schemas in `_lib/validation.ts` files. Keep `string | null` return type so existing tests stay green:
-```ts
-import { z } from 'zod'
+**✅ #4 — Class template edit form** — shipped 2026-05-31. Edit button + modal on each template row. Edits name, day, time, capacity, coach.
 
-const schema = z.object({
-  fieldA: z.string().min(1),
-  fieldB: z.number().positive(),
-})
+**✅ #9 — The Wedge integration** — shipped 2026-05-31. See build log.
 
-export function validateInput(fieldA: string, fieldB: number): string | null {
-  const result = schema.safeParse({ fieldA, fieldB })
-  if (!result.success) return 'Human-readable error message.'
-  return null
-}
-```
-Coverage note: scope `include` in vitest.config.ts to `src/**/_lib/*.ts` — these are the pure logic files with unit tests.
+---
 
-## d) Rate limiting on auth routes
-For production (serverless-safe): `@upstash/ratelimit` + Upstash Redis.
-For simple/dev: in-memory counter in middleware.ts (resets per cold start — not suitable for production).
-Apply in `middleware.ts` before the Supabase auth check.
+## v1 EXCLUSIONS (never let these creep in)
+- ❌ Branded mobile app / native mobile / React Native *(now 🆕🚧 — see v2 #21 below, allowed only as API surface)*
+- ❌ WhatsApp integration (Meta API approval is a rabbit hole)
+- ❌ Automated billing / Stripe subscriptions *(closed in v2 #1)*
+- ❌ Lead capture / CRM
+- ❌ Email automation sequences
+- ❌ Multi-modality (CrossFit + SGT + 1:1) — CrossFit class model only for v1
+- ❌ Reporting / analytics beyond owner dashboard basics
+- ❌ Member self-service signup (owner invites only)
+- ❌ AI-generated programming / Codex
+- ❌ Geofenced check-in
+- ❌ POS / retail
+- ❌ CSV / PDF import of WODs (coach types daily)
+- ❌ Offline-first / sync engines
+- ❌ Athlete personal-phone logging (whiteboard tablet only for v1)
 
-## e) Route-level error boundaries
-Add `error.tsx` per major App Router segment so one crash doesn't blank the whole app:
-```tsx
-// src/app/dashboard/error.tsx
-'use client'
-export default function Error({ error, reset }: { error: Error; reset: () => void }) {
-  return (
-    <div>
-      <p>{error.message}</p>
-      <button onClick={reset}>Try again</button>
-    </div>
-  )
-}
-```
-Add for: `/dashboard`, `/[gymSlug]`, `/onboarding`.
+## Tech stack (locked)
+- Next.js 14 App Router + TypeScript
+- Supabase (Postgres + Auth + RLS)
+- Tailwind CSS + shadcn/ui
+- Vercel hosting
+- @supabase/ssr for auth helpers
 
-## f) Database migration strategy
-Keep SQL files in `/migrations/` with sequential naming — never scatter raw SQL in root:
-```
-migrations/
-  001_schema.sql
-  002_seed-demo.sql
-  003_add-leads-rls.sql
-  ...
-```
-Add `migrations/README.md` explaining how to run them (e.g. Supabase SQL Editor steps).
+NO: GraphQL, Redis, custom microservices, state libraries (Zustand/Redux), tRPC, Prisma. Use Supabase client directly.
 
-## g) GitHub automation
-`.github/dependabot.yml` — weekly dependency update PRs:
-```yaml
-version: 2
-updates:
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-```
+## Architectural principles
+- **Multi-tenant by RLS, not application logic.** Every box-scoped table has `box_id` and an RLS policy that filters by `auth_box_id()`. Trust Postgres to enforce isolation.
+- **Server Components by default.** Add `'use client'` only when interactivity demands it (forms, buttons with state, anything using hooks).
+- **Weight stored in grams.** UI converts to kg/lb at render time. The `athlete_lifts.one_rm_grams` and any load values are integer grams.
+- **No premature abstractions.** Build the screen, see what's repetitive, then extract. Don't pre-build component libraries.
 
-`.github/pull_request_template.md` — standard checklist on every PR.
+## The wedge — why a gym switches to us
+The percentage-based loading calculator. When the WOD says "5x3 @ 80% back squat", the whiteboard auto-renders the exact kg for every booked athlete based on their stored 1RM. This is what Glofox, Wodify, and SugarWOD do poorly or not at all. Polish this feature 3x more than anything else.
 
-Branch protection rules (GitHub UI, not a file): require CI to pass before merge to main.
+> ⚠️ **Currently 🚧 partial.** The calculator is built and polished as a standalone tool. Integration into WOD/whiteboard is scheduled for next-session backfill — see v1 audit above.
 
-## h) Staging environment
-Before onboarding real gyms:
-- Create a second Supabase project for staging (free tier)
-- Add staging env vars to Vercel preview deployments
-- Create `.env.staging.example` listing which vars differ from production
+## Working agreement
+- When I'm about to add scope, refuse first, then ask why.
+- When I'm uncertain on Next.js patterns, explain the concept in 2-3 sentences before writing code.
+- When you write a non-trivial chunk of code, walk me through what it does — I'm learning.
+- After each task, estimate hours used vs. the 80h budget. Be honest.
+- If something is taking longer than 2x estimate, stop and re-scope.
 
-## Verification checklist for production readiness
-- [ ] `curl -I https://your-domain.com` shows X-Frame-Options, X-Content-Type-Options headers
-- [ ] Remove a required env var → startup throws with clear Zod error
-- [ ] Pass invalid input to a server action → returns typed error (not 500)
-- [ ] Throw in a dashboard component → route error.tsx shown, not blank screen
-- [ ] `ls migrations/` shows numbered files with README
+---
+
+## v2 Roadmap — Priority Order
+
+Derived from a dual audit: (a) Glofox owner-side feature inventory (parity gaps) and (b) cross-competitor sweep of Wodify, PushPress, Mindbody, ZenPlanner, SugarWOD, BTWB, TrainHeroic, Mariana Tek, Arbox (strategic wedges where Glofox is weak).
+
+### Tag legend
+- `[G-gap]` — Glofox has it, we don't. Parity feature.
+- `[Wedge]` — Glofox does it badly or not at all; a competitor does it well. **Strategic — beats Glofox.**
+- `[GCC]` — UAE/GCC-specific; no competitor does it well. **Greenfield local moat.**
+- `[Kept]` — Existing item from the prior v2 roadmap, preserved.
+- `🆕` — Scope **added after** the original v2 draft (mobile-app urgency, Packages umbrella, Tabby specifics).
+
+### Status legend
+- ✅ Shipped (merged + smoke-tested)
+- 🚧 In progress / partial (some PRs done, more pending)
+- 📋 Planned / spec written, ready to build
+- ⏸️ Deferred — explicitly out of current scope window
+- ⬜ Not started
+
+### Recent additions / scope changes
+These were added to v2 mid-flight and are tracked here so the original tier numbering stays stable:
+
+- 🆕📋 **Packages umbrella** — one-shot purchases (PT blocks, class packs, intro offers, drop-in passes). Sold via Stripe one-shot or Tabby BNPL. Cross-references #27, #32, #76, #103. Spec at `docs/superpowers/specs/2026-05-27-multi-psp-support-design.md` (extends it). Migration 018 in plan.
+- 🆕📋 **Tabby BNPL adapter** — first non-Stripe PSP under #10. Replaces the original Telr-first sequencing.
+- 🆕🚧 **Native mobile app (#21)** — was in Tier 3 backlog. Now prioritised: JSON API endpoints (`/api/packages/*`) land alongside the Packages PR so the mobile team can build against them.
+- 🆕✅ **Security hardening** — portal token (HMAC + 7d TTL), CSP/HSTS, error sanitisation, audit log, webhook idempotency gate, refund TOCTOU fix. Sub-tasks of #7 + #10.
+
+### Tier 1 — Revenue blockers (cannot sign a paying GCC gym without these)
+1. ✅ `[Kept]` Stripe billing + subscriptions (full lifecycle: create / upgrade / downgrade / cancel)
+2. ✅ `[GCC]` **UAE VAT-compliant invoicing** — 5% VAT, sequential invoice numbers, TRN on invoice, PDF export
+3. ✅ `[Kept]` Digital waivers / e-signatures
+4. ✅ `[G-gap]` Membership T&C e-signature at signup (distinct from liability waiver)
+5. ✅ `[Wedge]` **Real-time membership validation at check-in** — whiteboard blocks unpaid athletes; shows "payment overdue" instead of letting them log
+6. ✅ `[G-gap]` Refunds workflow from member profile (full / partial)
+7. ✅ `[Wedge]` **Smart dunning + failed-card recovery** — auto-retry, member self-serve update link, mark `past_due` after N retries
+8. ✅ `[Kept]` Automated billing reminders (email/SMS on due / overdue)
+9. ✅ `[GCC]` **PDPL data export per member** — UAE Federal Decree-Law 45 of 2021 compliance
+10. 🚧 `[Wedge][GCC]` **Multi-PSP + Packages** — PSP port PR-1 ✅ done (Stripe adapter, provider-agnostic columns). **Re-scoped 2026-06-06** (spec `docs/superpowers/specs/2026-06-06-packages-design.md`): next work is **Packages** — one-shot, credit-based products (class packs / drop-ins / PT blocks) on **Stripe**, in 3 sub-PRs:
+    - **Packages-PR1** ✅ owner catalog + data model (migrations 020–022, `validatePackageInput` + tests) — PR #2.
+    - **Packages-PR2a** ✅ purchase backend + owner-sell (merged to main): one-shot `createPackageCheckout`, webhook grants `package_credits` + VAT invoice, owner sell-package action + member-profile UI. No migration.
+    - **Packages-PR2b** ✅ member self-serve storefront + "my credits" (merged to main): `/dashboard/shop` page, `buyPackage` self-action (athlete-only), athlete "Buy a pack" nav. Reuses PR-2a backend — no migration/webhook change.
+    - **Packages-PR3** ✅ booking entitlement (merged to main): pure `credits.ts` precedence (`selectBestBatch`/`decideEntitlement`), migration 023 atomic `consume_credit`/`refund_credit` fns, hard-gate consume in `book-class`, refund in `cancel-booking`, credit clause in `check-in`, owner PT `redeem-session`, whiteboard "Pack" badge + buy-a-pack link. Plan `…packages-pr3-entitlement.md`.
+    - Deferred: Tabby BNPL adapter, `/api/packages/*` mobile API, original Telr/Tap/NI/PayTabs adapters, real-gym pilot.
+
+### Tier 2 — The wedge: CrossFit programming layer (beats Glofox, matches Wodify/SugarWOD/BTWB)
+11. ✅ `[Wedge]` **WOD programming library + calendar** — `workout_templates` library + month calendar at `/dashboard/programming` (click-to-assign, snapshot into `workouts`); day editor reuses `WodForm`; copy-to-dates; score-guarded clear; library CRUD. **+ Batch paste import** at `/dashboard/programming/import` — paste a month of metcons (text block, one day per block), preview classifies each date NEW/REPLACE/BLOCKED/INVALID (score-guarded), commit upserts NEW+REPLACE only. No migration (writes existing `workouts`). Single-track (multi-track = #17), drag-drop + AI parse (#16) deferred. Migration 024. Plans `…2026-06-07-wod-programming.md`, `…2026-06-07-batch-wod-import.md`.
+12. ✅ `[Wedge]` **Auto-PR detection** (lift + WOD) — **lift PRs**: `saveLift` flags `is_pr` on new-max saves (migration 025), celebration + chart/table 🏆 + box-wide feed (RLS exposes only PR rows). **WOD/benchmark PRs**: `logScore` detects a score beating the athlete's prior best on the same benchmark (title, case-insensitive) in the same Rx bracket (`is_pr` on `workout_scores`, migration 027) — celebration + leaderboard 🏆 + feed 🏆. Benchmark identity = title (documented fuzziness); registry deferred. Specs `…auto-pr-detection-design.md`, `…wod-benchmark-prs-design.md`.
+13. ✅ `[Wedge]` **Coach pre-class prep view** — owner/coach `/dashboard/prep`: next-class + switcher across today's classes; per-member roster (last attended, membership flag, the WOD's prescribed strength load per member, editable **staff-only** scaling note). New `athlete_coach_notes` table (migration 026, staff RLS). Reuses `getMembershipStatus` + `loadForPercent`. Spec `…coach-prep-view-design.md`.
+14. ✅ `[Wedge]` **Whiteboard / TV-display mode for the gym floor** — public `/tv/<token>` kiosk board (no login): today's WOD big + live score leaderboard + today's PRs; 30s auto-refresh. Per-gym `boxes.tv_token` (migration 028), owner generate/regenerate/disable in Settings. **Service-role + strictly box-scoped reads**; rate-limited; names + scores only (no membership/billing). Spec `…whiteboard-tv-mode-design.md`.
+15. ⬜ `[Wedge]` **Programming marketplace** — third-party tracks (CompTrain, PRVN, Mayhem) OR owner publishes own program
+16. ✅ `[Wedge]` **AI workout parser** — "✨ Parse with AI" on `/dashboard/programming/import`: staff-gated `aiParseProgramming` calls Claude (`claude-sonnet-4-6`) to convert freeform programming into the block format `parseBatch` understands → fills the import textarea → coach reviews → existing Preview/Import (which validates). **Zero AI write access** (hallucinations surface as INVALID rows). `@anthropic-ai/sdk` + optional `ANTHROPIC_API_KEY` (graceful "not configured"). No migration. Spec `…ai-workout-parser-design.md`.
+17. ✅ `[Kept]` **Multiple programming tracks (Rx / Scaled / Beginner)** — scoped to **scaling variations on one WOD** (not separate per-track workouts/leaderboards): `workouts.scaling jsonb` (migration 029) = ordered `{label,description}[]`; coach edits in `WodForm` (mirrors strength-sets editor); shown on the WOD page + whiteboard + TV; `copyWodToDates` carries it. No constraint/scoring/`rx`/leaderboard change. Spec `…scaling-variations-design.md`.
+
+### Tier 3 — Retention & engagement
+18. ✅ `[Wedge]` **At-risk member scoring** — owner/coach `/dashboard/retention` reach-out list ranked by a **deterministic** `scoreMember` heuristic (recency: days since last check-in + membership: unpaid/no-plan/expiring; 14d new-member grace). "Mark contacted" logs to `member_outreach` (migration 030) + snoozes 14d. Members-only (leads excluded). AI deferred. Spec `…at-risk-scoring-design.md`.
+19. ✅ `[Wedge]` **Two-Brain-style KPI dashboard** — owner-only `/dashboard/kpi`: ARM, LEG, LTV, churn + active members + MRR cards, plus a trailing 12-complete-month MRR & members trend (inline-SVG sparklines). Pure `computeKpis(memberships, purchases, today)` (unit-tested): stock metrics (active/MRR/LEG) as-of-today, rate metrics (ARM last full month, churn 3-month avg) over calendar months; ARM/LTV fold package sales (`package_credits.created_at` × `packages.price_aed`) into membership MRR. No migration (reads existing tables). Owner-gated page + "Metrics" nav + `chart` icon. Spec `…kpi-dashboard-design.md`.
+20. ✅ `[Wedge]` **Committed-Club / consistency gamification** — weekly-streak + lifetime-milestone system from `bookings.checked_in`. Pure `src/lib/consistency.ts` (unit-tested): committed week = ≥3 check-ins (Mon-start), streak = consecutive committed weeks (current week is grace); milestones 25/50/100/250/500/1000; streak landmarks 4/8/12/26/52. Four surfaces: member-page Consistency card, `/dashboard/committed-club` leaderboard (all members, ranked streak→total), 🔥 whiteboard badge, and activity-feed posts. Feed posts backed by `member_achievements` (mig 032, box-read RLS, service-write) written best-effort at check-in on **exact** crossings (no backfill spam); `awardConsistency` never fails the check-in. Spec `…committed-club-design.md`.
+21. 🆕🚧 `[Kept]` Native mobile app (Expo / React Native) — promoted from backlog. API endpoints (`/api/packages/*`) ship with Packages PR; app itself is separate work.
+22. ✅ `[Kept]` **Push notifications (web push)** — `push_subscriptions` (mig 060, RLS-no-policies = service-role only), VAPID env (keys regenerated + **deployed to Vercel prod 2026-06-16 — web push live**), `sendPushTo` with dead-endpoint pruning. Triggers: waitlist-spot push beside the existing email in cancel-booking; 07:00-Dubai morning digest cron (`/api/cron/class-reminders`, pure `buildDigestPushes`). PWA installability for iOS (manifest + ImageResponse icons + appleWebApp meta); `public/sw.js`; 🔔 enable card on the schedule with add-to-home-screen guidance for iPhone. Broadcast push channel + per-type prefs deferred. Spec `…web-push-design.md`.
+23. ✅ `[Kept]` 1RM progress charts + WOD score history
+24. ✅ `[Kept]` **In-app workout timer** — `/dashboard/timer` (everyone): For Time / AMRAP / EMOM / Intervals + 10s lead-in + Web Audio beeps. Pure `tick(config, elapsed)` engine (fully unit-tested) + thin client `Timer` component (pause-safe interval, phase-colored display, AudioContext on Start). No backend/migration. Spec `…workout-timer-design.md`.
+25. ✅ `[Kept]` Activity feed + reactions
+26. ✅ `[Kept]` **Waitlist with auto-notification** — `class_waitlist` (mig 031, box-read + athlete-manage RLS). Athletes Join/Leave a full class from `/dashboard/schedule` (shows "On waitlist · #N"). On a cancel, a best-effort hook emails **only #1** in line to come book (`sendWaitlistEmail` via Resend) — **notify-to-book, not auto-promote** (booking still runs the membership/credit entitlement gate; no silent credit consumption). `bookClass` removes the booker's waitlist row. Pure `nextInLine`/`waitlistPosition` (unit-tested) + join/leave + cancel-notify integration tests. Spec `…class-waitlist-design.md`.
+
+### Tier 4 — Membership depth (how owners model their business)
+27. ✅ `[G-gap]` **Membership type catalog** — `membership_plans` (mig 035, owner-only RLS) of reusable **recurring** plans (name + monthly price + optional Stripe Price ID + active); owner CRUD on the payments page (create/edit/toggle/delete with `23503` → "deactivate instead", mirroring Packages). `memberships.plan_id` references the plan (RESTRICT); the membership keeps its own `plan_name`/`monthly_price_aed` as a **billing snapshot** so editing a plan never re-prices existing members. `AddMembershipForm` plan `<select>` prefills name/price/Stripe-ref (still editable). Credit products stay in the Packages catalog. Spec `…membership-plan-catalog-design.md`.
+28. ✅ `[G-gap]` **Membership freezes / pauses** — `frozen_from`/`frozen_until` cols on `memberships` (mig 033). Window `[from, until)` → **auto-resume by date, no cron**; `until` NULL = indefinite. One pure `isFrozenOn(m, date)` in `membership-status.ts`; `getMembershipStatus` gains `'frozen'`. **Full pause:** blocked from check-in/booking (credit-backed bookings still bypass — pre-paid), excluded from MRR + active count (KPIs + payments), and `cron_eligible_memberships` skips frozen → no billing-due reminders; retention skips frozen (not a churn risk). Owner Freeze/Resume on the member page + ❄️ badges. Spec `…membership-lifecycle-design.md`.
+29. ✅ `[G-gap]` **Scheduled cancellations (end-of-period)** — reuses `end_date` (a future `end_date` is already "active until then" in `getMembershipStatus`). Owner Schedule-cancellation / Undo on the member page + "Cancels on {date}" badge (member + payments); active-membership lookup now includes future-dated rows so the cancel can be undone.
+30. ✅ `[G-gap]` **Family / couples / team memberships** — `households` (mig 038, box-read + owner-write RLS) + `profiles.household_id`. A household has a **primary payer** who holds one (family-priced) membership; **check-in + book-class resolve a member's entitlement through `household.primary ?? self`** (one extra lookup) so dependents' access (paid/unpaid/**frozen**/trial) follows the primary. Dependents have **no membership of their own** → automatically excluded from KPI MRR/active + Retention (no change). **Credits + booking/check-in rows stay per-person.** Owner `createHousehold`/`addToHousehold`/`removeFromHousehold` + a member-page **Household** card (members, PAYER mark, "covered by payer" note). Spec `…family-memberships-design.md`.
+31. ✅ `[G-gap]` **Prorations on mid-cycle plan changes** — pure `computeProration(oldMonthly, newMonthly, anchor, changeDate)` (daily over the cycle `[anchor, dueDate)`, `anchor = last_paid_date ?? start_date`, `dueDate = anchor+1mo`): credit unused old + charge remaining new → **net** (member owes / credit). Owner `changePlan(membershipId, newPlanId)` switches the membership **in place** (plan_id/name/price/ref ← new plan; **cycle anchor + payment_status untouched** → renewal date doesn't move; trial-target rejected). Member-page **Change-plan** control with a live proration preview; net is **display-only** (owner settles manually). **No migration.** Spec `…plan-change-proration-design.md`.
+32. ✅ `[G-gap]` **Trial passes / intro offers** — a trial is a **plan-catalog type** (`membership_plans.is_trial` + `trial_days`, mig 036). Assigning a trial plan → `saveMembership` server-derives `end_date = start + trial_days`, snapshots `memberships.is_trial`, and sets `payment_status` (**free trial → paid** = access granted; **priced intro → unpaid** = pay-then-access). **Auto-expiry via existing `end_date`** (no cron); surfaces in Retention as "expiring" (manual conversion). Trials **excluded from KPI MRR/active/churn**. Non-blocking **repeat-trial warning** in the add-membership form; "Trial · ends X" badges on member + payments. Pure `addDays` + `validatePlan` trial rule. Spec `…trial-passes-design.md`.
+33. ✅ `[G-gap]` **Member tags + segmentation** (manual) — free-form `member_tags` (mig 037, **staff-manage + staff-read RLS** — not member-visible). Pure `normalizeTag` (trim/collapse/cap 40); staff `addTag`/`removeTag` (`23505` → no-op). Member page has a staff-only **Tags** card (chips + × + add with `<datalist>` suggestions from the gym's existing tags); member directory gets a **tag-filter bar** (`?tab=members&tag=X`) + per-row tag chips. Dynamic rule-based segments deferred (Retention #18 covers the key one). Spec `…member-tags-design.md`.
+34. ✅ `[G-gap]` **Custom member fields** — fixed typed columns on `profiles` (mig 034): emergency contact name/phone, blood type, allergies, date of birth (**Emirates ID deselected**; no field-builder — YAGNI). Pure `validateMemberFields` (blood-type enum, no-future/valid DOB, length caps) gates the staff-only `updateMember` before write; new inputs in `EditMemberForm`; "Personal & medical" card on the member page (staff + self; **allergies highlighted ⚠️**, age derived from DOB); fields added to the PDPL export. Spec `…custom-member-fields-design.md`.
+35. ✅ `[G-gap]` **Booking-rule policies** — two per-box rules on `boxes` (mig 039, **default 0 = off**): `booking_close_minutes` (bookings **close** N min before start → `book-class` refuses) and `late_cancel_hours` (cancelling within N h → **credit forfeited**, cancel still proceeds + frees the spot + notifies waitlist; `cancel-booking` returns `forfeited`, BookingButton notes it). Pure `bookingClosed`/`isLateCancel`. Owner **Booking policies** settings card + `saveBookingPolicy`. No-show unchanged (its consumed credit was never on the refund path); no monetary fees. Spec `…booking-policies-design.md`.
+36. ✅ `[Wedge]` **Skills / level / belt progression** — `src/lib/skills.ts` (constant Level-Method skill set grouped by category + ordered colour `BELTS` + pure `beltRank`/`overallBelt`). `skill_levels` (mig 040, **staff-manage + athlete-read-own RLS**), one belt per athlete per skill. Staff `setSkillLevel` (validate skill/belt; empty = clear; box-scoped upsert). Member-page **Skills editor** (staff, belt selects + overall chip); read-only athlete **`/dashboard/skills`** page (colour belt chips by category, overall = lowest assessed, X/N assessed) + "Skills" nav (`medal` icon). Shared `BeltChip`. Spec `…skill-progression-design.md`.
+
+### Tier 5 — Comms, CRM, automation
+37. ✅ `[Wedge]` **Native automation builder with triggers** — owner creates single-step lifecycle rules (*when [trigger] matches → send branded email*), no Zapier. Pure daily-cron-scanned matcher (`src/lib/automations.ts`, `matchAutomation`) over four triggers: `no_checkin` (N days, active members only, once-per-lapse re-armed on return), `trial_ending` (N days before end_date), `joined` (N days after signup), `birthday`. Two tables (mig 043): `automations` (trigger + #41 `body_blocks` + enabled) + `automation_runs` ledger with UNIQUE `(automation_id, athlete_id, fire_key)` for idempotency. New cron `/api/cron/automations` (`0 6 * * *`) loads members (status/trial/last-check-in), dedupes, sends via `sendBroadcastEmails`, logs runs. Owner-only `/dashboard/automations` (list + on/off toggle + sent count; editor reuses #41 `BlockEditor` + live preview). Respects `marketing_opt_out` + unsubscribe footer. Email-only v1; multi-step → #44, lifecycle stages → #38, SMS/WhatsApp → #42/#39, open/click analytics deferred. Spec `…automation-builder-design.md`.
+38. ✅ `[Wedge]` **Lifecycle CRM — pipeline board** — owner-only `/dashboard/lifecycle` board grouping every lead + member into six **derived** stages (Lead · Trial · Active · At-risk · Frozen · Cancelled). Pure classifier `lifecycleStage` (`src/lib/lifecycle.ts`) over existing data — `leads.status`, `getMembershipStatus`, `is_trial`, `scoreMember` (unpaid/high-risk → At-risk; medium stays Active; frozen/no-plan precedence) — so the board never contradicts billing/attendance. `buildColumns` classifies + sorts (At-risk by risk score, Trial by soonest end). Read-only cards: open profile + reuse `markContacted` (no drag, no stored stage, **no schema, no new mutations**). Pipeline-board half + **✅ onboarding/offboarding checklists** (shipped 2026-06-10, mig 051): owner-defined `checklist_items` template lists (Onboarding/Offboarding) managed in Settings (`ChecklistEditor` + save/delete/move-position owner actions); per-member `member_checklist_progress` (UNIQUE member+item, staff RLS) ticked via `toggleChecklistStep` (upsert/delete). Stage-driven member-profile card (offboarding when `getMembershipStatus`=no_membership & had a plan, else onboarding); pure `validateChecklistItem`/`mergeChecklist`/`countIncompleteOnboarding`; dashboard "Onboarding to-do" StatCard. Specs `…lifecycle-crm-design.md` + `…onboarding-checklists-design.md`.
+39. ✅ `[GCC]` **WhatsApp campaigns + automation channel** — outbound template-based WhatsApp via Twilio. Owners register Meta-approved Content templates (paste `HX…` SID + body preview + var count) under owner-only `/dashboard/whatsapp`, then send to an audience segment (compose form reuses #42 phone-normalize/segment/opt-out + `previewSmsAudience`). Pure `renderWaVars` fills `{{first_name}}` into Twilio `contentVariables`; `sendWhatsApp`/`waConfigured` wrap Twilio (`src/lib/twilio.ts`, prefixed `whatsapp:`). Three tables (mig 046): `wa_templates` + `wa_campaigns` (template snapshot + var_values) + `wa_recipients` (queued|sent|delivered|read|failed). Signature-verified delivery webhook `/api/webhooks/twilio-wa` updates by `twilio_sid`; delivered/read/failed derived on read. Automations (#37) gain a **channel** toggle (`automations.channel`/`wa_template_id`/`wa_var_values`): same daily cron + fire_key ledger, branches email→`sendBroadcastEmails` vs whatsapp→template send (skips opted-out/phoneless). Reuses `marketing_opt_out`. **Outbound only**: 1:1/inbound → #40; sequences stay email-only; in-app template creation/approval-tracking + media templates out of scope. ⚙️ Meta sender + template approval in Twilio console, set `TWILIO_WHATSAPP_FROM`. Spec `…whatsapp-campaigns-design.md`.
+40. ✅ `[Wedge]` **Staff inbox — in-app chat core** — owner/coach `/dashboard/inbox` (two-pane: thread list + conversation) and athlete `/dashboard/messages` (their one thread). One **shared** conversation per member (`conversations` UNIQUE `(box_id, member_id)`) + `messages` (mig 047, RLS: staff = owner/coach read+reply all in box; member read/insert own only, `sender_role`-gated). Single write path `sendMessage` **upserts** the thread (`onConflict (box_id,member_id)` refreshes denorm + flips unread to the other side) then inserts; `markRead` clears the caller's side on open (no revalidate — runs during render). Pure `validateMessage`/`messagePreview`. Delivery by ~10s `<InboxPoller>` `router.refresh()` (no websockets). Staff replies labelled by sender; unread dot on staff side. Delivers #83 (DM coach) + #97 (coach DMs athletes). **+ ✅ WhatsApp inbound + 24h reply** (shipped 2026-06-10, mig 052): inbound webhook `/api/webhooks/twilio-wa-inbound` (signature-verified) matches sender phone → member → records a `sender_role='member'`, `channel='whatsapp'` message + sets `conversations.last_wa_inbound_at` + `staff_unread`. `sendMessage` is channel-aware — a staff reply rides WhatsApp (`sendWhatsAppText` free-text) while `withinSessionWindow` (24h of last inbound) is open, else in-app with a notice. Inbox WhatsApp badge + per-message `via WhatsApp` tag + composer window hint. `messages.channel` ('in_app'|'whatsapp'). Shared Twilio number → routed by phone (multi-box phone = first match, documented). **SMS inbound still not viable** (alphanumeric one-way); **email inbound** = separate spec (needs inbound-email vendor + MX). ⚙️ set the Twilio number's inbound webhook to `/api/webhooks/twilio-wa-inbound`. Specs `…omni-inbox-design.md` + `…whatsapp-inbound-design.md`.
+41. ✅ `[G-gap]` **Email campaigns** — branded block-based composer (heading/text/image-by-URL/button/divider; ↑/↓ reorder, max 50 blocks), reusable **templates** (`email_templates`, owner RLS), and **open/click analytics**. Pure block model + escaped HTML render (`src/lib/email-blocks.ts`); unified `renderEmail` (blocks-or-plain + footer) in `broadcast-render.ts`. Layered on #43: `broadcasts.body_blocks`/`template_id`, `broadcast_recipients.resend_id`/`opened_at`/`clicked_at` (mig 042). `sendBroadcastEmails` returns per-message Resend ids → stored per recipient; **svix-verified webhook** `/api/webhooks/resend` records opens/clicks + auto-suppresses bounces/complaints (`marketing_opt_out`). Detail page shows open/click rate over `sent_count` + per-recipient indicators + block preview. ⚙️ user must enable Resend open/click tracking + register webhook and set `RESEND_WEBHOOK_SECRET`. Spec `…email-campaigns-design.md`.
+42. ✅ `[G-gap]` **SMS campaigns** — one-off SMS to a segment via **Twilio** + UAE alphanumeric sender. Own tables (mig 045): `sms_campaigns` + `sms_recipients` (separate from email broadcasts). Pure `src/lib/sms.ts`: `normalizeUaePhone` (→ E.164 +9715…, skips invalid), `smsSegments` (GSM-7 160/153 vs Unicode 70/67 — Arabic forces Unicode, live cost counter), `renderSmsBody` ({{first_name}}), `selectSmsRecipients` (reuses exported `matchesSegment`; opted-out + no-phone skipped & counted). `src/lib/twilio.ts` wrapper (`smsConfigured`/`sendSms`/`verifyTwilioSignature`); optional `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_SMS_FROM` (feature shows "not configured" banner if absent). Synchronous send stores `twilio_sid`; **signed delivery webhook** `/api/webhooks/twilio` flips recipients delivered/failed by SID (detail derives counts). Owner-only `/dashboard/sms` (compose + segment counter + audience preview, history, detail). Reuses `marketing_opt_out`; **no inbound/STOP** (UAE one-way senders). Spec `…sms-campaigns-design.md`.
+43. ✅ `[Kept]` **Broadcast messaging to members** — owner sends a one-off email to a segment (status `all`/`paid`/`unpaid`/`trial`/`frozen` + optional member-tag filter; trial split from paid). Pure `selectRecipients` (`src/lib/broadcast-audience.ts`) + `{{first_name}}` render (`broadcast-render.ts`). `sendBroadcast` resolves audience via shared `loadCandidates`, writes `broadcasts` + per-recipient rows, sends through **Resend batch** (chunks of 100), rolls up sent/failed/skipped. Per-recipient delivery status + **Retry failed** on `/dashboard/broadcasts/[id]`; live recipient-count preview on compose. **Opt-out**: `profiles.marketing_opt_out` + stable `unsubscribe_token` → public `/unsubscribe/[token]` (mig 041). Owner-only RLS. First Tier-5 sub-project; foundation for #41 campaigns + #44 sequences. Spec `…broadcast-messaging-design.md`.
+44. ✅ `[G-gap]` **Automated sequences** — multi-step email drips on the #37 engine. General builder: pick an enrollment trigger (reuses #37's joined/trial_ending/no_checkin/birthday) + ordered steps (offset days + subject + #41 block email). Stateful: `sequences` (jsonb steps) + `sequence_enrollments` (UNIQUE sequence+athlete+enroll_key, re-arms per occurrence) + `sequence_sends` ledger (mig 044). Pure engine `src/lib/sequences.ts` — `nextDueStep` (order + one-per-run + completion) + `enrollmentStillValid` (**win-back exits the moment they return; trial exits on convert**; welcome/birthday run to completion). New cron `/api/cron/sequences` (06:15) two passes: enroll via `matchAutomation`, advance (send due step + log + complete/exit). Shared `loadAutoMembers` extracted to `src/lib/auto-members.ts` (both crons). Owner-only `/dashboard/sequences` (list + toggle + active/sent counts; steps builder reuses #41 BlockEditor). Email-only, linear (no branching/A-B); overlap with #37 singles is owner's choice. Spec `…automated-sequences-design.md`.
+45. ✅ `[G-gap]` **Embeddable lead-capture widget** — public iframe form `/embed/lead/[gymSlug]` (mirrors `/join` service-role-by-slug, `notFound` on unknown slug) that creates a CRM lead in the gym's account. Service-role `submitLead(gymSlug, input)` inserts the existing `leads` table (`source='widget'`, `status` default) behind a hidden **honeypot** (`company` filled → silently ok, no insert) + pure `validateLeadSubmission` (name required, email-or-phone, email format, length caps). **No schema change.** `next.config.mjs` framing split — strict `X-Frame-Options: DENY` + CSP `frame-ancestors 'none'` on `/((?!embed).*)`, and `frame-ancestors *` (no XFO) on `/embed/:path*` so only the widget is iframable. Owner copy-paste `<iframe>` snippet card on `/dashboard/settings` (shown when slug set). Standalone `<LeadForm>` → thank-you state. No JS-snippet/captcha/rate-limit (honeypot only); new leads land in the #38 lifecycle board. Spec `…lead-capture-widget-design.md`.
+46. ✅ `[Kept]` **Embeddable schedule widget** — public read-only timetable iframe `/embed/schedule/[gymSlug]` (service-role-by-slug, `notFound` on unknown). Shows the next 7 days of scheduled `class_instances` grouped by gym-timezone day, each row time · class · coach · spots-left/Full. Pure `spotsRemaining`/`spotsLabel`/`groupByDay` (`src/lib/schedule-widget.ts`). Spots computed server-side from `bookings(count)` aggregate → **no member identities in the public HTML**. "Book / Log in" CTA → `/[gymSlug]`. Reuses the #45 `/embed/*` framing exemption (no `next.config` change). Owner copy-paste `<iframe>` snippet card on `/dashboard/settings`. **No schema change, no env.** Read-only (booking needs auth); no filtering/pagination/JS-snippet. Spec `…schedule-widget-design.md`.
+47. ✅ `[G-gap]` **Follow-up tasks + reminders** — shared staff to-dos (`follow_up_tasks` mig 048, owner/coach RLS) with a required due date, optionally linked to one lead OR one member. In-app reminder = due queue: hub `/dashboard/tasks` groups Overdue/Today/Upcoming via pure `bucketTasks` + `validateTask`; create/toggle/delete actions (completed_at/by on done, box-scoped). Quick-add entry points: tasks hub, member-profile "Follow-ups" card (auto-links member), leads-row "+ Follow-up" (auto-links lead). Dashboard "Follow-ups due" StatCard (open, due ≤ today). Shared `TaskItem`/`QuickAdd` components. No cron/email. Per-staff assignment → #60, reception queue → #104, email reminders deferred. Spec `…follow-up-tasks-design.md`.
+48. ✅ `[G-gap]` **Conversion attribution report** — owner `/dashboard/attribution`: per acquisition source (Instagram/TikTok/Facebook/WhatsApp/Walk-in/Referral/Website widget/Other) → open leads · converted members · conversion % · paying members · MRR (AED), + a Total row. Pure `buildAttribution`/`sourceKey`/`SOURCE_LABELS` (`src/lib/attribution.ts`) aggregating existing `leads`+`profiles`+`memberships`; `paidByAthlete` from paid memberships → MRR. Mig 050 adds `profiles.source`, carried from `leads.source` on `convertLead` (members without a lead source → Other). All-time; no cohort/date-filter/ad-spend (YAGNI). Spec `…attribution-design.md`.
+49. ✅ `[Kept]` **Referral tracking** (+ #88 member refer link) — each member gets a `referral_code` (lazy `ensureReferralCode`, service-role) + a share link to the #45 widget `/embed/lead/[slug]?ref=CODE`. A friend submitting via `?ref` → `submitLead` resolves code→referrer in-box → `leads.referred_by`; on `convertLead` the attribution carries to `profiles.referred_by`. Pure `generateReferralCode` (7-char unambiguous) + `referralLink`. Staff owner-only `/dashboard/referrals` groups by referrer (pending lead vs joined member) with manual **Mark rewarded** (`profiles.referral_rewarded_at`). Member "Refer a friend" card on own profile (link + copy + N referred · M joined) [#88]. Mig 049 (no new tables: `profiles.referral_code`/`referred_by`/`referral_rewarded_at` + unique index, `leads.referred_by`). No automated reward credits; manual flag only. Spec `…referrals-design.md`.
+
+### Tier 6 — Reporting & analytics
+50. ✅ `[G-gap]` Attendance + no-show report — *done 2026-06-11: `/dashboard/reports/attendance` — summary cards, per-template fill/no-show, busiest top-5, CSV*
+51. ✅ `[Kept]` **Retention / churn report** — at-risk half shipped as #18 `/dashboard/retention`; historical half now `/dashboard/reports/churn` (manager tier): last 12 months of active-at-start / joined / churned / net / churn %, lapse-based (`buildChurnTrend` — coverage ends with nothing after; back-to-back renewals not churn; rejoins don't double-count joins; trials excluded), partial current month labeled, CSV. No migration. Spec `…churn-trend-design.md`.
+52. ✅ `[G-gap]` Lead conversion funnel by source — *done 2026-06-11: `/dashboard/reports/lead-funnel` — new→engaged→converted by source, CSV. Known limit: convert-to-member deletes the lead row, so status-based conversion undercounts*
+53. ✅ `[G-gap]` Instructor / class performance — *done 2026-06-11: `/dashboard/reports/classes` — per-coach + per-template fill % / no-show %, CSV*
+54. ✅ `[G-gap]` CSV export everywhere — *done 2026-06-11: shared `toCsv` + `DownloadCsvButton`; wired on People (per-tab), Payments, Retention + all report pages*
+55. ✅ `[G-gap]` Payroll report — *done 2026-06-11: `/dashboard/reports/payroll` (mig 054, applied to prod) — per-coach base (per-class rate or monthly salary) + PT add-on; PT sessions attributed at redeem time via required coach picker; month picker, inline rate editing, CSV. PT counting starts 2026-06-11; substitutions untracked → FIXED by the #59 accuracy pack (2026-06-12)*
+56. ⬜ `[Wedge]` **Per-location P&L** for multi-branch operators
+
+### Tier 7 — Staff, access, multi-location
+57. ✅ `[G-gap]` **Granular staff roles** — Owner / Admin / Coach / Receptionist (enum mig 057 + tier-helper policy sweep mig 058: `auth_is_staff/manager/programming`, 32 policies re-tiered; money/settings/staff-mgmt stay owner-only at RLS). Code: `roles.ts` tiers, `requireManager*`/`requireProgramming*` guards, `requireStaff*` widened; 20 pages → manager, 3 → programming, People/tasks/inbox/whiteboard/prep/retention → all staff; sidebar tiered; leads + athlete-add open to front desk. People page "Staff" tab (owner-only): add staff with role select + per-row RolePicker via `changeStaffRole` (rails: no self-change, no owner grant, box-scoped). Admin = no payroll/payments/KPI/attribution/settings/staff; Receptionist = no programming/reports/campaigns. Existing accounts untouched. Spec `…staff-roles-design.md`. *Render-gate leftovers swept 2026-06-12: member-profile view/edit + dashboard home → staff tier, classes/wod affordances → programming tier (5 `['owner','coach']` page literals; actions were already tiered). Spec `…staff-page-tier-sweep-design.md`.*
+58. ⬜ `[Wedge]` **Role + location permissions**
+59. ✅ `[Wedge]` **Coach payroll + timecards native** — pay rates per class type, base + bonus, clock-in/out. ***Accuracy pack ✅ 2026-06-12 (mig 063):** substitution-accurate pay (payee = `instance.coach_id ?? template` + coach picker on Class Prep via programming-tier `setInstanceCoach`), per-class-type rate overrides (`coach_class_rates` — replaces the default for per-class coaches, pays on top of salary for monthly), manual monthly adjustments (`pay_adjustments`, ± AED + required note) — Adjustments column + per-coach override editor + month section + CSV on `/dashboard/reports/payroll`; lib changes backward-compatible (appended optional params). **Timecards ✅ 2026-06-12 (mig 064):** staff ClockCard on the dashboard home (`clockIn`/`clockOut`, one open card at a time; RLS self ops + owner FOR ALL), informational Hours column + per-month Timecards section on payroll (`src/lib/timecards.ts` — open-card badge, owner set-end/remove); hours NOT in pay — `hourly` base type, auto-close reminders, kiosk clocking deferred. **#59 COMPLETE.** Specs `…payroll-accuracy-design.md` + `…timecards-design.md`.*
+60. ✅ `[G-gap]` **Staff task management (assignable)** — optional `assigned_to` on `follow_up_tasks` (mig 055, FK profiles ON DELETE SET NULL; null = shared pool; no RLS change). `createTask` validates the assignee is box staff; "Assign to" picker (default Anyone) on all three QuickAdd surfaces (tasks hub, lead rows, member profile); `→ name` chip on task rows; Mine/All pill filter on `/dashboard/tasks` (`?filter=mine`, default All). Existing tasks untouched; dashboard "Follow-ups due" stat stays box-wide. Notifications/reassignment deferred; #57 roles will widen the staff-list queries + action role check. Spec `…staff-tasks-design.md`.
+61. ✅ `[G-gap]` **QR self check-in** — printed door QR encodes `/checkin/<token>` (rotatable `boxes.checkin_token`, mig 056, tv_token pattern; settings card + printable poster via `qrcode` dep). Member scans with their phone → logs in (GymLoginForm `redirectTo` prop) → today's bookings with per-class states (✓ / Check in / opens at / closed); `selfCheckIn` enforces own-booking, −60/+30 min window, and the SAME entitlement gate as staff check-in — extracted to `src/lib/checkin-entitlement.ts` (paid via household primary OR credit-backed booking); blocked → "see the front desk" (staff override unchanged). No booking → link to `/dashboard/schedule`. Kiosk/badge scanning, book+check-in fusion, notifications deferred. Spec `…qr-checkin-design.md`.
+62. ⬜ `[G-gap]` Door access integration (Kisi or UAE-local) — deferred until requested *(checked 2026-06-12: pilot gym has no door hardware and no near-term plan — stays parked)*
+63. ⬜ `[Kept]` Multi-location / branch management
+64. ⬜ `[G-gap]` Cross-club roaming memberships
+
+### Tier 8 — Platform, API, admin
+65. ⬜ `[Wedge]` **Public REST API + webhooks first-class** *(touches 🆕 mobile API work under #21)*
+66. ⬜ `[Kept]` Zapier integration
+67. ⬜ `[G-gap]` Native accounting export — Zoho Books, Xero, QuickBooks
+68. ✅ `[G-gap]` **Audit log UI** — append-only `audit_log` (mig 062: owner-only SELECT, **no write policies** — service-role inserts only, can't be forged/erased from the app; actor/target name snapshots survive deletions). Never-throwing `logAudit` (`src/lib/audit.ts`) called from inside 4 actions after the mutation succeeds: refunds (`invoice.refund`, amount+reason), staff role changes (`staff.role_change`, from→to), member removals (`member.remove`, logged at the irreversible auth-delete point), MFA resets (`staff.mfa_reset`, factor count). Action guards widened to carry `full_name` for actor snapshots. Owner `/dashboard/audit`: last 200 reverse-chron, action filter pills, per-action detail rendering (`describeAuditDetails`), CSV; sidebar entry. Known gap: webhook-raced refunds skip the row (rare). Deferred: remaining ~8 sensitive actions (3-line helper call each), retention/pruning, merging portal_access_log/pdpl_exports views. *(Earlier partial: `portal_access_log` from security hardening.)* Spec `…audit-log-design.md`.
+69. ✅ `[G-gap]` **MFA for staff accounts** — TOTP via Supabase-native MFA, **opt-in, enforced once enrolled** (no org mandate; that's a future box toggle). `MfaGate` in the dashboard layout (WaiverGate pattern, fail-open on auth blips) bounces `aal1→aal2`-pending sessions to `/dashboard/mfa` (fresh challenge per attempt, sign-out escape; both gates skip it — ping-pong defense). Enroll/disable card on own profile (staff roles only, below Password): QR rendered from `totp.uri` via the `qrcode` dep (poster pattern — no `dangerouslySetInnerHTML`), abandoned unverified factors auto-cleared (`listFactors().totp` is verified-only; strays live in `.all`). Owner recovery: "Reset MFA" per Staff-tab row → `resetStaffMfa` (owner-only, box-pinned, `auth.admin.mfa.listFactors/deleteFactor`; self-reset allowed). **No migration**; login forms untouched — email-code rail replaces a lost password but never bypasses TOTP. Owner self-lockout = manual Supabase-dashboard fix (documented). Spec `…staff-mfa-design.md`.
+70. ✅ `[Wedge]` **Digital medical forms (PAR-Q) with version history** — versioned per-gym questionnaire (`gym_parq`, mig 061: standard 7 PAR-Q questions seeded by trigger+backfill, version bumps on edit like `gym_terms`) + `parq_responses` (one per athlete per version, jsonb boolean answers, `has_yes`, typed-name signature + IP/UA, UNIQUE box+athlete+version). Third document in the dashboard waiver gate (current-version response required; missing template never locks out); sign-waiver page renders Yes/No radios inside the form, `signAgreements` re-derives due-ness server-side (`parseParqAnswers`, 23505-tolerant). **YES = flag, never block**: member-profile "PAR-Q" staff card lists flagged questions (`flaggedQuestions`) + *Mark reviewed* (`markParqReviewed`, staff tier, service-role — no UPDATE RLS); waivers page gains PAR-Q status badges, "awaiting review" queue, and the owner question editor (`saveParqQuestions` — the app's first agreement-editing UI; saving re-prompts everyone). Athlete self view in #79 Agreements card (own answers + stale hint). PDPL export carries all responses. RLS reads are **staff-tier** (deliberate departure from owner-only signature reads — medical flag must reach coaches/front desk). Deferred: annual re-validation, self-retake, doctor's-note upload. Spec `…parq-design.md`.
+
+### Tier 9 — GCC-specific moat (no competitor does these well)
+71. ✅ `[GCC]` **Arabic RTL admin UI + bilingual member comms** — **decomposed** (members-first): 71a foundation + core member-surface rollout + 71c transactional comms all done, ~~71b admin translation dropped~~ (staff stay English). Remaining = long-tail athlete pages + native MSA review (non-blocking polish). **71a i18n+RTL foundation ✅ SHIPPED 2026-06-13 (mig 067):** per-member opt-in Arabic (English default) via `profiles.language`. **Custom typed dictionary** `src/lib/i18n/` (no library — `ar: typeof en` for compile-time key parity; `resolveLocale`/`getDictionary`/`getT`/`makeT`); **context-aware `getLocale`** resolved once in the root layout (`/embed/*`→en, authed→own `profiles.language` so staff stay English, anon→cookie — this single rule prevents RTL leaking into embeds/admin AND gives first-paint-correct cross-device, both caught by a multi-agent design-hardening review). Client `LocaleProvider`+`useT` (server-authoritative, never re-reads cookie); `setLanguage` service-role self-scoped write + cookie, tolerates the public no-session surface, cleared on sign-out. Root `<html lang/dir>` + **IBM Plex Sans Arabic** (`next/font`, under `[lang='ar']`); members-only `LanguageToggle`. **Proof slice (bilingual + RTL, end-to-end):** public gym login (login-form/auth chrome) + member schedule (server `getServerT`, client `useT`, **locale-threaded `Intl` dates**, athlete-only toggle). Design system was RTL-clean (~0 physical classes on the slice). Built subagent-driven (7 tasks, per-task spec+quality review). Spec/plan `…2026-06-13-i18n-rtl-foundation*`. **Core member-surface rollout ✅ SHIPPED 2026-06-13 (no migration):** the `LanguageToggle` moved into the **dashboard-shell header** (athletes only — now global + mobile-reachable, replacing the schedule-only mount); **Arabic athlete nav** (sidebar group + Sign out; staff labels stay English); and four core member pages wired end-to-end — **Timer** (phase labels rebuilt in-component from structured `TimerState`, `engine.ts` untouched), **Buy a pack**, **Daily WOD** + score logging, **My Profile** (+ member-visible physical→logical RTL conversions; role gates preserved). **148-key dictionary** (nav/common/timer/shop/wod/profile) authored + **adversarially reviewed by workflow** for terminology consistency + `{placeholder}` integrity; built subagent-driven (7 tasks sequential, read-only review per task, controller-run full gate: type-check/lint/1025 tests/build). Also fixed (`getLocale`): a logged-in user's `profiles.language` now wins **over** the cookie, so an Arabic cookie can't leak into an owner's view on a shared browser. Deferred: long-tail athlete pages (1RMs/Skills/Feed/Committed Club/Messages), the 2 auxiliary schedule cards, 2 shop server-error alerts (left English); Arabic is first-pass MSA (native review pending). Spec/plan `…2026-06-13-member-arabic-surface-rollout*`. **71c bilingual transactional comms ✅ SHIPPED 2026-06-13 (no migration):** the 6 auto-fired member messages now render in the recipient's `profiles.language` — billing reminders (pre/due/overdue), card-failed dunning (retry/final), waitlist spot-opened (**email + push**), class-reminder digest push, and the "New message" push **title** (body stays staff text). New `comms.*` dictionary (email bodies are **HTML templates with a `{button}` placeholder** consumed via single-pass `interpolate`; authored + adversarially reviewed by workflow for placeholder + `\n` integrity). Recipient-locale loaders `src/lib/i18n/recipients.ts` (`loadRecipientLocales` by id; `…ByEmail` for the billing cron, whose RPC returns only email — **no migration**). `emailShell` gains an RTL hook (`dir="rtl"` + right-align for ar **only** — en byte-identical). `getT(locale)` is pure → callable from crons/webhooks/actions with no request context. Wired 5 send sites (2 crons batch-load locales, 3 single-fetch). **Out of scope (documented):** staff campaigns/automations/sequences, SMS/WhatsApp, and Supabase auth login-code email (vendor — global template, optionally bilingual via the Supabase dashboard). Built subagent-driven (5 tasks, read-only review per task; controller fixed an emailShell byte-identity finding + a send-message test-timeout the full-suite gate caught, then ran type-check/lint/**1032 tests**/build). Spec/plan `…2026-06-13-bilingual-transactional-comms*`.
+72. ✅ `[GCC]` **Hijri calendar + Ramadan class schedule templates** — **alternate Ramadan timetable**: `class_templates.season` (`'default'|'ramadan'`, mig 066) + owner-set `boxes.ramadan_start/ramadan_end` window. `generateInstances` picks the season per date via `inRamadanWindow` (existing 58 templates defaulted to `'default'` → zero behavior change); a `ramadanGap` flag warns when the window is active but no Ramadan classes exist. **Classes page** gains Default/Ramadan tabs (`?season=`) so the owner builds a distinct Ramadan schedule (later times, post-Iftar sessions) with the existing add form; `createTemplate` stamps the season (edit left season-immutable). **Settings** Ramadan-window card (`saveRamadanWindow`, owner) prefilled from an **Umm al-Qura hint** (`upcomingRamadanWindow`). **Hijri date** (`formatHijri`, native `Intl` islamic-umalqura — no lib) + a "Ramadan timetable" badge on the member schedule, whiteboard, and public TV board. Pure `src/lib/hijri.ts` (`formatHijri`/`ramadanWindowForYear`/`upcomingRamadanWindow`/`inRamadanWindow`), fixtures pinned to the runtime (Ramadan 1447 = 2026-02-18→03-19). Deferred: prayer/Iftar times, auto-switch, per-template overrides, multi-year windows. Spec/plan `…2026-06-13-hijri-ramadan*`.
+73. ✅ `[GCC]` **Emirates ID / Iqama capture** — typed government ID on the member profile (mig 065: `profiles.id_type`/`id_number`, no RLS change — staff-gated service-role writes, box-scoped+self reads). One field pair: type picker (Emirates ID / Passport / Iqama / Other) + number; pure `src/lib/national-id.ts` validator **switches on type** — structure-strict hard-block (Emirates ID = 15 digits `784-YYYY-NNNNNNN-C` with plausible birth-year; Iqama = 10 digits, 1/2-prefixed; Passport = 5–20 alnum; Other ≤40) with a **non-blocking Luhn check-digit warning** surfaced live in the form (the EID checksum is community-reverse-engineered → it flags typos but never rejects a real ID). **Optional, staff-captured** (mirrors #34): shared `IdFields` client component on the staff **add-member** (desk intake) + **edit-member** forms; shown on the Personal & medical card (formatted `784-1990-1234567-6`, or a "No ID on file" nudge); carried into the PDPL export. Roadmap's "on signup" reframed → **desk intake** (online self-signup + convert-lead left untouched — a member rarely has their ID at the web form). **Never logged** (regulated PII). Deferred: ID scan/photo upload (no Storage infra), Iqama checksum (KSA not live), expiry tracking, self-service entry. Spec `…national-id-capture-design.md`.
+74. ⬜ `[GCC]` ZATCA phase-2 e-invoicing (for KSA expansion)
+75. ✅ `[GCC]` **Quote → contract → payment B2C sales flow** — **decomposed; 75a one-off + 75b subscription both ✅ SHIPPED 2026-06-14** (migs 068 + 069). Corporate/multi-seat (B2B) is a separate future item, not part of this B2C flow. **75b (subscription-membership quotes, through `27bd238`, 1075 tests; mig 069 applied ✅):** a quote gains `mode` (`one_off`|`subscription`); a subscription quote sells ONE active non-trial `membership_plan` (with a Stripe price), no line items, `total_aed`=monthly price. **Membership-first** (user-chosen): clicking Pay converts the lead→member, creates an `unpaid` membership + Stripe customer, then opens the **existing** `createCheckoutSession` (new optional `quoteId` in metadata). The webhook's existing membership branch backfills the sub ref + (new) marks the quote paid (status-guarded); **`invoice.payment_succeeded` is UNTOUCHED** and owns the first + recurring invoices (the membership pre-exists with a `provider_customer_ref` → its customer-ref fallback finds it → no ordering race, no duplicate-invoice logic). Webhook **dispatch fix**: the 75a top guard tightened to `event.quoteId && !event.membershipId` so subscription quotes (which carry a membershipId) fall through to the membership branch instead of the one-off handler. Builder gains a mode toggle + plan picker; public/detail pages render "AED X/month" + a membership link (a subscription quote's `invoice_id` stays null — its invoices live under the membership). Out: trials, joining fees, mixed quotes, coupons, itemized subscription invoices. Built subagent-driven (8 TDD tasks, per-task commits); controller full gate (type-check/lint/**1075 tests**/build) + a focused adversarial review (7/8 categories clean; fixed the 1 HIGH — **atomic membership claim** `UPDATE quotes … WHERE membership_id IS NULL` so concurrent Pay clicks on the public action can't create duplicate memberships). Known residual: two *completed* Stripe checkouts for one quote → two subscriptions (narrow; requires paying twice); inert in prod until Stripe env set. Spec/plan `…2026-06-14-subscription-quotes*`.
+
+   **75a (one-off):** **decomposed**; **75a one-off sales loop ✅ SHIPPED 2026-06-14 (mig 068)**. A **thin transaction layer over the existing package catalog** (a quote line references a `packages` row — no catalog rebuild) adding the three things `sellPackage` can't: a **signed per-deal contract**, **selling to a prospect** (paying converts the lead→member), and a **reviewable bundled/custom-priced proposal** (PT blocks / packs / drop-ins + custom + discount lines; Ramadan promo = a discount line). New `quotes` + `quote_line_items` (staff-tier RLS, gap-free `next_quote_sequence`, `boxes.quote_terms_template`); pure `src/lib/quotes.ts` (totals via the existing `deriveVatFromInclusive`, draft validation, status machine `draft→sent→accepted→paid` + void/declined/expired, `QUO-…` number, expiry). Staff **quote builder** (existing-member / existing-lead / new-prospect buyer picker → new prospect becomes a `source:'sales'` lead; package picker prefills catalog price; terms prefilled from the gym template) → `sendQuote` (mints a `crypto.randomUUID` token, emails the `/quote/<token>` link via Resend, English) → **public accept+sign page** (service-client, no auth — the unguessable token is the gate; typed-name signature + IP/UA, **accept = sign** in one step) → **pay** (new `createOneOffCheckout` PSP method, Stripe payment-mode, metadata `quote_id`; the buyer can't tamper the amount — it's the server-stored `total_aed`) → **webhook** marks paid, issues the VAT invoice, **auto-grants package credits** and **auto-converts lead→member** (extracted `convertLeadCore`, shared with the convert-lead action). Idempotent: `claimEvent(rawId)` + `accepted`-status guard + per-line `paymentRef:lineId` charge-ref + invoice `chargeRef` dedup. Built **subagent-driven** (9 tasks, TDD, per-task commits); controller-run full gate (type-check/lint/**1065 tests**/build) **+ a 3-agent adversarial review before push** — integration-coherence clean; found+fixed: webhook must require `accepted` status (a quote killed mid-checkout no longer provisions); **existing-profile-by-email fallback** so a paying buyer is never charged-with-no-credits when the "lead" is already a member; status-guarded accept (`sent→accepted`) and paid (`accepted→paid`) updates vs concurrent overwrite. **Out of 75a (documented):** subscription/membership quotes (→**75b**), mixed one-off+subscription quotes, corporate/multi-seat, **itemized** tax invoice (kept the single-`description` invoice = quote title; line breakdown lives on the linked quote), Arabic quote comms (reuse #71c later), editing a sent quote (void+recreate). Known limits: typed-name e-sign without ID verification (consistent with the app's waiver/terms model); a `convertLeadCore` mid-handler-crash window (pre-existing `claimEvent`-ordering, mitigated by the email fallback); `grantQuotePackageCredit`/`issueInvoice` best-effort error handling (rare DB-error partials). **Inert in prod until the PSP + Resend env vars are set; migration 068 applied ✅.** Spec/plan `…2026-06-14-quote-sales-flow*`.
+
+### Tier 10 — Athlete (member) self-service
+76. ✅ `[G-gap]` **Self-serve plan changes** — request-based (instant self-switch rejected: members could downgrade pre-renewal; Stripe billing diverges). "Membership" card on own athlete profile: current plan + price, "Request a plan change" picker over active non-trial plans (service-role catalog fetch — plans RLS is staff-tiered), pending state. `requestPlanChange` rails: athlete-only, plan active/non-trial/box-pinned, active membership required, **dedup via the title contract** `Plan change: A → B` (`src/lib/plan-change.ts` shared by action + page). The request IS a `follow_up_tasks` row (member-linked, shared pool) → lands in the tasks hub, member-profile Follow-ups, dashboard due-count with **zero new staff UI and no migration**; staff settles at the desk and executes via the existing ChangePlan + proration display. Pack-buying half was already live (`/dashboard/shop`). Deferred: self-cancel of requests, cancellation requests, instant/scheduled switches, Stripe sub sync (pre-existing gap), self-serve first membership. Spec `…self-serve-plan-change-design.md`.
+77. ✅ `[G-gap]` **Athlete profile self-management** — "My details" card on own profile: phone (UAE-validated, feeds `phone_e164`/WhatsApp matching), emergency contact name/phone (international OK), blood type, allergies via self-scoped `updateOwnProfile` (service role, row pinned to `auth.uid()`; profiles has no UPDATE RLS). Validator composes `normalizeUaePhone` + `validateMemberFields`. Photo (needs Storage infra) + custom fields deferred. Spec `…athlete-self-serve-design.md`.
+78. ✅ `[G-gap]` **Payment history + VAT-invoice download** — already live via existing plumbing, verified: the member-page invoices table is RLS-fed (`athlete_own_invoices`) and ungated, so athletes see their own invoices on their profile; each links to the print-styled invoice page (browser print = PDF; refund form stays owner-only). No code needed.
+79. ✅ `[G-gap]` **View own waiver + signed terms** — "Agreements" card on own athlete profile: waiver signature (name + date, or "sign now" link), latest terms signature with version + "updated since you signed" hint when `gym_terms.version` is newer; inline `<details>` shows the current document text. Read-only over existing RLS; re-signing deferred. Spec `…athlete-self-serve-design.md`.
+80. ✅ `[G-gap]` **Class roster pre-view** — schedule cards gain "Who's coming (N)" (first names only, `rosterFirstNames`) behind `boxes.roster_public` (mig 059, OFF by default; owner toggles it on the booking-policy card via `saveBookingPolicy`). Names always RLS-readable box-wide; the toggle is display policy. Spec `…booking-conveniences-design.md`.
+81. ✅ `[G-gap]` **Calendar sync** — per-athlete rotatable `profiles.calendar_token` (mig 059) feeding `/api/calendar/<token>`: standard ICS (pure `buildCalendarFeed`, RFC 5545 escaping, UTC, UID = booking id so cancellations vanish on poll; −7d…+60d window, cap 100). "Sync to your calendar" card on the schedule (enable/copy/regenerate/disable, self-scoped `setCalendarToken`). Per-event add links + reminders deferred. Spec `…booking-conveniences-design.md`.
+82. ⬜ `[Wedge]` **Movement demo / video library** — every WOD movement linked to a video
+83. ✅ `[G-gap]` **DM coach 1:1** — verification outcome (like #78): the athlete thread at `/dashboard/messages` had been LIVE since #40 T8 (member RLS, role-branching `sendMessage`/`markRead`, sidebar entry) — the brainstorm's "dead link" premise was wrong. Real deltas shipped 2026-06-12: **staff replies now push to the member's phone** (`sendPushTo` in `sendMessage`'s staff branch — #22 infra, no-ops without VAPID); **staff redirect** `/dashboard/messages` → `/dashboard/inbox` (previously staff could open a conversation with THEMSELVES via the unconditional sidebar entry); **gym-timezone timestamps** (was server TZ, 4h off for Dubai). #40's in-app loop fully closed; only email inbound remains. Deferred: sidebar unread dot, per-coach threads, attachments. Spec `…athlete-messages-design.md` (with execution correction).
+84. ✅ `[G-gap]` **Family / dependent management** — athlete-facing side of households (mig 038 model untouched: primary pays, dependents covered). **"My family" card** on own profile (members + "pays"/"you" chips) by widening the page's two `isManager` household ternaries to `(isManager || isSelf)` — zero new queries. **Book-for-family**: `resolveBookingTarget` rail (`src/lib/family.ts` — same household, athlete-only, self = zero queries) widens `bookClass`/`cancelBooking` with an optional target; on-behalf WRITES ride the service client (booking RLS is own-row-only), credits stay per-person (a kid's booking consumes the kid's credits), billing identical (same primary by the rail). `FamilyBookingRow` under the untouched BookingButton ("Sara: Book/Cancel" per co-member, hidden when full). No migration. Deferred: kid no-email accounts, family waitlist, multi-book, pack-buying for dependents. Spec `…family-management-design.md`.
+85. ⬜ `[G-gap]` Coach tips (Stripe end-of-class flow)
+86. ⬜ `[Kept]` Achievements / badges / streaks
+87. ⬜ `[Wedge]` **Goal-setting + assigned training plan**
+88. ⬜ `[Kept]` Referral link from athlete profile (links to #49)
+
+### Tier 11 — Coach floor & ops toolkit
+89. ⬜ `[Wedge]` **Coach mobile / floor app (or PWA)** — designed for class-side use
+90. ✅ `[G-gap]` **Mark attendance from the floor** — reversible check-in on the whiteboard: the present-tap (`checkIn`) was already live; this adds `uncheckIn` (staff-guarded, box-scoped — flips `bookings.checked_in→false`+nulls `checked_in_at` AND clears the `overridden_*` audit cols so a reversed override leaves the payments report; **skips** the entitlement gate, no credit/achievement side-effects). UI: a checked-in row taps to **arm** ("Tap to undo") then a second tap reverts, auto-disarming after 3s so a stray tap never silently un-checks. **No-show stays derived** (reports unchanged) — un-checking returns the athlete to the derived no-show set. **No migration.** Built subagent-driven (2 TDD tasks + 2 review-driven fixes); 3 new integration tests, full gate green (1078 tests). Spec `…2026-06-14-reversible-checkin-design.md`, plan `…2026-06-14-reversible-checkin.md`.
+91. ✅ `[Kept]` Daily WOD entry by coach *(v1 #8)*
+92. ⬜ `[Wedge]` **Add private notes to athlete profile post-class**
+93. ⬜ `[Wedge]` **Sub-finder / shift-swap marketplace** — greenfield wedge
+94. ⬜ `[G-gap]` Coach availability & time-off
+95. ⬜ `[G-gap]` Personal training session scheduling
+96. ⬜ `[Wedge]` **Coach publishes & sells own programming** (links to #15 marketplace)
+97. ⬜ `[G-gap]` Coach DMs athletes (same inbox as #40)
+98. ⬜ `[Wedge]` **Class debrief / quick recap** posts to activity feed
+
+### Tier 12 — Admin / Receptionist front-desk toolkit
+99. ⬜ `[Wedge]` **Front-desk check-in mode** — distinct from athlete kiosk
+100. ⬜ `[G-gap]` Quick member search at desk (name / phone / Emirates ID, <1s)
+101. ⬜ `[Wedge]` **Walk-in → lead → trial → member flow in <60s**
+102. ⬜ `[G-gap]` Take payment at desk (cash / card-on-file / payment link / Apple-Google Pay)
+103. ⬜ `[G-gap]` Sell drop-ins / packs / merch at desk *(partially addressed by 🆕 Packages umbrella)*
+104. ⬜ `[G-gap]` Daily task queue for reception
+105. ⬜ `[G-gap]` Phone-call & visit notes per member
+106. ⬜ `[Wedge]` **Sub-finder coordination view** (pairs with #93)
+
+### Tier 13 — Deferred / nice-to-have
+Do not build until LOIs #4–5 justify the investment.
+- ⏸️ Branded mobile app under each gym's own App Store listing
+- ⏸️ POS / retail / merch with inventory
+- ⏸️ Gift cards
+- ⏸️ Geofenced check-in
+- ⏸️ Marketplace / consumer discovery layer (Mindbody-style)
+- ⏸️ Pre-built programming library beyond core CrossFit names
+
+---
+
+### Role coverage
+
+| Role | Where covered |
+|------|---------------|
+| **Owner** | Tiers 1, 4, 5, 6, 8 |
+| **Coach** | Tier 2 (#11, #13) + Tier 7 (#57–59) + Tier 11 |
+| **Receptionist / Admin** | Tier 7 (#57) + Tier 12 |
+| **Athlete (member)** | Tier 3 + Tier 10 |
+
+---
+
+## Build Log
+
+Dated session ledger. Extend with each major shipped change.
+
+| Date | Scope | Commit |
+|---|---|---|
+| 2026-06-14 | **Reversible check-in** (v2 Tier 11 #90) — floor attendance correction on the whiteboard. New `uncheckIn` server action (staff-guarded, box-scoped) flips `bookings.checked_in→false` + nulls `checked_in_at` AND clears the `overridden_by/reason/at` audit cols (so a reversed override leaves the payments override report); **skips** the entitlement gate, no credit/achievement side-effects. UI: `CheckInButton` two-step **tap-to-arm ("Tap to undo") → tap-to-undo**, auto-disarms after 3s (no silent accidental un-check). **No-show stays derived** — un-checking returns the athlete to the reports' derived no-show set; **no migration**, report shapers untouched. Built subagent-driven (2 TDD tasks + 2 review-driven fixes: clear override audit cols, inline timer-cleanup); 3 new integration tests, full gate green (lint/type-check/**1078 tests**/build), no schema drift. Spec `…2026-06-14-reversible-checkin-design.md`, plan `…2026-06-14-reversible-checkin.md`. | main `2546548…9137f75` |
+| 2026-06-08 | **In-app workout timer** (v2 Tier 3 #24) — `/dashboard/timer` (any logged-in user): For Time (count-up) / AMRAP (count-down) / EMOM (interval × rounds) / Intervals (work/rest × rounds), all with a 10s lead-in (3-2-1-GO) + Web Audio beeps. Pure `tick(config, elapsed) → {phase, round, secondsLeftInPhase, …}` engine (all phase/round math, fully unit-tested) + thin client `Timer` component (pause-safe elapsed via accumulated run-time, 100ms loop, phase-colored big display, AudioContext created on Start, beep-on-transition by diffing prev/cur). New `clock` sidebar icon + "Timer" nav. **No backend, no migration, no deps.** 309 tests, build green. Subagent-driven + opus review (SHIP; clean single-GO-beep fix applied). Spec `…workout-timer-design.md`, plan `…2026-06-08-workout-timer.md`. | main `c544251…b6f769f` |
+| 2026-06-08 | **At-risk member scoring** (v2 Tier 3 #18) — owner/coach `/dashboard/retention`: a **deterministic** `scoreMember` heuristic ranks members by churn risk from recency (days since last check-in: ≥21/never +3, 14–20 +2, 8–13 +1) + membership (unpaid/no-plan +2, expiring ≤14d +1; 14d new-member grace), into High/Medium tiers with reason chips. "Mark contacted" logs to `member_outreach` (migration **030**, staff RLS) + snoozes the member 14d. Members-only (athletes with ≥1 membership; leads excluded); box-scoped reads + writes. Reuses `getMembershipStatus` + the prep-view last-attended pattern. Pure `scoreMember`/`daysBetween`/`lastCheckInByAthlete` + `markContacted` integration tests; 299 tests, build green. Subagent-driven + opus review (SHIP — date-math orientation verified). ⚠️ run 030 before live. Spec `…at-risk-scoring-design.md`, plan `…2026-06-08-at-risk-scoring.md`. | main `b122a47…ef8a313` |
+| 2026-06-08 | **Scaling variations** (v2 Tier 2 #17, lighter scope) — `workouts.scaling jsonb` (migration **029**) holds an ordered `{label,description}[]` (Rx/Scaled/Beginner or custom, ≤6 tiers). Coach edits in `WodForm` via a repeatable tier editor (mirrors the strength-sets editor → hidden `JSON.stringify` input); `saveWod` parses/`validateScaling`/persists. Rendered on the WOD page (athlete), whiteboard, and TV board; `copyWodToDates` carries it; day editor prefills it. **No change to one-WOD-per-day, scoring, `rx`, or leaderboards** (the lighter scope vs full per-track workouts). Pure `validateScaling` + `saveWod` integration tests. 288 tests, build green. Subagent-driven + opus review (SHIP). ⚠️ run 029 before live. Spec `…scaling-variations-design.md`, plan `…2026-06-08-scaling-variations.md`. | main `9c9b4e8…c22a2a9` |
+| 2026-06-08 | **AI workout parser** (v2 Tier 2 #16) — "✨ Parse with AI" panel on `/dashboard/programming/import`: staff-gated `aiParseProgramming(freeform)` calls Claude (`@anthropic-ai/sdk`, `claude-sonnet-4-6`, temp 0.2, 4096 max_tokens, 8000-char input cap) to emit the block format `parseBatch` consumes → fills the existing import textarea → coach reviews → existing Preview/Import validates. **Zero AI write access** (hallucinated dates/format = INVALID rows pre-commit). Pure `buildParsePrompt`/`extractBlockText` + action integration tests (gate, missing-key, length cap, SDK-throw — SDK mocked). Optional `ANTHROPIC_API_KEY` (app boots without it; panel reports "not configured"). Key server-side only; review confirmed no non-staff/unauth path to a paid call. 278 tests, build green. Subagent-driven + opus review (SHIP). **No migration.** ⚙️ set `ANTHROPIC_API_KEY` in Vercel to enable. Spec `…ai-workout-parser-design.md`, plan `…2026-06-08-ai-workout-parser.md`. | main `d4c05e5…49f8561` |
+| 2026-06-08 | **Whiteboard / TV-display mode** (v2 Tier 2 #14) — public `/tv/<token>` kiosk board (no login, `force-dynamic`): today's WOD big + live score leaderboard + today's PRs (WOD score PRs + lift PRs); 30s `AutoRefresh` (`router.refresh()`). Per-gym secret `boxes.tv_token` (migration **028**, nullable + partial unique index); owner generate/regenerate/disable in **Settings → TV display** via `setTvToken` (RLS gate + service write). Public page uses the **service-role client** (RLS off) so EVERY read is hand-scoped `.eq('box_id', box.id)` (box resolved only from the token) — opus review verified no cross-gym/no-sensitive-field leak. Names + scores + PR flags only — no membership/billing/contact. `/tv` added to rate-limit prefixes. Pure `sortLeaderboard` + `setTvToken` integration tests; 266 tests, build green. Subagent-driven + opus integration review (SHIP). ⚠️ run 028 before live. Spec `…whiteboard-tv-mode-design.md`, plan `…2026-06-08-whiteboard-tv-mode.md`. | main `385da3b…0894374` |
+| 2026-06-08 | **WOD/benchmark PRs** (v2 Tier 2 #12, WOD half — auto-PR now complete) — `logScore` looks up the athlete's prior scores on the same benchmark (workout **title**, case-insensitive, `ilike` + wildcard-escaped) in the **same Rx bracket** (one joined `workout_scores → workouts!inner` query, current workout excluded), pure `decideWodPr` decides by scoring direction (time→lower, else→higher, strict), flags `is_pr` on `workout_scores` (migration **027**). Surfaces: 🏆 celebration on logging + leaderboard row badge + activity-feed score badge. `is_pr` = "was a PR when logged" (no recompute cascade). Benchmark identity = title (documented fuzziness; registry deferred). 260 tests (decideWodPr + logScore integration incl. Rx-bracket/title/escape/db-error locks). Subagent-driven + opus integration review (SHIP). ⚠️ run 027 before live. Spec `…wod-benchmark-prs-design.md`, plan `…2026-06-08-wod-benchmark-prs.md`. | main `92b6dd2…1de410d` |
+| 2026-06-07 | **Coach pre-class prep view** (v2 Tier 2 #13) — owner/coach `/dashboard/prep`: switcher across today's `class_instances` (defaults to next upcoming), today's WOD, and a per-member roster — last attended ("Mon"/"9d ago"/"first time"), membership flag (reuses `getMembershipStatus`), the WOD's prescribed strength load per member (reuses `loadForPercent`, heaviest set), and an inline **staff-only** scaling note. New `athlete_coach_notes` table (migration **026**, staff-only RLS — athletes never see notes); `saveCoachNote` upsert/delete (empty clears). Pure `lastAttendedByAthlete`/`relativeDay`/`validateCoachNote` + action integration tests; 244 tests, build green. Subagent-driven + opus integration review (SHIP). ⚠️ run 026 before live. Spec `…coach-prep-view-design.md`, plan `…2026-06-07-coach-prep-view.md`. | main `b2d7b9f…c10f2d5` |
+| 2026-06-07 | **Auto-PR detection — lift PRs** (v2 Tier 2 #12) — `saveLift` reads the previous 1RM, a pure `detectPr` flags a new max as a PR, writes `is_pr` to `athlete_lifts_history` (migration **025** + box-read-PR RLS); immediate form celebration, PR-point highlight on the progression chart + 🏆 on the current-1RM table, and a box-wide entry in the `/dashboard/feed` activity timeline (pure `mergeTimeline`, display-only — no fist-bump). PR only claimed once the history row persists. Privacy: only `is_pr` rows box-readable; non-PR history stays private. 229 tests (detectPr + mergeTimeline + saveLift integration). Subagent-driven + opus integration review (SHIP). ⚠️ run 025 before live. Spec `…auto-pr-detection-design.md`, plan `…2026-06-07-auto-pr-detection.md`. | main `d5ddae9…af6019a` |
+| 2026-06-07 | **Batch WOD import** (v2 Tier 2 #11 follow-on) — paste a month of metcons at `/dashboard/programming/import`: pure `parseBatch` (text block → validated `ParsedDay[]`; scoring aliases, real-date check, duplicate detection); `previewImport`/`commitImport` share a server-side classifier (2 queries) labelling each date NEW/REPLACE/BLOCKED/INVALID; commit re-classifies from raw text + upserts NEW+REPLACE only (score-guarded — never clobbers a scored day), box-scoped. Metcon-only (no strength import), text-block input, no migration (writes existing `workouts`). 215 tests (parser unit + action integration incl. box-scoping/REPLACE-write/db-error locks), build green. Subagent-driven w/ spec+quality review per task + opus integration review (SHIP). Spec `…batch-wod-import-design.md`, plan `…2026-06-07-batch-wod-import.md`. | main `7efd5e5…97efd57` |
+| 2026-06-07 | **WOD programming library + calendar** (v2 Tier 2 #11) — `workout_templates` library (migration **024** + RLS) with create/edit/delete; staff month calendar `/dashboard/programming` (click-to-assign, `?month=` nav, gym-timezone today); day editor reuses `WodForm` + Load-from-library + Save-as-template + Copy-to-dates + score-guarded Clear; "WOD Planner" nav. Snapshot-not-link; one WOD/day (tracks → #17); athlete surfaces untouched. Pure calendar logic + backend action integration tests; 200 tests, build green. Subagent-driven w/ spec+quality review per task + opus integration review (SHIP). ⚠️ run 024 in Supabase before live. Plan `…2026-06-07-wod-programming.md`. | main `ea56d81…d89b68a` |
+| 2026-06-07 | **Packages PR-3** — booking entitlement (Packages feature complete): pure `src/lib/credits.ts` (`selectBestBatch`/`decideEntitlement`, 11 tests), migration **023** atomic `consume_credit`/`refund_credit` (guarded ±1, refund capped at total), hard-gate consume in `book-class` + refund-on-failed-insert, refund in `cancel-booking`, credit clause in `check-in`, owner PT `redeem-session`, whiteboard "Pack" badge + booking buy-a-pack link. Integration tests for book/cancel/check-in/redeem. 178 tests, build green. Built subagent-driven w/ spec+quality review per task. ⚠️ run 023 in Supabase before live. Plan `…packages-pr3-entitlement.md`. | main `2a3e738…71ae54d` |
+| 2026-06-06 | **Packages PR-2b** — member self-serve storefront `/dashboard/shop` (own credit balances + buy active packages), `buyPackage` self-action (athlete-only, reuses PR-2a `createPackageCheckout`), post-purchase banner, athlete "Buy a pack" nav. No migration/webhook change. 152 tests. *(Recovered from a detached-HEAD/iCloud git desync mid-merge — see [[env-instability-working-tree]].)* | `b1ab62f` (merged) |
+| 2026-06-06 | **Packages PR-2a** — purchase backend + owner-sell: one-shot `createPackageCheckout` (Stripe `mode:payment`), webhook grants `package_credits` + VAT invoice (idempotent), owner sell-package action + member-profile sell-UI + credit balances. No migration (`invoices.membership_id` already nullable). 149 tests. Plan `…packages-pr2a-purchase-owner-sell.md`. | `0fd57c0` (merged) |
+| 2026-06-06 | **Packages PR-1** — credit-based packages data model (migrations 020–022: `packages` + `package_credits` + RLS + `bookings.credit_id`), **owner-only** catalog admin (`/dashboard/packages` CRUD), `validatePackageInput` + 10 tests. Built brainstorm→spec→plan→subagent-driven w/ spec+quality review per task. Also this session: rate-limiting activated live (Upstash), Supabase auth email unblocked (Resend SMTP), June-23 kill-switch lifted. | PR #2 |
+| 2026-05-31 | **The Wedge integration** — structured % prescription on WOD form, per-athlete loads on whiteboard + WOD page, fallback prompt, lift catalog 9→29, migration 018, shared `percentage.ts` lib, 105 tests | `3c2ddf2` |
+| 2026-05-29 | Security & correctness audit pass 2: CSP + HSTS headers, error message sanitisation, settings query tightening, portal access audit log (migration 017) | `2f915b9` |
+| 2026-05-29 | Audit pass 1: webhook idempotency gate, refund race condition fix (Stripe idempotency key + 23505 catch), portal hardening (signed HMAC token replacing bare UUID), public info-leak closed | `f8f62c6` |
+| 2026-05-29 | **v1 AUDIT** against the 11-feature scope: 9 ✅ clean + 2 🚧 partial (#4 class template edit, #9 the Wedge integration) | — |
+| 2026-05-27 | Multi-PSP PR-1: PaymentProvider port + Stripe adapter, column renames provider-agnostic, all consumers refactored, race + idempotency fixes uncovered during smoke test | `f817ded` |
+| 2026-05-27 | Tier 1 completion batch: UAE VAT-compliant invoicing (migration 012), refunds workflow (013), smart dunning + portal (014), membership T&C e-signature (015) | `d3bf351` |
+| 2026-05-26 | PDPL data export — Federal Decree-Law 45 of 2021 compliance, owner-triggered JSON export with audit log | `cb3cbcd` `ee95e7f` `c93e598` `9bc474b` |
+| 2026-05-25 | Automated billing reminders — Resend email, daily cron, 3-stage templates (pre/due/overdue), per-box toggle | `33f3f64` `101b067` `4b9c655` `e568d7b` `efcbe19` |
+| 2026-05-25 | Real-time check-in membership block — whiteboard hard-blocks unpaid athletes, coach override with audited reason | `6b8dff9` `0974895` `2502086` `a0b6cc2` `29c9503` `5ccbd50` |
+| 2026-05-25 | Tier 1 production hardening + dark theme — security headers (X-Frame, X-Content-Type, Referrer-Policy, Permissions-Policy), env var validation via Zod, route-level error boundaries, dark UI | `5672e93` `0e5417a` |
+| 2026-05-25 | Digital waivers — gym_waivers + waiver_signatures with RLS, athlete signing page, owner waivers list, dashboard gate | `0932135` `b21bd06` `f4ca362` `16f1e86` `4d7ed4d` |
+| Prior | v1 build (Sonnet 4.6 sessions): schema + RLS, auth + roles, member directory, class templates, instance generator, booking flow, whiteboard, daily WOD form, 1RM tracking + standalone calculator, score logging + activity feed, owner dashboard + manual payment tracking | (extend from `git log` as needed) |
+
+---
+
+## How to use this document
+
+- **What should I build next?** → Check "Current status overview" → see "Next session priority" (currently v1 Wedge backfill).
+- **Is X in scope for v1?** → Search the v1 audit table. If not there, it's v2.
+- **What tier does X belong to?** → Scan Tier headings; cross-check tags `[Wedge]` `[GCC]` `[G-gap]`.
+- **Did we ship X already?** → Check the Build Log + the ✅/🚧 emoji on the relevant item.
+- **Is X new scope (not in the original draft)?** → Look for `🆕` tag on the item or in the "Recent additions" subsection.

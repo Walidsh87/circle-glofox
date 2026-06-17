@@ -20,7 +20,7 @@ export async function notifyCoachesOfCover(boxId: string, instanceId: string, po
   try {
     const svc = createServiceClient()
     const { data: inst } = await svc.from('class_instances')
-      .select('starts_at, class_templates(name), boxes(name, timezone)').eq('id', instanceId).single()
+      .select('starts_at, class_templates(name), boxes(name, timezone)').eq('id', instanceId).eq('box_id', boxId).single()
     if (!inst) return
     const tmpl = Array.isArray(inst.class_templates) ? inst.class_templates[0] : inst.class_templates
     const box = Array.isArray(inst.boxes) ? inst.boxes[0] : inst.boxes

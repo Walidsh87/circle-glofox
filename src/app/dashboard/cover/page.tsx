@@ -117,7 +117,7 @@ export default async function CoverPage() {
         )}
 
         {requests.length === 0 && myPostable.length === 0 && (
-          <EmptyState title="Nothing to cover." body="Post one of your upcoming classes when you can't make it, or claim a class another coach has posted." />
+          <EmptyState title="Nothing to cover." body={isProgramming ? "Post one of your upcoming classes when you can't make it, or claim a class another coach has posted." : 'No open cover requests right now.'} />
         )}
       </div>
     </DashboardShell>

@@ -101,3 +101,13 @@ test('removeAvailabilityWindow: coach cannot remove another coach row', async ()
   } }))
   expect((await removeAvailabilityWindow('w1')).error).toMatch(/your own/i)
 })
+
+test('removeAvailabilityWindow: manager removes another coach row', async () => {
+  const rls = makeSupabaseMock({ user: { id: 'o1' }, results: {
+    profiles: { data: { box_id: 'b1', role: 'owner', full_name: 'O' }, error: null },
+    coach_availability: [{ data: { coach_id: 'c2' }, error: null }, { data: null, error: null }],
+  } })
+  serverCreate.mockResolvedValue(rls)
+  expect((await removeAvailabilityWindow('w1')).error).toBeNull()
+  expect(rls.builder('coach_availability').delete).toHaveBeenCalled()
+})

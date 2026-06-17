@@ -51,7 +51,7 @@ export async function removeAvailabilityWindow(id: string): Promise<{ error: str
   }
 
   const { error } = await supabase.from('coach_availability').delete().eq('id', id).eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) { console.error('removeAvailabilityWindow failed:', error); return { error: 'Could not remove availability window.' } }
 
   revalidatePath('/dashboard/availability')
   return { error: null }

@@ -64,6 +64,7 @@ function getNavGroups(role: string): NavGroup[] {
       { key: 'classes', label: 'Class schedule', href: '/dashboard/classes', icon: 'calendar' },
       { key: 'availability', label: 'Availability', href: '/dashboard/availability', icon: 'clock' },
       { key: 'pt', label: 'PT sessions', href: '/dashboard/pt', icon: 'calendar' },
+      { key: 'cover', label: 'Cover', href: '/dashboard/cover', icon: 'swap' },
     ]
     if (isProgramming) programmingItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
     if (isProgramming) programmingItems.push({ key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' })
@@ -119,6 +120,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   chat: <><path d="M4 5h16v11H8l-4 4z" /><path d="M8 9h8M8 12h5" /></>,
   checklist: <><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17" /></>,
   gift: <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M5 12v9h14v-9M12 8v13" /><path d="M12 8S10 3 7.5 4.5 9.5 8 12 8zM12 8s2-5 4.5-3.5S14.5 8 12 8z" /></>,
+  swap: <><path d="M7 4 3 8l4 4" /><path d="M3 8h14" /><path d="M17 20l4-4-4-4" /><path d="M21 16H7" /></>,
 }
 
 function CIcon({ name, size = 15 }: { name: string; size?: number }) {

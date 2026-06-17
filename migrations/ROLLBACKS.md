@@ -9,6 +9,11 @@ Reverse procedures for migrations `008`–`072` (referenced by the DR runbook, `
 
 ---
 
+### 073_member_notes
+```sql
+DROP TABLE IF EXISTS member_notes;     -- ⚠️ staff member notes (call/visit/post-class log)
+```
+
 ### 072_rls_defense_in_depth
 ```sql
 -- Restore the pre-hardening policy bodies (re-opens the W8 defense-in-depth gaps).

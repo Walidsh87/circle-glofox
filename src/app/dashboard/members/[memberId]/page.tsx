@@ -9,6 +9,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { EditMemberForm } from './_components/edit-member-form'
 import { SellPackage } from './_components/sell-package'
+import { PtScheduler } from './_components/pt-scheduler'
+import { PtSessionsList, type PtSessionItem } from './_components/pt-sessions-list'
 import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } from '@/lib/consistency'
 import { MembershipLifecycle } from './_components/membership-lifecycle'
 import { ChangePlan } from './_components/change-plan'
@@ -223,6 +225,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     { data: boxCoaches },
     { data: boxStaff },
     { data: noteRows },
+    { data: ptSessionRows },
   ] = await Promise.all([
     isOwner
       ? supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', viewer.box_id).eq('active', true).order('name')
@@ -267,6 +270,12 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     isStaff
       ? supabase.from('member_notes').select('id, note, note_type, created_by_name, created_at').eq('box_id', viewer.box_id).eq('athlete_id', params.memberId).order('created_at', { ascending: false })
       : Promise.resolve({ data: [] as { id: string; note: string; note_type: string; created_by_name: string; created_at: string }[] }),
+    (isStaff || isSelf)
+      ? supabase.from('pt_sessions')
+          .select('id, scheduled_at, duration_minutes, profiles:coach_id(full_name)')
+          .eq('box_id', viewer.box_id).eq('athlete_id', params.memberId).eq('status', 'scheduled')
+          .gte('scheduled_at', new Date().toISOString()).order('scheduled_at')
+      : Promise.resolve({ data: [] as { id: string; scheduled_at: string; duration_minutes: number; profiles: { full_name: string | null } | { full_name: string | null }[] | null }[] }),
   ])
 
   // Tags (#33): staff-only metadata, box-scoped. Members never see their own tags.
@@ -284,6 +293,14 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const staffNameById = new Map(boxStaffList.map((s) => [s.id, s.full_name ?? 'Staff']))
   const followups: FollowupTaskRow[] = ((followupRows ?? []) as { id: string; title: string; due_date: string; done: boolean; assigned_to: string | null }[])
     .map((t) => ({ id: t.id, title: t.title, due_date: t.due_date, done: t.done, linkLabel: null, linkHref: null, assigneeName: t.assigned_to ? (staffNameById.get(t.assigned_to) ?? 'Staff') : null }))
+
+  // PT sessions (#95): upcoming scheduled sessions for this member.
+  const ptSessions: PtSessionItem[] = ((ptSessionRows ?? []) as { id: string; scheduled_at: string; duration_minutes: number; profiles: { full_name: string | null } | { full_name: string | null }[] | null }[]).map((r) => {
+    const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles
+    return { id: r.id, scheduled_at: r.scheduled_at, duration_minutes: r.duration_minutes, coach_name: p?.full_name ?? 'Coach' }
+  })
+  const ptCreditsAvailable = ((memberCredits ?? []) as { kind: string; credits_remaining: number }[])
+    .filter((c) => c.kind === 'pt_session').reduce((n, c) => n + c.credits_remaining, 0)
 
   // Refer-a-friend (#49/#88): only on the member's own athlete profile.
   let referLink: string | null = null
@@ -762,8 +779,18 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         {/* Packages & credits — owner only */}
         {isOwner && (
           <div className="mt-5">
-            <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} coaches={(boxCoaches ?? []) as { id: string; full_name: string | null }[]} />
+            <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} />
           </div>
+        )}
+
+        {/* PT sessions (#95) — staff schedule; staff + member view */}
+        {(isStaff || isSelf) && (
+          <Section label="PT sessions">
+            {isStaff && <PtScheduler athleteId={params.memberId} coaches={(boxCoaches ?? []) as { id: string; full_name: string | null }[]} ptCreditsAvailable={ptCreditsAvailable} />}
+            <div className={isStaff ? 'mt-3' : ''}>
+              <PtSessionsList sessions={ptSessions} timeZone={box.timezone ?? 'Asia/Dubai'} canCancel={isStaff} />
+            </div>
+          </Section>
         )}
 
         {/* PDPL Data Export — owner only */}

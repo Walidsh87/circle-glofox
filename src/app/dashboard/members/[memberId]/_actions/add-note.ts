@@ -12,6 +12,9 @@ export async function addNote(athleteId: string, note: string, noteType: string)
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile } = auth
 
+  const { data: member } = await supabase.from('profiles').select('id').eq('id', athleteId).eq('box_id', profile.box_id).maybeSingle()
+  if (!member) return { error: 'Member not found in your gym.' }
+
   const { error } = await supabase.from('member_notes').insert({
     box_id: profile.box_id,
     athlete_id: athleteId,
@@ -20,7 +23,10 @@ export async function addNote(athleteId: string, note: string, noteType: string)
     created_by: user.id,
     created_by_name: profile.full_name ?? 'Staff',
   })
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('addNote insert failed:', error)
+    return { error: 'Could not save the note.' }
+  }
 
   revalidatePath('/dashboard/members/[memberId]', 'page')
   revalidatePath('/dashboard/desk')

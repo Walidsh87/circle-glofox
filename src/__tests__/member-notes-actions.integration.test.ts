@@ -11,13 +11,30 @@ import { deleteNote } from '@/app/dashboard/members/[memberId]/_actions/delete-n
 beforeEach(() => vi.clearAllMocks())
 
 test('staff add: validated, box-scoped insert with author snapshot', async () => {
-  const rls = makeSupabaseMock({ user: { id: 'r1' }, results: { profiles: { data: { box_id: 'b1', role: 'coach', full_name: 'Coach Sam' }, error: null }, member_notes: { data: null, error: null } } })
+  const rls = makeSupabaseMock({ user: { id: 'r1' }, results: {
+    profiles: [
+      { data: { box_id: 'b1', role: 'coach', full_name: 'Coach Sam' }, error: null },  // guard
+      { data: { id: 'a1' }, error: null },                                              // athlete existence
+    ],
+    member_notes: { data: null, error: null },
+  } })
   serverCreate.mockResolvedValue(rls)
   const res = await addNote('a1', 'Tweaked shoulder, scaled today', 'post_class')
   expect(res.error).toBeNull()
   expect(rls.builder('member_notes').insert).toHaveBeenCalledWith(expect.objectContaining({
     box_id: 'b1', athlete_id: 'a1', note: 'Tweaked shoulder, scaled today', note_type: 'post_class', created_by: 'r1', created_by_name: 'Coach Sam',
   }))
+})
+
+test('add: athlete not in the gym rejected', async () => {
+  const rls = makeSupabaseMock({ user: { id: 'r1' }, results: {
+    profiles: [
+      { data: { box_id: 'b1', role: 'coach', full_name: 'Coach Sam' }, error: null },  // guard
+      { data: null, error: null },                                                      // athlete not found
+    ],
+  } })
+  serverCreate.mockResolvedValue(rls)
+  expect((await addNote('zz', 'hi', 'general')).error).toMatch(/not found/i)
 })
 
 test('add: empty note rejected before the guard', async () => {

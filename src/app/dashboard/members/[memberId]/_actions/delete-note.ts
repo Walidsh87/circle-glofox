@@ -9,7 +9,10 @@ export async function deleteNote(noteId: string): Promise<{ error: string | null
   const { supabase, profile } = auth
 
   const { error } = await supabase.from('member_notes').delete().eq('id', noteId).eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('deleteNote failed:', error)
+    return { error: 'Could not delete the note.' }
+  }
 
   revalidatePath('/dashboard/members/[memberId]', 'page')
   revalidatePath('/dashboard/desk')

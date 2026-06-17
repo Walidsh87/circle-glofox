@@ -7,8 +7,9 @@ import type { PersonHit } from '../_lib/search'
 import { DeskCheckIn } from './DeskCheckIn'
 import { PaymentActions } from './PaymentActions'
 import { WalkInPanel } from './WalkInPanel'
+import { DeskAddNote } from './DeskAddNote'
 
-type Drawer = 'checkin' | 'payment' | null
+type Drawer = 'checkin' | 'payment' | 'note' | null
 
 export function ResultRow({ hit }: { hit: PersonHit }) {
   const [drawer, setDrawer] = useState<Drawer>(null)
@@ -48,6 +49,9 @@ export function ResultRow({ hit }: { hit: PersonHit }) {
               <Button size="sm" variant="outline" onClick={() => setDrawer(drawer === 'payment' ? null : 'payment')}>
                 Take payment
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setDrawer(drawer === 'note' ? null : 'note')}>
+                Add note
+              </Button>
               <Link href={`/dashboard/members/${hit.id}`}>
                 <Button size="sm" variant="outline">Open</Button>
               </Link>
@@ -72,6 +76,11 @@ export function ResultRow({ hit }: { hit: PersonHit }) {
       {hit.kind === 'member' && drawer === 'payment' && (
         <div className="mt-3">
           <PaymentActions athleteId={hit.id} />
+        </div>
+      )}
+      {hit.kind === 'member' && drawer === 'note' && (
+        <div className="mt-3">
+          <DeskAddNote athleteId={hit.id} />
         </div>
       )}
       {hit.kind === 'lead' && drawer === 'checkin' && (

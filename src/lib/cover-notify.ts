@@ -39,7 +39,7 @@ export async function notifyCoachesOfCover(boxId: string, instanceId: string, po
     if (targets.length === 0) return
 
     const url = `${env.NEXT_PUBLIC_APP_URL}/dashboard/cover`
-    const html = emailShell(`<p>A class needs cover at ${esc(box?.name ?? 'your gym')}:</p><p><strong>${esc(className)}</strong> · ${esc(dayTime)}</p>${emailButton(url, 'View cover board')}`, 'en')
+    const html = emailShell(`<p>A class needs cover at ${esc(box?.name ?? 'your gym')}:</p><p><strong>${esc(className)}</strong> · ${esc(dayTime)}</p>${emailButton('View cover board', url)}`, 'en')
     await sendBroadcastEmails(targets.filter((c) => c.email).map((c) => ({ to: c.email as string, subject: `Cover needed: ${className}`, html })))
     await Promise.all(targets.map((c) => sendPushTo(svc, c.id, boxId, { title: 'A class needs cover', body: `${className} · ${dayTime}`, url: '/dashboard/cover' })))
   } catch (e) {
@@ -63,7 +63,7 @@ export async function notifyPosterOfClaim(boxId: string, instanceId: string, pos
 
     const { data: poster } = await svc.from('profiles').select('email').eq('id', posterId).eq('box_id', boxId).single()
     const url = `${env.NEXT_PUBLIC_APP_URL}/dashboard/cover`
-    const html = emailShell(`<p>${esc(claimerName)} is covering your class:</p><p><strong>${esc(className)}</strong> · ${esc(dayTime)}</p>${emailButton(url, 'View cover board')}`, 'en')
+    const html = emailShell(`<p>${esc(claimerName)} is covering your class:</p><p><strong>${esc(className)}</strong> · ${esc(dayTime)}</p>${emailButton('View cover board', url)}`, 'en')
     if (poster?.email) await sendBroadcastEmails([{ to: poster.email as string, subject: `${claimerName} is covering ${className}`, html }])
     await sendPushTo(svc, posterId, boxId, { title: 'Your class is covered', body: `${claimerName} is covering ${className} · ${dayTime}`, url: '/dashboard/cover' })
   } catch (e) {

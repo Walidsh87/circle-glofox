@@ -46,7 +46,7 @@ export async function claimSubRequest(subRequestId: string): Promise<{ error: st
   const endMin = startMin + inst.duration_minutes
 
   const [{ data: timeOff }, { data: myClasses }, { data: myPts }] = await Promise.all([
-    supabase.from('coach_time_off').select('coach_id, start_date, end_date').eq('box_id', profile.box_id).eq('coach_id', user.id).eq('status', 'approved'),
+    supabase.from('coach_time_off').select('coach_id, start_date, end_date').eq('box_id', profile.box_id).eq('coach_id', user.id).eq('status', 'approved').lte('start_date', dateISO).gte('end_date', dateISO),
     supabase.from('class_instances').select('starts_at, duration_minutes').eq('box_id', profile.box_id).eq('coach_id', user.id).eq('status', 'scheduled').gte('starts_at', dayStart).lte('starts_at', dayEnd),
     supabase.from('pt_sessions').select('scheduled_at, duration_minutes').eq('box_id', profile.box_id).eq('coach_id', user.id).eq('status', 'scheduled').gte('scheduled_at', dayStart).lte('scheduled_at', dayEnd),
   ])
@@ -61,7 +61,7 @@ export async function claimSubRequest(subRequestId: string): Promise<{ error: st
   // Atomic claim — only succeeds while the request is still open.
   const { data: claimed } = await supabase.from('sub_requests')
     .update({ status: 'claimed', claimed_by: user.id, claimed_at: new Date().toISOString() })
-    .eq('id', subRequestId).eq('status', 'open').select('id')
+    .eq('id', subRequestId).eq('box_id', profile.box_id).eq('status', 'open').select('id')
   if (!claimed || (claimed as { id: string }[]).length === 0) return { error: 'Someone else just claimed this class.' }
 
   // Reassign the class to the claimer (existing programming-tier policy).
@@ -71,5 +71,6 @@ export async function claimSubRequest(subRequestId: string): Promise<{ error: st
   await notifyPosterOfClaim(profile.box_id, r.instance_id, r.posted_by, profile.full_name ?? 'A coach')
   revalidatePath('/dashboard/cover')
   revalidatePath('/dashboard/prep')
+  revalidatePath('/dashboard/reports/payroll')
   return { error: null }
 }

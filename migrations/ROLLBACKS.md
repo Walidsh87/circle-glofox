@@ -9,6 +9,12 @@ Reverse procedures for migrations `008`–`072` (referenced by the DR runbook, `
 
 ---
 
+### 074_coach_availability
+```sql
+drop table if exists coach_time_off;        -- ⚠️ coach time-off requests/approvals
+drop table if exists coach_availability;    -- ⚠️ coach weekly availability windows
+```
+
 ### 073_member_notes
 ```sql
 DROP TABLE IF EXISTS member_notes;     -- ⚠️ staff member notes (call/visit/post-class log)

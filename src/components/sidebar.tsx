@@ -63,6 +63,7 @@ function getNavGroups(role: string): NavGroup[] {
       { key: 'prep', label: 'Class prep', href: '/dashboard/prep', icon: 'users' },
       { key: 'classes', label: 'Class schedule', href: '/dashboard/classes', icon: 'calendar' },
       { key: 'availability', label: 'Availability', href: '/dashboard/availability', icon: 'clock' },
+      { key: 'pt', label: 'PT sessions', href: '/dashboard/pt', icon: 'calendar' },
     ]
     if (isProgramming) programmingItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
     if (isProgramming) programmingItems.push({ key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' })

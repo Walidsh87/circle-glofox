@@ -230,7 +230,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     isOwner
       ? supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', viewer.box_id).eq('active', true).order('name')
       : Promise.resolve({ data: [] as { id: string; name: string; type: string; credit_count: number; price_aed: number }[] }),
-    isOwner
+    (isStaff || isSelf)
       ? supabase.from('package_credits').select('id, kind, credits_remaining, credits_total, expires_at, packages(name)').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id).order('created_at', { ascending: false })
       : Promise.resolve({ data: [] as { id: string; kind: string; credits_remaining: number; credits_total: number; expires_at: string | null; packages: { name: string } | { name: string }[] | null }[] }),
     isOwner
@@ -261,7 +261,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
       ? supabase.from('households').select('id, name').eq('box_id', viewer.box_id).order('name')
       : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     supabase.from('bookings').select('class_instances(starts_at)').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id).eq('checked_in', true),
-    isOwner
+    isStaff
       ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).eq('role', 'coach').order('full_name')
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
     isStaff

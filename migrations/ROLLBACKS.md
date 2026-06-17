@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`072` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`075` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,21 @@ Reverse procedures for migrations `008`–`072` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 075_pt_session_scheduling
+```sql
+-- restore owner-only access, drop scheduling columns (⚠️ loses scheduled_at/status/duration; revert the payroll-lib change too)
+drop policy if exists pt_sessions_staff_read on pt_sessions;
+drop policy if exists pt_sessions_athlete_read_own on pt_sessions;
+drop policy if exists pt_sessions_owner_all on pt_sessions;
+create policy pt_sessions_owner_all on pt_sessions
+  for all using (box_id = auth_box_id() and auth_role() = 'owner')
+  with check (box_id = auth_box_id() and auth_role() = 'owner');
+drop index if exists idx_pt_sessions_box_scheduled;
+alter table pt_sessions drop column if exists status;
+alter table pt_sessions drop column if exists duration_minutes;
+alter table pt_sessions drop column if exists scheduled_at;
+```
 
 ### 074_coach_availability
 ```sql

@@ -20,7 +20,10 @@ export async function cancelPtSession(sessionId: string): Promise<{ error: strin
 
   if (r.credit_id) {
     const { error: refundErr } = await service.rpc('refund_credit', { p_credit_id: r.credit_id })
-    if (refundErr) console.error('refund_credit failed during PT cancel; credit not refunded:', r.credit_id, refundErr)
+    if (refundErr) {
+      console.error('refund_credit failed during PT cancel; aborting (credit intact):', r.credit_id, refundErr)
+      return { error: 'Could not refund the credit — please try again.' }
+    }
   }
 
   const { error } = await service.from('pt_sessions').update({ status: 'cancelled' }).eq('id', sessionId).eq('box_id', profile.box_id)

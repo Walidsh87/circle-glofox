@@ -146,6 +146,15 @@ test('cancelPtSession: already cancelled → no-op error', async () => {
   expect((await cancelPtSession('s1')).error).toMatch(/already cancelled/i)
 })
 
+test('cancelPtSession: refund failure aborts without cancelling', async () => {
+  serverCreate.mockResolvedValue(staff())
+  serviceCreate.mockReturnValue(makeSupabaseMock({ rpc: { data: null, error: { message: 'boom' } }, results: {
+    pt_sessions: { data: { athlete_id: 'a1', credit_id: 'cr1', status: 'scheduled' }, error: null },
+  } }))
+  const res = await cancelPtSession('s1')
+  expect(res.error).toMatch(/refund|try again/i)
+})
+
 test('cancelPtSession: athlete denied', async () => {
   serverCreate.mockResolvedValue(makeSupabaseMock({ user: { id: 'a1' }, results: { profiles: { data: { box_id: 'b1', role: 'athlete' }, error: null } } }))
   serviceCreate.mockReturnValue(makeSupabaseMock({}))

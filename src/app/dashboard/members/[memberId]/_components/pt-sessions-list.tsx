@@ -25,6 +25,7 @@ export function PtSessionsList(
             <button
               onClick={() => start(async () => { const r = await cancelPtSession(s.id); if (r.error) alert(r.error); else router.refresh() })}
               disabled={pending}
+              aria-label={`Cancel PT session on ${fmt.format(new Date(s.scheduled_at))}`}
               className="ml-auto rounded-md px-2 py-0.5 text-[11.5px] font-semibold text-ink-3 transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
             >Cancel</button>
           )}

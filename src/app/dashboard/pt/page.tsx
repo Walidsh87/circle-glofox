@@ -42,7 +42,7 @@ export default async function PtPage() {
                     <span className="font-mono text-[12.5px] text-ink">{timeOf(s.scheduled_at)}</span>
                     <span className="text-[12.5px] font-semibold text-ink">{one(s.athlete)?.full_name ?? 'Member'}</span>
                     <span className="text-[12px] text-ink-2">with {one(s.coach)?.full_name ?? 'Coach'} · {s.duration_minutes} min</span>
-                    <PtCancelButton sessionId={s.id} />
+                    <PtCancelButton sessionId={s.id} label={`Cancel PT session at ${timeOf(s.scheduled_at)} with ${one(s.coach)?.full_name ?? 'Coach'}`} />
                   </li>
                 ))}
               </ul>

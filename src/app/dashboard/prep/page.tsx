@@ -13,6 +13,7 @@ import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { lastAttendedByAthlete, relativeDay } from './_lib/roster'
 import { CoachNote } from './_components/coach-note'
 import { TIMEZONE_OFFSETS, todayInTimezone } from '@/lib/timezone'
+import { findCoachConflicts } from '@/lib/coach-availability'
 
 function todayWindow(timezone: string): { start: string; end: string } {
   const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
@@ -45,6 +46,19 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
     .order('starts_at')
 
   const classes = instances ?? []
+
+  // #94 — flag classes assigned to a coach on approved leave today.
+  const { data: todayTimeOff } = await supabase
+    .from('coach_time_off')
+    .select('coach_id, start_date, end_date')
+    .eq('box_id', profile.box_id)
+    .eq('status', 'approved')
+    .lte('start_date', todayIso)
+    .gte('end_date', todayIso)
+  const conflictIds = findCoachConflicts(
+    classes.map((c) => ({ id: c.id, coach_id: (c as { coach_id: string | null }).coach_id, date: todayIso })),
+    (todayTimeOff ?? []) as { coach_id: string; start_date: string; end_date: string }[],
+  )
 
   // Substitutions (#59): programming-tier staff can reassign the selected class's coach.
   const isProgramming = (PROGRAMMING_ROLES as readonly string[]).includes(profile.role)
@@ -146,6 +160,7 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
                   )}
                 >
                   {fmtTime(c.starts_at, timezone)}
+                  {conflictIds.has(c.id) && <span title="Coach on leave" className="ml-1 text-danger">⚠</span>}
                 </Link>
               )
             })}
@@ -165,6 +180,9 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
                   />
                 ) : (
                   selectedCoach ?? 'No coach'
+                )}
+                {selected && conflictIds.has(selected.id) && (
+                  <span className="ml-1.5 rounded bg-danger-soft px-1.5 py-px font-mono text-[10px] font-bold text-danger">⚠ COACH OFF TODAY</span>
                 )}{' '}
                 · {roster.length} booked
               </span>

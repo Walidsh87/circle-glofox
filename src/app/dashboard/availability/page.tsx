@@ -25,7 +25,7 @@ function StatusChip({ status }: { status: string }) {
 }
 
 function fmtRange(s: string, e: string) {
-  const f = (d: string) => new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' }).format(new Date(`${d}T00:00:00Z`))
+  const f = (d: string) => new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short' }).format(new Date(`${d}T00:00:00Z`))
   return s === e ? f(s) : `${f(s)} – ${f(e)}`
 }
 
@@ -50,6 +50,17 @@ function TimeOffList(
 export default async function AvailabilityPage() {
   const { supabase, profile, boxName } = await requireStaffPage()
   const isManager = (MANAGER_ROLES as readonly string[]).includes(profile.role)
+  const isCoach = profile.role === 'coach'
+
+  const shell = (children: ReactNode) => (
+    <DashboardShell active="availability" userName={profile.full_name} userRole={profile.role} boxName={boxName} title="Availability">
+      <div className="flex max-w-[760px] flex-col gap-4">{children}</div>
+    </DashboardShell>
+  )
+
+  if (!isManager && !isCoach) {
+    return shell(<EmptyState title="Availability is for coaches and managers." body="Ask an owner if you need a coach's schedule changed." />)
+  }
 
   const [{ data: coachesData }, { data: availData }, { data: timeOffData }] = await Promise.all([
     supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).eq('role', 'coach').order('full_name'),
@@ -62,12 +73,6 @@ export default async function AvailabilityPage() {
   const timeOff = (timeOffData ?? []) as TimeOffRow[]
   const windowsOf = (id: string) => windows.filter((w) => w.coach_id === id)
   const timeOffOf = (id: string) => timeOff.filter((t) => t.coach_id === id)
-
-  const shell = (children: ReactNode) => (
-    <DashboardShell active="availability" userName={profile.full_name} userRole={profile.role} boxName={boxName} title="Availability">
-      <div className="flex max-w-[760px] flex-col gap-4">{children}</div>
-    </DashboardShell>
-  )
 
   // --- Manager view: approval queue + per-coach sections ---
   if (isManager) {
@@ -134,6 +139,4 @@ export default async function AvailabilityPage() {
     )
   }
 
-  // --- Receptionist (staff but neither coach nor manager) ---
-  return shell(<EmptyState title="Availability is for coaches and managers." body="Ask an owner if you need a coach's schedule changed." />)
 }

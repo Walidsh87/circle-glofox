@@ -43,6 +43,7 @@ export function WeeklyAvailabilityEditor({ coachId, windows }: { coachId: string
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
         <select value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}
+          aria-label="Day of week"
           className="h-8 rounded-lg border border-line-strong bg-surface px-2 text-[13px] text-ink">
           {WEEKDAYS.map((label, d) => <option key={d} value={d}>{label}</option>)}
         </select>

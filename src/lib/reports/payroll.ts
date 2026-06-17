@@ -10,7 +10,7 @@ export type PayrollInstance = {
   template_id?: string | null
   template_coach_id?: string | null
 }
-export type PtSessionRow = { coach_id: string; redeemed_at: string }
+export type PtSessionRow = { coach_id: string; scheduled_at: string; status: string }
 export type ClassRateRow = { coach_id: string; template_id: string; rate_aed: number }
 export type AdjustmentRow = { coach_id: string; amount_aed: number }
 export type PayrollRow = {
@@ -90,7 +90,8 @@ export function buildPayroll(
 
   const ptByCoach = new Map<string, number>()
   for (const s of ptSessions) {
-    if (monthKeyOf(s.redeemed_at, timeZone) !== monthKey) continue
+    if (s.status === 'cancelled') continue
+    if (monthKeyOf(s.scheduled_at, timeZone) !== monthKey) continue
     ptByCoach.set(s.coach_id, (ptByCoach.get(s.coach_id) ?? 0) + 1)
   }
 

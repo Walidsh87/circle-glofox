@@ -45,7 +45,7 @@ export default async function PayrollReportPage(ctx: { searchParams: Promise<{ m
     supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).eq('role', 'coach').order('full_name'),
     supabase.from('coach_pay_rates').select('coach_id, base_type, base_rate_aed, pt_rate_aed').eq('box_id', profile.box_id),
     supabase.from('class_instances').select('starts_at, coach_id, template_id, class_templates(coach_id)').eq('box_id', profile.box_id).neq('status', 'cancelled').gte('starts_at', fetchStart).lte('starts_at', fetchEnd),
-    supabase.from('pt_sessions').select('coach_id, redeemed_at').eq('box_id', profile.box_id).gte('redeemed_at', fetchStart).lte('redeemed_at', fetchEnd),
+    supabase.from('pt_sessions').select('coach_id, scheduled_at, status').eq('box_id', profile.box_id).gte('scheduled_at', fetchStart).lte('scheduled_at', fetchEnd),
     supabase.from('coach_class_rates').select('id, coach_id, template_id, rate_aed').eq('box_id', profile.box_id),
     supabase.from('pay_adjustments').select('id, coach_id, amount_aed, note').eq('box_id', profile.box_id).eq('month', monthKey).order('created_at'),
     supabase.from('class_templates').select('id, name').eq('box_id', profile.box_id).order('name'),

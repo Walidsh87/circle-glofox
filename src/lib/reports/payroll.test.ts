@@ -11,8 +11,8 @@ function rate(coachId: string, r: Partial<PayRateRow> = {}): PayRateRow {
 function inst(coachId: string | null, startsAt: string): PayrollInstance {
   return { starts_at: startsAt, coach_id: coachId }
 }
-function pt(coachId: string, redeemedAt: string): PtSessionRow {
-  return { coach_id: coachId, redeemed_at: redeemedAt }
+function ptRow(coachId: string, scheduledAt: string, status = 'scheduled'): PtSessionRow {
+  return { coach_id: coachId, scheduled_at: scheduledAt, status }
 }
 
 test('validatePayRate accepts a clean per_class setup', () => {
@@ -59,7 +59,7 @@ test('PT add-on stacks on both base kinds', () => {
     rate('c2', { base_type: 'monthly', base_rate_aed: 5000, pt_rate_aed: 200 }),
   ]
   const r = buildPayroll(coaches, rates, [inst('c1', '2026-06-03T05:00:00Z')],
-    [pt('c1', '2026-06-04T09:00:00Z'), pt('c2', '2026-06-05T09:00:00Z'), pt('c2', '2026-06-06T09:00:00Z')],
+    [ptRow('c1', '2026-06-04T09:00:00Z'), ptRow('c2', '2026-06-05T09:00:00Z'), ptRow('c2', '2026-06-06T09:00:00Z')],
     '2026-06', TZ, NOW)
   expect(r.rows.find((x) => x.coachName === 'Ahmed')).toMatchObject({ ptCount: 1, payAed: 100 + 150 })
   expect(r.rows.find((x) => x.coachName === 'Sara')).toMatchObject({ ptCount: 2, payAed: 5000 + 400 })
@@ -67,9 +67,22 @@ test('PT add-on stacks on both base kinds', () => {
 
 test('PT-only coach pays rate × sessions; no-rate coach pays 0 with hasRate false', () => {
   const r = buildPayroll([coach('c1', 'A'), coach('c2', 'B')], [rate('c1', { pt_rate_aed: 150 })],
-    [], [pt('c1', '2026-06-04T09:00:00Z')], '2026-06', TZ, NOW)
+    [], [ptRow('c1', '2026-06-04T09:00:00Z')], '2026-06', TZ, NOW)
   expect(r.rows.find((x) => x.coachId === 'c1')).toMatchObject({ payAed: 150, hasRate: true })
   expect(r.rows.find((x) => x.coachId === 'c2')).toMatchObject({ payAed: 0, hasRate: false })
+})
+
+test('payroll excludes cancelled PT sessions and counts by scheduled_at', () => {
+  const coaches = [{ id: 'c1', full_name: 'Coach' }]
+  const rates = [{ coach_id: 'c1', base_type: null, base_rate_aed: null, pt_rate_aed: 100 }]
+  const pt = [
+    ptRow('c1', '2026-07-05T06:00:00+04:00', 'scheduled'),
+    ptRow('c1', '2026-07-06T06:00:00+04:00', 'cancelled'), // excluded
+    ptRow('c1', '2026-06-30T06:00:00+04:00', 'scheduled'), // different month, excluded
+  ]
+  const out = buildPayroll(coaches, rates, [], pt, '2026-07', 'Asia/Dubai', '2026-07-31T00:00:00Z')
+  expect(out.rows[0].ptCount).toBe(1)
+  expect(out.rows[0].payAed).toBe(100)
 })
 
 test('month boundary respects the box timezone', () => {

@@ -62,6 +62,7 @@ function getNavGroups(role: string): NavGroup[] {
     const programmingItems: NavItem[] = [
       { key: 'prep', label: 'Class prep', href: '/dashboard/prep', icon: 'users' },
       { key: 'classes', label: 'Class schedule', href: '/dashboard/classes', icon: 'calendar' },
+      { key: 'availability', label: 'Availability', href: '/dashboard/availability', icon: 'clock' },
     ]
     if (isProgramming) programmingItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
     if (isProgramming) programmingItems.push({ key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' })

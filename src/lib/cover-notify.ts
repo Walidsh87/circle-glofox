@@ -46,3 +46,27 @@ export async function notifyCoachesOfCover(boxId: string, instanceId: string, po
     console.error('notifyCoachesOfCover failed:', e)
   }
 }
+
+/** Best-effort push + email to the poster that their class is covered. Never throws. */
+export async function notifyPosterOfClaim(boxId: string, instanceId: string, posterId: string, claimerName: string): Promise<void> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return
+  try {
+    const svc = createServiceClient()
+    const { data: inst } = await svc.from('class_instances')
+      .select('starts_at, class_templates(name), boxes(timezone)').eq('id', instanceId).eq('box_id', boxId).single()
+    if (!inst) return
+    const tmpl = Array.isArray(inst.class_templates) ? inst.class_templates[0] : inst.class_templates
+    const box = Array.isArray(inst.boxes) ? inst.boxes[0] : inst.boxes
+    const tz = box?.timezone ?? 'Asia/Dubai'
+    const className = tmpl?.name ?? 'your class'
+    const dayTime = fmtDayTime(inst.starts_at, tz)
+
+    const { data: poster } = await svc.from('profiles').select('email').eq('id', posterId).eq('box_id', boxId).single()
+    const url = `${env.NEXT_PUBLIC_APP_URL}/dashboard/cover`
+    const html = emailShell(`<p>${esc(claimerName)} is covering your class:</p><p><strong>${esc(className)}</strong> · ${esc(dayTime)}</p>${emailButton(url, 'View cover board')}`, 'en')
+    if (poster?.email) await sendBroadcastEmails([{ to: poster.email as string, subject: `${claimerName} is covering ${className}`, html }])
+    await sendPushTo(svc, posterId, boxId, { title: 'Your class is covered', body: `${claimerName} is covering ${className} · ${dayTime}`, url: '/dashboard/cover' })
+  } catch (e) {
+    console.error('notifyPosterOfClaim failed:', e)
+  }
+}

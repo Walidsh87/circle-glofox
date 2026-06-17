@@ -65,8 +65,9 @@ export async function cancelTimeOff(id: string): Promise<{ error: string | null 
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile } = auth
 
-  const { data: row } = await supabase.from('coach_time_off')
+  const { data: row, error: selectError } = await supabase.from('coach_time_off')
     .select('coach_id, status').eq('id', id).eq('box_id', profile.box_id).maybeSingle()
+  if (selectError) { console.error('cancelTimeOff select failed:', selectError); return { error: 'Could not load the time-off request.' } }
   if (!row) return { error: 'Time-off request not found.' }
 
   const manager = (MANAGER_ROLES as readonly string[]).includes(profile.role)

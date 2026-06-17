@@ -9,6 +9,11 @@ import {
   addAvailabilityWindow,
   removeAvailabilityWindow,
 } from '@/app/dashboard/availability/_actions/availability-windows'
+import {
+  requestTimeOff,
+  decideTimeOff,
+  cancelTimeOff,
+} from '@/app/dashboard/availability/_actions/time-off'
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -112,12 +117,6 @@ test('removeAvailabilityWindow: manager removes another coach row', async () => 
   expect(rls.builder('coach_availability').delete).toHaveBeenCalled()
 })
 
-import {
-  requestTimeOff,
-  decideTimeOff,
-  cancelTimeOff,
-} from '@/app/dashboard/availability/_actions/time-off'
-
 test('requestTimeOff: coach self request is pending', async () => {
   const rls = makeSupabaseMock({ user: { id: 'c1' }, results: {
     profiles: [
@@ -163,7 +162,7 @@ test('requestTimeOff: coach cannot request for another coach', async () => {
   serverCreate.mockResolvedValue(makeSupabaseMock({ user: { id: 'c1' }, results: {
     profiles: { data: { box_id: 'b1', role: 'coach', full_name: 'C' }, error: null },
   } }))
-  expect((await requestTimeOff('c2', '2026-07-01', '2026-07-05', '')).error).toMatch(/your own/i)
+  expect((await requestTimeOff('c2', '2026-07-01', '2026-07-05', '')).error).toMatch(/manage your own/i)
 })
 
 test('decideTimeOff: manager approves (box-scoped update)', async () => {

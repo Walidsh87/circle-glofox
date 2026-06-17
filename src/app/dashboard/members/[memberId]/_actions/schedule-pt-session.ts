@@ -15,7 +15,8 @@ function offsetStr(h: number): string {
   return `${sign}${String(Math.abs(h)).padStart(2, '0')}:00`
 }
 function minuteOfDay(iso: string, timeZone: string): number {
-  const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso))
+  // en-GB + hour12:false can emit "24:00" for midnight in some ICU builds — normalize to "00:00".
+  const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)).replace(/^24:/, '00:')
   return toMinutes(hhmm)
 }
 

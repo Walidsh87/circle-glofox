@@ -92,6 +92,24 @@ test('schedulePtSession: force schedules — consume then insert', async () => {
   }))
 })
 
+test('schedulePtSession: insert failure refunds the consumed credit', async () => {
+  const svc = makeSupabaseMock({ user: { id: 'u1' }, rpc: { data: 4, error: null }, results: {
+    profiles: [{ data: { id: 'c1' }, error: null }, { data: { id: 'a1' }, error: null }],
+    boxes: { data: { timezone: 'Asia/Dubai' }, error: null },
+    coach_time_off: { data: [], error: null },
+    pt_sessions: [{ data: [], error: null }, { data: null, error: { message: 'boom' } }], // overlap select, then failing insert
+    class_instances: { data: [], error: null },
+    coach_availability: { data: [], error: null },
+    package_credits: { data: [{ id: 'cr1', credits_remaining: 3, expires_at: null }], error: null },
+  } })
+  serverCreate.mockResolvedValue(staff())
+  serviceCreate.mockReturnValue(svc)
+  const res = await schedulePtSession('a1', 'c1', '2026-07-01', '06:00', 60, true)
+  expect(res.error).toMatch(/could not schedule/i)
+  expect(svc.rpc).toHaveBeenCalledWith('consume_credit', { p_credit_id: 'cr1' })
+  expect(svc.rpc).toHaveBeenCalledWith('refund_credit', { p_credit_id: 'cr1' })
+})
+
 test('schedulePtSession: no PT credits → refuse', async () => {
   serverCreate.mockResolvedValue(staff())
   serviceCreate.mockReturnValue(makeSupabaseMock({ results: {

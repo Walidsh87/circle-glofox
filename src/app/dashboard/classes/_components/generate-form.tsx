@@ -6,7 +6,7 @@ import { generateInstances } from '../_actions/generate-instances'
 
 export function GenerateForm() {
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ created: number; skipped: number; ramadanGap: boolean } | null>(null)
+  const [result, setResult] = useState<{ created: number; skipped: number; ramadanGap: boolean; coachConflicts: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const today = new Date().toISOString().split('T')[0]
@@ -21,7 +21,7 @@ export function GenerateForm() {
     if (res.error) {
       setError(res.error)
     } else {
-      setResult({ created: res.created, skipped: res.skipped, ramadanGap: res.ramadanGap })
+      setResult({ created: res.created, skipped: res.skipped, ramadanGap: res.ramadanGap, coachConflicts: res.coachConflicts })
     }
   }
 
@@ -48,6 +48,11 @@ export function GenerateForm() {
       {result?.ramadanGap && (
         <span role="alert" className="text-[13px] text-warn">
           Ramadan window is active but you haven&apos;t built a Ramadan schedule — those days generated nothing.
+        </span>
+      )}
+      {result && result.coachConflicts > 0 && (
+        <span role="alert" className="text-[13px] text-warn">
+          ⚠️ {result.coachConflicts} class{result.coachConflicts !== 1 ? 'es' : ''} assigned to a coach who&apos;s on approved leave — reassign on Class Prep.
         </span>
       )}
       {error && <span role="alert" className="text-[13px] text-danger">{error}</span>}

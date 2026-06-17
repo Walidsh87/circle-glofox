@@ -4,6 +4,7 @@ import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { TIMEZONE_OFFSETS } from '@/lib/timezone'
 import { inRamadanWindow } from '@/lib/hijri'
+import { findCoachConflicts } from '@/lib/coach-availability'
 
 function utcDayOfWeek(dateStr: string): number {
   return new Date(dateStr + 'T00:00:00Z').getUTCDay()
@@ -21,11 +22,11 @@ function buildStartsAt(dateStr: string, timeStr: string, offsetHours: number): s
   return `${dateStr}T${timeStr}${offset}`
 }
 
-type Result = { created: number; skipped: number; error: string | null; ramadanGap: boolean }
+type Result = { created: number; skipped: number; error: string | null; ramadanGap: boolean; coachConflicts: number }
 
 export async function generateInstances(startDate: string): Promise<Result> {
   const auth = await requireProgrammingAction('Only owners and coaches can generate instances.')
-  if ('error' in auth) return { created: 0, skipped: 0, error: auth.error, ramadanGap: false }
+  if ('error' in auth) return { created: 0, skipped: 0, error: auth.error, ramadanGap: false, coachConflicts: 0 }
   const { supabase, profile } = auth
 
   // Fetch active templates + box timezone in parallel
@@ -42,7 +43,7 @@ export async function generateInstances(startDate: string): Promise<Result> {
       .single(),
   ])
 
-  if (!templates?.length) return { created: 0, skipped: 0, error: null, ramadanGap: false }
+  if (!templates?.length) return { created: 0, skipped: 0, error: null, ramadanGap: false, coachConflicts: 0 }
 
   const timezone = box?.timezone ?? 'Asia/Dubai'
   const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
@@ -68,6 +69,7 @@ export async function generateInstances(startDate: string): Promise<Result> {
   const rStart = box?.ramadan_start ?? null
   const rEnd = box?.ramadan_end ?? null
   const toInsert: object[] = []
+  const candidates: { id: string; coach_id: string | null; date: string }[] = []
 
   for (const date of dates) {
     const dow = utcDayOfWeek(date)
@@ -86,17 +88,30 @@ export async function generateInstances(startDate: string): Promise<Result> {
         capacity:         t.capacity,
         status:           'scheduled',
       })
+      candidates.push({ id: String(candidates.length), coach_id: t.coach_id ?? null, date })
     }
   }
 
   const hasRamadanTemplates = templates.some((t) => (t.season ?? 'default') === 'ramadan')
   const ramadanGap = dates.some((d) => inRamadanWindow(d, rStart, rEnd)) && !hasRamadanTemplates
 
-  if (!toInsert.length) return { created: 0, skipped: (existing ?? []).length, error: null, ramadanGap }
+  if (!toInsert.length) return { created: 0, skipped: (existing ?? []).length, error: null, ramadanGap, coachConflicts: 0 }
 
   const { error } = await supabase.from('class_instances').insert(toInsert)
-  if (error) return { created: 0, skipped: 0, error: error.message, ramadanGap }
+  if (error) return { created: 0, skipped: 0, error: error.message, ramadanGap, coachConflicts: 0 }
+
+  const { data: timeOff } = await supabase
+    .from('coach_time_off')
+    .select('coach_id, start_date, end_date')
+    .eq('box_id', profile.box_id)
+    .eq('status', 'approved')
+    .lte('start_date', dates[6])
+    .gte('end_date', dates[0])
+  const coachConflicts = findCoachConflicts(
+    candidates,
+    (timeOff ?? []) as { coach_id: string; start_date: string; end_date: string }[],
+  ).size
 
   revalidatePath('/dashboard/classes')
-  return { created: toInsert.length, skipped: (existing ?? []).length, error: null, ramadanGap }
+  return { created: toInsert.length, skipped: (existing ?? []).length, error: null, ramadanGap, coachConflicts }
 }

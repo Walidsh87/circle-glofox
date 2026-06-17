@@ -16,6 +16,7 @@ import { MemberTags } from './_components/member-tags'
 import { HouseholdCard } from './_components/household-card'
 import { SkillsEditor } from './_components/skills-editor'
 import { MemberFollowups } from './_components/member-followups'
+import { MemberNotes } from './_components/member-notes'
 import { MyDetailsCard } from './_components/my-details-card'
 import { SelfAgreementsCard } from './_components/self-agreements-card'
 import { ParqCard } from './_components/parq-card'
@@ -221,6 +222,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     { data: attendance },
     { data: boxCoaches },
     { data: boxStaff },
+    { data: noteRows },
   ] = await Promise.all([
     isOwner
       ? supabase.from('packages').select('id, name, type, credit_count, price_aed').eq('box_id', viewer.box_id).eq('active', true).order('name')
@@ -262,11 +264,17 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     isStaff
       ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).in('role', [...ALL_STAFF_ROLES]).order('full_name')
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+    isStaff
+      ? supabase.from('member_notes').select('id, note, note_type, created_by_name, created_at').eq('box_id', viewer.box_id).eq('athlete_id', params.memberId).order('created_at', { ascending: false })
+      : Promise.resolve({ data: [] as { id: string; note: string; note_type: string; created_by_name: string; created_at: string }[] }),
   ])
 
   // Tags (#33): staff-only metadata, box-scoped. Members never see their own tags.
   const memberTags = (tagRows ?? []).filter((r) => r.athlete_id === params.memberId).map((r) => r.tag).sort()
   const tagSuggestions = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
+
+  // Member notes (#92/#105): staff-only interaction log, newest first.
+  const memberNotes = (noteRows ?? []) as import('./_components/member-notes').MemberNote[]
 
   // Skills (#36): staff assess belts per skill for this member.
   const skillLevels: Record<string, string> = Object.fromEntries((skillRows ?? []).map((r) => [r.skill_key, r.belt]))
@@ -563,6 +571,12 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         {isStaff && (
           <Section label="Follow-ups">
             <MemberFollowups memberId={member.id} tasks={followups} staff={boxStaffList} />
+          </Section>
+        )}
+
+        {isStaff && (
+          <Section label="Notes">
+            <MemberNotes athleteId={member.id} notes={memberNotes} timeZone={box?.timezone ?? 'Asia/Dubai'} />
           </Section>
         )}
 

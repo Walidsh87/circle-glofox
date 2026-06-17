@@ -52,7 +52,7 @@ export function GenerateForm() {
       )}
       {result && result.coachConflicts > 0 && (
         <span role="alert" className="text-[13px] text-warn">
-          ⚠️ {result.coachConflicts} class{result.coachConflicts !== 1 ? 'es' : ''} assigned to a coach who&apos;s on approved leave — reassign on Class Prep.
+          ⚠ {result.coachConflicts} class{result.coachConflicts !== 1 ? 'es' : ''} assigned to a coach who&apos;s on approved leave — reassign on Class Prep.
         </span>
       )}
       {error && <span role="alert" className="text-[13px] text-danger">{error}</span>}

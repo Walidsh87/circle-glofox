@@ -139,4 +139,5 @@ export default async function AvailabilityPage() {
     )
   }
 
+  return shell(<EmptyState title="Availability is for coaches and managers." body="Ask an owner if you need a coach's schedule changed." />)
 }

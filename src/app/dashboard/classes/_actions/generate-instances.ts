@@ -88,6 +88,7 @@ export async function generateInstances(startDate: string): Promise<Result> {
         capacity:         t.capacity,
         status:           'scheduled',
       })
+      // id is an ephemeral position label for conflict counting — NOT a class_instances row id
       candidates.push({ id: String(candidates.length), coach_id: t.coach_id ?? null, date })
     }
   }
@@ -98,7 +99,7 @@ export async function generateInstances(startDate: string): Promise<Result> {
   if (!toInsert.length) return { created: 0, skipped: (existing ?? []).length, error: null, ramadanGap, coachConflicts: 0 }
 
   const { error } = await supabase.from('class_instances').insert(toInsert)
-  if (error) return { created: 0, skipped: 0, error: error.message, ramadanGap, coachConflicts: 0 }
+  if (error) { console.error('generateInstances insert failed:', error); return { created: 0, skipped: 0, error: 'Could not create class instances.', ramadanGap, coachConflicts: 0 } }
 
   const { data: timeOff } = await supabase
     .from('coach_time_off')

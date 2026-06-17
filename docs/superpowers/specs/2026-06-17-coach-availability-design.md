@@ -44,6 +44,11 @@ create table if not exists coach_availability (
 );
 create index if not exists idx_coach_availability_coach
   on coach_availability (box_id, coach_id, weekday);
+-- Added during build (migration-review nit): DB-enforce no duplicate window. A coach
+-- can't have two windows starting at the same time on the same weekday. The action maps
+-- the resulting 23505 to a friendly "That window already exists." message.
+create unique index if not exists idx_coach_availability_unique
+  on coach_availability (box_id, coach_id, weekday, start_time);
 
 -- Date-range time-off with an approval gate.
 create table if not exists coach_time_off (
@@ -112,7 +117,7 @@ Idempotent (`if not exists` / `drop policy if exists`). Helpers (`auth_box_id()`
 - `WEEKDAYS` — ordered labels for 0–6 (Sun..Sat) for display.
 - `validateAvailabilityWindow(weekday: number, start: string, end: string): string | null` — weekday is an integer 0–6; `start`/`end` are valid `HH:MM`; `end > start`. Human message or `null`.
 - `validateTimeOff(startDate: string, endDate: string, reason: string): string | null` — both real `YYYY-MM-DD` dates; `end >= start`; `reason` length cap (500). Human message or `null`.
-- `isCoachOff(dateISO: string, approvedTimeOff: TimeOff[]): boolean` — `dateISO` (a gym-tz `YYYY-MM-DD`) falls within `[start_date, end_date]` (inclusive) of any **approved** row. (Caller pre-filters by coach, or passes that coach's rows.)
+- `isCoachOff(coachId: string, dateISO: string, approvedTimeOff: TimeOff[]): boolean` — `dateISO` (a gym-tz `YYYY-MM-DD`) falls within `[start_date, end_date]` (inclusive) of an **approved** row for `coachId`. *(Built with `coachId` first so `findCoachConflicts` passes mixed-coach rows directly.)*
 - `findCoachConflicts(instances: { id: string; coach_id: string | null; date: string }[], approvedTimeOff: TimeOff[]): Set<string>` — returns the set of instance ids whose `coach_id` is on approved time-off on that instance's gym-tz `date`. Pure; **reused by both** the Class Prep board and `generateInstances`.
 
 `date` for an instance is derived from its `starts_at` in the gym timezone (reuse `src/lib/timezone.ts` offset). Time-of-day is irrelevant to time-off (full-day), so comparison is date-string only.

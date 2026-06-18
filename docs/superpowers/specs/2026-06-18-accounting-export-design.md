@@ -11,7 +11,7 @@ A manager-tier **accounting export**: download the gym's issued invoices as a CS
 - Reuses the established report pattern: `requireManagerPage()`, `toCsv`/`DownloadCsvButton`, the `/dashboard/reports/*` page shape.
 
 ## Scope (YAGNI)
-- New page `src/app/dashboard/reports/accounting/page.tsx` (manager-tier: owner/admin).
+- New page `src/app/dashboard/reports/accounting/page.tsx` (**owner-tier** — financial data). NB: the `invoices` RLS policy `staff_read_invoices` grants only `('owner','coach')` and this app's role model gives `admin` **no** financial access (mig 058), so the page uses `requireOwnerPage()` (not manager) — a manager/admin guard would silently return zero rows under RLS.
 - Pure `src/lib/accounting-export.ts` — builds headers + string rows + a totals summary from invoice records.
 - Preset date ranges via `?range=` (`30` / `90` / `365` days, default `90`) mirroring the attendance report's `?days=` pattern.
 - Columns: **Invoice #, Date, Customer, Email, Description, Subtotal (AED), VAT %, VAT (AED), Total (AED), TRN**.
@@ -23,7 +23,7 @@ A manager-tier **accounting export**: download the gym's issued invoices as a CS
 `requireManagerPage()` → `supabase.from('invoices').select(<cols>).eq('box_id', profile.box_id).gte('issued_at', rangeStartIso).order('issued_at', desc)` → `buildAccountingExport(rows, box.timezone)` → table + `DownloadCsvButton`. Box scoping is **both** RLS (existing `invoices` policy `box_id = auth_box_id()`) **and** the explicit `.eq('box_id', profile.box_id)` filter (defense-in-depth).
 
 ## Security / tenancy
-- Manager-tier only (owner/admin) — financial data. Not a public surface; `customer_email_snapshot` is the gym's own customer data, shown only to its managers.
+- **Owner-tier only** — financial data (admins have no financial access; see Scope). Not a public surface; `customer_email_snapshot` is the gym's own customer data, shown only to the owner.
 - Every read box-scoped by RLS + explicit filter; `box_id` bound from the session (`profile.box_id`), never from input.
 - The `?range=` param is validated against an allow-list before use.
 - No new table/policy/migration; uses the RLS-client (never the service client).
@@ -48,7 +48,7 @@ export function buildAccountingExport(invoices: InvoiceRecord[], timeZone: strin
 ```
 
 ## Out of scope (deferred — record in DECISIONS MADE)
-Custom from/to date range + calendar-period (financial-year) presets · per-software column templates (we ship one generic CSV) · JSON/Zoho-API push · refund / credit-note rows (refunds aren't in `invoices`) · pagination (cap the preview table, full set still exported).
+Custom from/to date range + calendar-period (financial-year) presets · per-software column templates (we ship one generic CSV) · JSON/Zoho-API push · refund / credit-note rows (refunds aren't in `invoices`) · pagination/streaming for very high invoice volumes. NB on the last: the query is deliberately **uncapped** (no silent `.limit()`) — an accounting export must be complete, so silently truncating rows is worse than a large payload; true pagination/streaming is the deferred fix for a high-volume gym (the pilot's volume is modest).
 
 ## Testing
 - Unit (`accounting-export.test.ts`): `fmtMoney` (number+string input, 2dp, NaN→''), `fmtInvoiceDate` (tz correctness — a late-UTC instant lands on the right Dubai day), `toAccountingRow` (column order + null handling), `buildAccountingExport` (totals sum, row count, empty input).

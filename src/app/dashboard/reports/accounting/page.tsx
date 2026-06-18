@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
-import { requireManagerPage } from '@/lib/auth/page-guards'
+import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { DownloadCsvButton } from '@/components/download-csv-button'
 import { Table, Th, Td } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,7 @@ const RANGES = [30, 90, 365]
 const PREVIEW_LIMIT = 100
 
 export default async function AccountingExportPage(ctx: { searchParams: Promise<{ range?: string }> }) {
-  const { supabase, profile, boxName, box } = await requireManagerPage()
+  const { supabase, profile, boxName, box } = await requireOwnerPage()
   const sp = await ctx.searchParams
   const parsed = Number(sp.range)
   const days = RANGES.includes(parsed) ? parsed : 90

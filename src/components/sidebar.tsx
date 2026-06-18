@@ -81,7 +81,7 @@ function getNavGroups(role: string): NavGroup[] {
   athleteItems.push({ key: 'skills', label: 'Skills', labelKey: 'nav.skills', href: '/dashboard/skills', icon: 'medal' })
   athleteItems.push({ key: 'feed', label: 'Activity Feed', labelKey: 'nav.activityFeed', href: '/dashboard/feed', icon: 'activity' })
   athleteItems.push({ key: 'committed-club', label: 'Committed Club', labelKey: 'nav.committedClub', href: '/dashboard/committed-club', icon: 'trophy' })
-  athleteItems.push({ key: 'achievements', label: 'Achievements', href: '/dashboard/achievements', icon: 'award' })
+  athleteItems.push({ key: 'achievements', label: 'Achievements', labelKey: 'nav.achievements', href: '/dashboard/achievements', icon: 'award' })
   athleteItems.push({ key: 'messages', label: 'Messages', labelKey: 'nav.messages', href: '/dashboard/messages', icon: 'chat' })
   athleteItems.push({ key: 'profile', label: 'My Profile', labelKey: 'nav.myProfile', href: '/dashboard/profile', icon: 'person' })
   groups.push({ section: 'Athletes', sectionKey: 'nav.athletesSection', items: athleteItems })

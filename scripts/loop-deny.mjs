@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 // Claude Code PreToolUse hook. Exit 2 = BLOCK (stderr shown to Claude). Exit 0 = allow.
+import { existsSync } from "node:fs";
+
+// Enforce ONLY while the loop owns the working tree (sentinel present) — same gating
+// as the husky hooks (.husky/pre-commit, .husky/pre-push). Interactive human sessions
+// (no sentinel) are unaffected: the real guard for the loop is its bot identity +
+// branch protection; this command denylist is defense-in-depth that only needs to bind
+// the loop. The loop creates .git/LOOP_ACTIVE on start and removes it on exit.
+if (!existsSync(".git/LOOP_ACTIVE")) process.exit(0);
+
 let buf = "";
 process.stdin.on("data", (c) => (buf += c));
 process.stdin.on("end", () => {

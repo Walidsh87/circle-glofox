@@ -41,6 +41,19 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  sub_requests: async () => {
+    // class_instances.template_id/coach_id are nullable → minimal instance, then a sub_request
+    // posted by the coach profile, NOT claimed (claimed_by null) so visibility reflects ROLE access.
+    const inst = await client.query(
+      `insert into class_instances (box_id, starts_at) values ($1, now() + interval '1 day') returning id`,
+      [BOX_T]
+    );
+    const r = await client.query(
+      `insert into sub_requests (box_id, instance_id, posted_by, status) values ($1, $2, $3, 'open') returning id`,
+      [BOX_T, inst.rows[0].id, roleProfile.coach]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   // add tables here as you gate them, e.g.:
   // memberships: async () => { const r = await client.query(`insert into memberships(box_id,athlete_id,plan_name,start_date) values ($1,$2,'Probe',current_date) returning id`, [BOX_T, roleProfile.athlete]); return { pk: "id", id: r.rows[0].id }; },
 };

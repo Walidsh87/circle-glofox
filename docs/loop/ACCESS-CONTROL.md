@@ -27,8 +27,14 @@ Tier constants live in `src/lib/auth/roles.ts`.
 ## Read P from — the RLS policies
 `migrations/NNN_*.sql` — the role set a table's policy admits. Two shapes:
 1. **Tier-helper policies** — `auth_is_staff()` / `auth_is_manager()` / `auth_is_programming()`
-   (SQL functions defined in **mig 058**, kept in sync with the TS tiers above). These map
-   1:1 to the guards, so **G == P by construction** — low risk.
+   (SQL functions defined in **mig 058**, kept in sync with the TS tiers above). The helper
+   *names* a role set — treat it as **P** and still compare to the guard's **G**. These are
+   **lower-effort to check** (named set, not a literal list), **not exempt**: alignment holds
+   only when the page's guard tier is **⊆** the policy's tier. A page on a **wider** tier than
+   the table's policy still silent-empties the excess roles — e.g. `requireProgrammingPage`
+   ({owner, admin, coach}) over a table guarded by `auth_is_manager()` ({owner, admin}) →
+   **coach clears the guard, RLS returns zero rows.** Same bug, tier-helper table. Run the
+   check on every table; "low risk" is not "didn't look."
 2. **Literal role-list policies** — `auth_role() IN ('owner','coach')` etc. **This is where
    mismatch lives.** Extract the literal list from the policy's `USING` / `WITH CHECK`.
    - **invoices**: `staff_read_invoices` (**mig 019**, documented in **mig 058**) → **{owner, coach}**;
@@ -48,4 +54,13 @@ Tier constants live in `src/lib/auth/roles.ts`.
 ## Worked example (the Phase C catch)
 | Table | Guard (G) | RLS policy (P) | G ⊆ P? | Verdict |
 |---|---|---|---|---|
-| `invoices` | `requireManagerPage` → {owner, admin} | `staff_read_invoices` → {owner, coach} | ✗ (admin ∈ G∖P) | DON'T-SHIP → narrowed to `requireOwnerPage` → {owner} ⊆ P ✓ |
+| `invoices` | `requireManagerPage` → {owner, admin} | `staff_read_invoices` → {owner, coach} | ✗ (admin ∈ G∖P) | DON'T-SHIP → narrow guard to `requireOwnerPage` → {owner} |
+
+**Then apply the SOFT rule (don't stop at the HARD pass).** After narrowing: {owner} ⊆ {owner, coach}
+✓ — HARD clears. coach ∈ P∖G is a **deliberate, documented exclusion**: the accounting export is a
+box-wide financial deliverable and is **owner-only** — financial reporting is the owner's job,
+consistent with the app's principle that financial access (payments, payroll, KPI, invoices) is
+owner-scoped. The `staff_read_invoices` RLS grant to coach covers other/narrower invoice access, not
+this aggregate export — so the guard stays `requireOwnerPage` → {owner}. (Confirmed by behavioral
+measurement 2026-06-18: real `invoices` role-access is exactly {owner, coach}; `admin` is
+silent-emptied — the original Phase C bug.)

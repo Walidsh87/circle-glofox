@@ -56,6 +56,7 @@ export const ar: typeof en = {
     skills: 'المهارات',
     activityFeed: 'سجلّ النشاط',
     committedClub: 'نادي الملتزمين',
+    achievements: 'الإنجازات',
     messages: 'الرسائل',
     myProfile: 'ملفّي الشخصي',
     athletesSection: 'الرياضيون',

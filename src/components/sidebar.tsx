@@ -81,6 +81,7 @@ function getNavGroups(role: string): NavGroup[] {
   athleteItems.push({ key: 'skills', label: 'Skills', labelKey: 'nav.skills', href: '/dashboard/skills', icon: 'medal' })
   athleteItems.push({ key: 'feed', label: 'Activity Feed', labelKey: 'nav.activityFeed', href: '/dashboard/feed', icon: 'activity' })
   athleteItems.push({ key: 'committed-club', label: 'Committed Club', labelKey: 'nav.committedClub', href: '/dashboard/committed-club', icon: 'trophy' })
+  athleteItems.push({ key: 'achievements', label: 'Achievements', labelKey: 'nav.achievements', href: '/dashboard/achievements', icon: 'award' })
   athleteItems.push({ key: 'messages', label: 'Messages', labelKey: 'nav.messages', href: '/dashboard/messages', icon: 'chat' })
   athleteItems.push({ key: 'profile', label: 'My Profile', labelKey: 'nav.myProfile', href: '/dashboard/profile', icon: 'person' })
   groups.push({ section: 'Athletes', sectionKey: 'nav.athletesSection', items: athleteItems })
@@ -111,6 +112,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   chart: <><path d="M3 3v18h18" /><path d="M7 14v3" /><path d="M12 9v8" /><path d="M17 5v12" /></>,
   trophy: <><path d="M7 4h10v4a5 5 0 0 1-10 0V4z" /><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3M9 18h6M10 18v-2M14 18v-2M8 21h8" /></>,
   medal: <><circle cx="12" cy="15" r="6" /><path d="M9 9.5 6.5 3M15 9.5 17.5 3M12 13v4M10 15h4" /></>,
+  award: <><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></>,
   megaphone: <><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z" /><path d="M16 9a3 3 0 0 1 0 6" /></>,
   zap: <><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" /></>,
   funnel: <><path d="M3 5h18l-7 8v6l-4 2v-8z" /></>,

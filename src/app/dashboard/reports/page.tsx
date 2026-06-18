@@ -8,6 +8,7 @@ const REPORTS = [
   { href: '/dashboard/reports/classes', title: 'Class & coach performance', desc: 'Fill rate and no-show rate per class template and per coach.' },
   { href: '/dashboard/reports/churn', title: 'Churn trend', desc: 'Monthly joins, churns, and churn rate over the last 12 months.' },
   { href: '/dashboard/reports/payroll', title: 'Payroll', desc: 'Per-coach pay: class rates, monthly salaries, and PT sessions.', ownerOnly: true },
+  { href: '/dashboard/reports/accounting', title: 'Accounting export', desc: 'Issued invoices with VAT split — importable into Zoho Books, Xero, or QuickBooks.', ownerOnly: true },
 ]
 
 export default async function ReportsHubPage() {

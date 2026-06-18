@@ -13,10 +13,6 @@
       "Bash(npm run test:coverage)"
     ],
     "deny": [
-      "Bash(gh pr merge:*)",
-      "Bash(git push --force:*)",
-      "Bash(git add -A:*)",
-      "Bash(git add .:*)",
       "mcp__supabase__apply_migration"
     ]
   }

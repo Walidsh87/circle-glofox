@@ -1,1 +1,7 @@
+node scripts/loop-guard.mjs || exit 1
 npx lint-staged
+# Loop-only secret-content scan (Task 9). Runs ONLY when the loop owns the tree
+# AND gitleaks is installed; the CI `secret-scan` job is the hard gate either way.
+if [ -f .git/LOOP_ACTIVE ] && command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --no-banner || { echo "[loop-guard] gitleaks: staged content looks like a secret" >&2; exit 1; }
+fi

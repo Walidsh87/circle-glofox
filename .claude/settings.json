@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Bash", "hooks": [ { "type": "command", "command": "node scripts/loop-deny.mjs" } ] }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run type-check)",
+      "Bash(npm run lint)",
+      "Bash(npm test)",
+      "Bash(npm run test)",
+      "Bash(npm run test:coverage)"
+    ],
+    "deny": [
+      "Bash(gh pr merge:*)",
+      "Bash(git push --force:*)",
+      "Bash(git add -A:*)",
+      "Bash(git add .:*)",
+      "mcp__supabase__apply_migration"
+    ]
+  }
+}

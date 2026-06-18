@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:rls": "node tests/rls/run.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "loop:bless": "node -e \"const c=require('crypto'),f=require('fs');const fs=['scripts/loop-guard.mjs','.claude/settings.json'];const o={};for(const x of fs)o[x]=c.createHash('sha256').update(f.readFileSync(x)).digest('hex');f.writeFileSync('scripts/.loop-guard.hashes.json',JSON.stringify(o,null,2)+'\\n')\""
   },
   "lint-staged": {
     "**/*.{ts,tsx}": [

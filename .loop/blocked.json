@@ -1,0 +1,4 @@
+{
+  "blocked": [],
+  "_note": "HUMAN-EDITED ONLY. Each entry is an item key the loop must skip on every wakeup until Walid removes it (e.g. after >=2 gate failures, or a deliberate park). This file lives under a loop-immutable protected path (see scripts/loop-guard.mjs PROTECTED /^\\.loop\\//) — the loop cannot stage changes to it, so it cannot un-block itself."
+}

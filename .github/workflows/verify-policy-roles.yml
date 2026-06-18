@@ -1,0 +1,40 @@
+# .github/workflows/verify-policy-roles.yml  (Level 2 — keep INFORMATIONAL until proven; see caveat below)
+name: verify-policy-roles
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify-policy-roles
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      PR_BODY: ${{ github.event.pull_request.body }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Build the SAME migrated DB the rls-isolation gate uses (auth-shim + schema.sql + root
+      # + numbered migrations) by reusing the shared harness — no second copy of the replay to
+      # drift. (It also runs the isolation asserts; harmless here.)
+      - name: Build migrated DB (shared rls harness)
+        run: npm run test:rls
+      - name: Verify role-access behaviorally (claimed P/G vs real)
+        run: node .github/scripts/verify-policy-roles-behavioral.mjs

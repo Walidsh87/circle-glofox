@@ -89,6 +89,7 @@ NO: GraphQL, Redis, custom microservices, state libraries (Zustand/Redux), tRPC,
 - **Server Components by default.** Add `'use client'` only when interactivity demands it (forms, buttons with state, anything using hooks).
 - **Weight stored in grams.** UI converts to kg/lb at render time. The `athlete_lifts.one_rm_grams` and any load values are integer grams.
 - **No premature abstractions.** Build the screen, see what's repetitive, then extract. Don't pre-build component libraries.
+- **Access control = role tiers + RLS, kept aligned (G ⊆ P).** Roles: `owner, admin, coach, receptionist, athlete`. **Admins have no financial access by design.** A guard's admitted role set (G — `src/lib/auth/{page,action}-guards.ts`) must be a subset of every touched table's RLS-policy role set (P — `migrations/`); a guard *wider* than the policy yields silent-empty reads (looks like "no data", not "denied"). The mismatch lives in literal-role-list policies (e.g. `invoices` → owner/coach, mig 019/058). See `docs/loop/ACCESS-CONTROL.md`.
 
 ## The wedge — why a gym switches to us
 The percentage-based loading calculator. When the WOD says "5x3 @ 80% back squat", the whiteboard auto-renders the exact kg for every booked athlete based on their stored 1RM. This is what Glofox, Wodify, and SugarWOD do poorly or not at all. Polish this feature 3x more than anything else.

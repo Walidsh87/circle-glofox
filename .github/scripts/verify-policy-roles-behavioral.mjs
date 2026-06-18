@@ -54,6 +54,14 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  member_achievements: async () => {
+    // box_read_achievements grants any box member SELECT (no role filter) → empirical P = all roles.
+    const r = await client.query(
+      `insert into member_achievements (box_id, athlete_id, kind, threshold) values ($1, $2, 'milestone', 25) returning id`,
+      [BOX_T, roleProfile.athlete]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   // add tables here as you gate them, e.g.:
   // memberships: async () => { const r = await client.query(`insert into memberships(box_id,athlete_id,plan_name,start_date) values ($1,$2,'Probe',current_date) returning id`, [BOX_T, roleProfile.athlete]); return { pk: "id", id: r.rows[0].id }; },
 };

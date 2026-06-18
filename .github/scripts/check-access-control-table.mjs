@@ -27,7 +27,7 @@ try {
 }
 const DATA_PATHS = [
   /^src\/app\/.*\/(page|route)\.[jt]sx?$/, // app-router pages / route handlers
-  /guard/i,                                 // *guard* files
+  /guard.*\.[jt]sx?$/i,                      // auth *guard* code files (.ts/.tsx/.js) — not .json/.mjs (e.g. loop-guard hashes)
   /actions?\.[jt]sx?$/,                      // server actions
   /^(supabase\/)?migrations\/.*\.sql$/,      // RLS policy changes
 ];

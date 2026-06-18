@@ -1,0 +1,5 @@
+{
+  "currentItem": null,
+  "openLoopPRs": [],
+  "_note": "Loop PROGRESS only (currentItem, openLoopPRs). Enforcement counters deliberately live where the loop can't fake them: the daily PR budget is counted from GitHub ground truth by the wakeup harness before each iteration; blocked[] lives in .loop/blocked.json (human-only). This file is loop-writable; see docs/loop/COUNTERS.md."
+}

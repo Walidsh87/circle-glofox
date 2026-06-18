@@ -1,0 +1,8 @@
+[ -f .git/LOOP_ACTIVE ] || exit 0
+while read _ _ remote_ref _; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/master)
+      echo "[loop-guard] BLOCKED: loop may not push to $remote_ref" >&2; exit 1;;
+  esac
+done
+exit 0

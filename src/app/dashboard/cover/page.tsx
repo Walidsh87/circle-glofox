@@ -1,5 +1,6 @@
+import Link from 'next/link'
 import { requireStaffPage } from '@/lib/auth/page-guards'
-import { PROGRAMMING_ROLES } from '@/lib/auth/roles'
+import { MANAGER_ROLES, PROGRAMMING_ROLES } from '@/lib/auth/roles'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -16,6 +17,7 @@ export default async function CoverPage() {
   const tz = box.timezone ?? 'Asia/Dubai'
   const nowIso = new Date().toISOString()
   const isProgramming = (PROGRAMMING_ROLES as readonly string[]).includes(profile.role)
+  const isManager = (MANAGER_ROLES as readonly string[]).includes(profile.role)
 
   // Open cover requests for FUTURE classes.
   const { data: reqRows } = await supabase.from('sub_requests')
@@ -68,6 +70,13 @@ export default async function CoverPage() {
   return (
     <DashboardShell active="cover" userName={profile.full_name} userRole={profile.role} boxName={boxName} title="Cover">
       <div className="flex max-w-[760px] flex-col gap-4">
+        {isManager && (
+          <div className="flex justify-end">
+            <Link href="/dashboard/cover/coordination" className="text-sm text-ink-3 hover:text-ink transition-colors">
+              Coordination view →
+            </Link>
+          </div>
+        )}
         <Card className="p-5">
           <h2 className="text-[15px] font-bold text-ink">Open cover requests</h2>
           {requests.length === 0 ? (

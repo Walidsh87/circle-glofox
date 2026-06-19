@@ -259,6 +259,56 @@ async function main() {
   check('W3: profiles.blood_type SELECT denied for authenticated', piiBlood === false, `got ${piiBlood}`)
   check('W3: profiles.full_name SELECT allowed for authenticated (positive control)', okName === true, `got ${okName}`)
 
+  // ============================================================
+  // FINANCIAL INVARIANTS — the credit-ledger money guards (migration 023).
+  // These live ONLY in PL/pgSQL + DB CHECKs and are mocked away by every JS
+  // test, so a regression that weakened the over-refund / overdraft guard would
+  // pass the whole vitest suite. Run as the connecting superuser (same path the
+  // service_role takes). A failure = a money guard regressed.
+  // ============================================================
+  console.log('\n=== financial invariants: credit consume/refund guards (mig 023) ===')
+  {
+    const PKG = 'cccccccc-0000-0000-0000-000000000001'
+    await client.query(
+      `insert into packages(id, box_id, name, type, credit_count, price_aed) values ($1,$2,'Test Pack','class_pack',5,250)`,
+      [PKG, BOX_A]
+    )
+    const C_EMPTY = 'cccccccc-1111-0000-0000-000000000001' // already empty (0/5)
+    const C_FULL = 'cccccccc-2222-0000-0000-000000000001'  // already full (5/5)
+    const C_PART = 'cccccccc-3333-0000-0000-000000000001'  // partial (3/5)
+    await client.query(
+      `insert into package_credits(id, box_id, athlete_id, package_id, kind, credits_total, credits_remaining) values
+         ($1,$2,$3,$4,'class',5,0), ($5,$2,$3,$4,'class',5,5), ($6,$2,$3,$4,'class',5,3)`,
+      [C_EMPTY, BOX_A, ATH_A, PKG, C_FULL, C_PART]
+    )
+
+    // consume_credit: overdraft guard — an empty batch returns NULL and is never driven below 0.
+    const e0 = await client.query('select consume_credit($1) as n', [C_EMPTY])
+    check('consume_credit on an empty batch returns NULL (lost race / no credit)', e0.rows[0].n === null, `got ${e0.rows[0].n}`)
+    const e0rem = await scalar('select credits_remaining from package_credits where id=$1', [C_EMPTY])
+    check('consume_credit never drives a batch below 0 (overdraft blocked)', e0rem === 0, `got ${e0rem}`)
+
+    // consume_credit: decrements exactly 1 and returns the new balance.
+    const p3 = await client.query('select consume_credit($1) as n', [C_PART])
+    check('consume_credit decrements exactly 1 (3 -> 2)', p3.rows[0].n === 2, `got ${p3.rows[0].n}`)
+
+    // refund_credit: cap guard — a full batch stays at credits_total (no inflation).
+    await client.query('select refund_credit($1)', [C_FULL])
+    const fFull = await scalar('select credits_remaining from package_credits where id=$1', [C_FULL])
+    check('refund_credit on a full batch stays at credits_total (no over-refund)', fFull === 5, `got ${fFull}`)
+
+    // refund_credit: repeated refunds (e.g. concurrent double-click) never exceed credits_total.
+    for (let i = 0; i < 6; i++) await client.query('select refund_credit($1)', [C_PART]) // 2 -> capped at 5
+    const fPart = await scalar('select credits_remaining from package_credits where id=$1', [C_PART])
+    check('refund_credit is idempotent against the cap across repeated calls (<= credits_total)', fPart === 5, `got ${fPart}`)
+
+    // DB CHECK backstop: a direct write below 0 is rejected even if a future RPC bug slipped through.
+    let chkCode = null
+    try { await client.query('update package_credits set credits_remaining = -1 where id=$1', [C_EMPTY]) }
+    catch (err) { chkCode = err.code }
+    check('package_credits CHECK rejects a negative balance (23514)', chkCode === '23514', `got ${chkCode}`)
+  }
+
   const total = pass + fail
   console.log('\n==============================================================')
   if (fail === 0) {

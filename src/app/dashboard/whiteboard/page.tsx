@@ -8,20 +8,8 @@ import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { loadForPercent } from '@/lib/percentage'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { currentStreakWeeks } from '@/lib/consistency'
-import { TIMEZONE_OFFSETS, todayInTimezone } from '@/lib/timezone'
+import { todayInTimezone, todayWindow } from '@/lib/timezone'
 import { formatHijri, inRamadanWindow } from '@/lib/hijri'
-
-function todayWindow(timezone: string): { start: string; end: string } {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  const localMs = Date.now() + offsetHours * 60 * 60 * 1000
-  const localDate = new Date(localMs).toISOString().slice(0, 10)
-  const sign = offsetHours >= 0 ? '+' : '-'
-  const offset = `${sign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`
-  return {
-    start: `${localDate}T00:00:00${offset}`,
-    end:   `${localDate}T23:59:59${offset}`,
-  }
-}
 
 function formatTime(startsAt: string, timezone: string) {
   return new Intl.DateTimeFormat('en-GB', {

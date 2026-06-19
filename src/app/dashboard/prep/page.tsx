@@ -12,16 +12,9 @@ import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { lastAttendedByAthlete, relativeDay } from './_lib/roster'
 import { CoachNote } from './_components/coach-note'
-import { TIMEZONE_OFFSETS, todayInTimezone } from '@/lib/timezone'
+import { todayInTimezone, todayWindow } from '@/lib/timezone'
 import { findCoachConflicts } from '@/lib/coach-availability'
 
-function todayWindow(timezone: string): { start: string; end: string } {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  const localDate = new Date(Date.now() + offsetHours * 3_600_000).toISOString().slice(0, 10)
-  const sign = offsetHours >= 0 ? '+' : '-'
-  const offset = `${sign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`
-  return { start: `${localDate}T00:00:00${offset}`, end: `${localDate}T23:59:59${offset}` }
-}
 function fmtTime(startsAt: string, timezone: string): string {
   return new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(startsAt))
 }

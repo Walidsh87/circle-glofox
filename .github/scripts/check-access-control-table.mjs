@@ -28,7 +28,8 @@ try {
 const DATA_PATHS = [
   /^src\/app\/.*\/(page|route)\.[jt]sx?$/, // app-router pages / route handlers
   /guard.*\.[jt]sx?$/i,                      // auth *guard* code files (.ts/.tsx/.js) — not .json/.mjs (e.g. loop-guard hashes)
-  /actions?\.[jt]sx?$/,                      // server actions
+  /actions?\.[jt]sx?$/,                      // server actions (files literally named action(s).ts)
+  /(^|\/)_actions\/.*\.[jt]sx?$/,            // server actions in _actions/ dirs (e.g. members/_actions/remove-member.ts)
   /^(supabase\/)?migrations\/.*\.sql$/,      // RLS policy changes
 ];
 const touchesData = changed.some((f) => DATA_PATHS.some((re) => re.test(f)));

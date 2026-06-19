@@ -62,6 +62,14 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  follow_up_tasks: async () => {
+    // staff_manage_tasks (mig 058) = box_id = auth_box_id() AND auth_is_staff() → empirical P = all staff.
+    const r = await client.query(
+      `insert into follow_up_tasks (box_id, title, due_date) values ($1, 'Probe task', current_date) returning id`,
+      [BOX_T]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   // add tables here as you gate them, e.g.:
   // memberships: async () => { const r = await client.query(`insert into memberships(box_id,athlete_id,plan_name,start_date) values ($1,$2,'Probe',current_date) returning id`, [BOX_T, roleProfile.athlete]); return { pk: "id", id: r.rows[0].id }; },
 };

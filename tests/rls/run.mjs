@@ -307,6 +307,12 @@ async function main() {
     try { await client.query('update package_credits set credits_remaining = -1 where id=$1', [C_EMPTY]) }
     catch (err) { chkCode = err.code }
     check('package_credits CHECK rejects a negative balance (23514)', chkCode === '23514', `got ${chkCode}`)
+
+    // Invoice idempotency backstop (mig 077): the UNIQUE(provider_charge_ref) index
+    // makes the webhook's read-then-insert dedup race-safe (a 2nd concurrent insert
+    // of the same charge fails instead of duplicating the invoice + a FTA sequence).
+    const invUniq = await scalar(`select count(*)::int n from pg_indexes where indexname = 'idx_invoices_provider_charge_ref'`)
+    check('invoices has the UNIQUE(provider_charge_ref) idempotency backstop (mig 077)', invUniq === 1, `got ${invUniq}`)
   }
 
   const total = pass + fail

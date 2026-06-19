@@ -55,7 +55,23 @@ export const openApiSpec = {
     '/members/{id}': { get: { summary: 'Get a member', security: [{ bearerApiKey: ['members:read'] }], parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: itemResponse('Member') } },
     '/classes': { get: { summary: 'List class instances', security: [{ bearerApiKey: ['classes:read'] }], parameters: [...listParams, { name: 'from', in: 'query', schema: { type: 'string' } }, { name: 'to', in: 'query', schema: { type: 'string' } }], responses: listResponse('Class') } },
     '/classes/{id}': { get: { summary: 'Get a class instance', security: [{ bearerApiKey: ['classes:read'] }], parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: itemResponse('Class') } },
-    '/bookings': { get: { summary: 'List bookings', security: [{ bearerApiKey: ['bookings:read'] }], parameters: [...listParams, { name: 'class_id', in: 'query', schema: { type: 'string' } }, { name: 'member_id', in: 'query', schema: { type: 'string' } }], responses: listResponse('Booking') } },
+    '/bookings': {
+      get: { summary: 'List bookings', security: [{ bearerApiKey: ['bookings:read'] }], parameters: [...listParams, { name: 'class_id', in: 'query', schema: { type: 'string' } }, { name: 'member_id', in: 'query', schema: { type: 'string' } }], responses: listResponse('Booking') },
+      post: {
+        summary: 'Book a member into a class', security: [{ bearerApiKey: ['bookings:write'] }],
+        parameters: [{ name: 'Idempotency-Key', in: 'header', schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['class_instance_id', 'member_id'], properties: { class_instance_id: { type: 'string' }, member_id: { type: 'string' } } } } } },
+        responses: { '201': { description: 'Booking created.', content: { 'application/json': { schema: { type: 'object', properties: { data: { $ref: '#/components/schemas/Booking' } } } } } }, '422': { description: 'Member needs an active membership/credits, or the class is full/closed.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } }, '409': { description: 'Already booked.', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } },
+      },
+    },
+    '/leads': {
+      post: {
+        summary: 'Create a CRM lead', security: [{ bearerApiKey: ['leads:write'] }],
+        parameters: [{ name: 'Idempotency-Key', in: 'header', schema: { type: 'string' } }],
+        requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', required: ['full_name'], properties: { full_name: { type: 'string' }, email: { type: 'string' }, phone: { type: 'string' }, source: { type: 'string' }, notes: { type: 'string' } } } } } },
+        responses: { '201': { description: 'Lead created.' }, '400': { description: 'Validation error (name required; email or phone needed).', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } },
+      },
+    },
     '/memberships': { get: { summary: 'List memberships', security: [{ bearerApiKey: ['memberships:read'] }], parameters: [...listParams, { name: 'member_id', in: 'query', schema: { type: 'string' } }], responses: listResponse('Membership') } },
     '/packages': { get: { summary: 'List packages', security: [{ bearerApiKey: ['packages:read'] }], parameters: listParams, responses: listResponse('Package') } },
   },

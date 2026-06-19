@@ -15,10 +15,7 @@ export const API_SCOPES = [
 ] as const
 export type ApiScope = (typeof API_SCOPES)[number]
 
-// Scopes an owner may GRANT today. Phase 1 is read-only, so write scopes —
-// though defined in the type for forward compat — are not issuable yet (no
-// write routes exist; a pre-issued write key would silently gain access when
-// they land). Add the write scopes here when Phase 2 routes ship.
+// Scopes an owner may GRANT (every scope with a live route).
 export const GRANTABLE_SCOPES: ApiScope[] = [
   'members:read',
   'members:pii',
@@ -26,6 +23,8 @@ export const GRANTABLE_SCOPES: ApiScope[] = [
   'bookings:read',
   'memberships:read',
   'packages:read',
+  'bookings:write',
+  'leads:write',
 ]
 
 const KEY_PREFIX = 'ck_live_'

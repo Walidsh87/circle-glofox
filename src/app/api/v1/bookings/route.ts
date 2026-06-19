@@ -3,6 +3,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { jsonOk, jsonError } from '@/lib/api/respond'
 import { decodeCursor, parseLimit, keysetFilter, buildPage } from '@/lib/api/cursor'
 import { serializeBooking, BOOKING_COLUMNS } from '@/lib/api/serializers'
+import { withIdempotentWrite } from '@/lib/api/write'
+import { bookViaApi } from '@/lib/api/book-core'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,4 +35,24 @@ export const GET = withApiKey('bookings:read', async (req, { boxId }) => {
   const rows = (data ?? []) as Record<string, unknown>[]
   const page = buildPage(rows, limit, (r) => ({ value: String(r.booked_at), id: String(r.id) }))
   return jsonOk({ data: page.data.map(serializeBooking), next_cursor: page.next_cursor })
+})
+
+// POST /api/v1/bookings — book a member into a class. Honours Idempotency-Key.
+export const POST = withApiKey('bookings:write', async (req, { boxId }) => {
+  const service = createServiceClient()
+  return withIdempotentWrite(req, boxId, service, async (body) => {
+    const b = (body ?? {}) as { class_instance_id?: unknown; member_id?: unknown }
+    const classInstanceId = typeof b.class_instance_id === 'string' ? b.class_instance_id : ''
+    const memberId = typeof b.member_id === 'string' ? b.member_id : ''
+    if (!classInstanceId || !memberId) {
+      return { status: 400, body: { error: { code: 'validation_error', message: 'class_instance_id and member_id are required.' } } }
+    }
+    const res = await bookViaApi(service, { boxId, athleteId: memberId, instanceId: classInstanceId })
+    if (!res.ok) {
+      const status = res.code === 'not_found' ? 404 : res.code === 'conflict' ? 409
+        : res.code === 'closed' || res.code === 'full' || res.code === 'needs_entitlement' ? 422 : 500
+      return { status, body: { error: { code: res.code, message: res.message } } }
+    }
+    return { status: 201, body: { data: { id: res.bookingId, class_instance_id: classInstanceId, member_id: memberId } } }
+  })
 })

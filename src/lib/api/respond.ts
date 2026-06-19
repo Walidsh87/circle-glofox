@@ -9,6 +9,7 @@ export type ApiErrorCode =
   | 'not_found'
   | 'validation_error'
   | 'rate_limited'
+  | 'conflict'
   | 'internal'
 
 export function jsonOk<T>(body: T, init?: ResponseInit): Response {

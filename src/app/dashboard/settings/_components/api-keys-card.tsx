@@ -10,13 +10,15 @@ const btn =
 const limeBtn =
   'h-9 rounded-lg bg-accent px-3.5 text-[12.5px] font-bold text-accent-contrast transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50'
 
-const PHASE1_SCOPES: { scope: string; label: string }[] = [
+const SCOPE_OPTIONS: { scope: string; label: string }[] = [
   { scope: 'members:read', label: 'Members' },
   { scope: 'members:pii', label: 'Member email/phone' },
   { scope: 'classes:read', label: 'Classes' },
   { scope: 'bookings:read', label: 'Bookings' },
   { scope: 'memberships:read', label: 'Memberships' },
   { scope: 'packages:read', label: 'Packages' },
+  { scope: 'bookings:write', label: 'Create bookings' },
+  { scope: 'leads:write', label: 'Create leads' },
 ]
 
 export type ApiKeyRow = {
@@ -113,7 +115,7 @@ export function ApiKeysCard({ keys, apiConfigured }: { keys: ApiKeyRow[]; apiCon
           className="mt-2 h-9 w-full rounded-lg border border-line-strong bg-surface px-2.5 text-[12.5px] text-ink-2 outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
-          {PHASE1_SCOPES.map((s) => (
+          {SCOPE_OPTIONS.map((s) => (
             <label key={s.scope} className="flex items-center gap-1.5 text-[12px] text-ink-2">
               <input type="checkbox" checked={scopes.includes(s.scope)} onChange={() => toggle(s.scope)} className="accent-accent" />
               {s.label}

@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export type AuditAction =
   | 'invoice.refund' | 'staff.role_change' | 'member.remove' | 'staff.mfa_reset'
   | 'desk.cash_recorded' | 'desk.payment_link' | 'desk.package_sold'
+  | 'api.key_issued' | 'api.key_revoked'
 
 export type AuditEvent = {
   boxId: string
@@ -23,6 +24,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   'desk.cash_recorded': 'Cash recorded',
   'desk.payment_link': 'Payment link',
   'desk.package_sold': 'Package sold',
+  'api.key_issued': 'API key issued',
+  'api.key_revoked': 'API key revoked',
 }
 
 /** Append-only audit write. NEVER throws — an audit hiccup must not break the action. */
@@ -66,6 +69,12 @@ export function describeAuditDetails(action: string, details: Record<string, unk
       return d.plan ? `Link · ${String(d.plan)}` : 'Link'
     case 'desk.package_sold':
       return d.package ? String(d.package) : ''
+    case 'api.key_issued': {
+      const scopes = Array.isArray(d.scopes) ? d.scopes.join(', ') : ''
+      return d.label ? `${String(d.label)}${scopes ? ` · ${scopes}` : ''}` : scopes
+    }
+    case 'api.key_revoked':
+      return d.label ? String(d.label) : ''
     default:
       return ''
   }

@@ -36,15 +36,27 @@ export async function updateQuote(quoteId: string, input: {
   }).eq('id', quoteId).eq('box_id', caller.box_id)
   if (upErr) return actionError('updateQuote', upErr)
 
-  await supabase.from('quote_line_items').delete().eq('quote_id', quoteId).eq('box_id', caller.box_id)
+  // Capture the existing line ids so we can delete exactly the OLD set after the new lines land.
+  const { data: oldLines } = await supabase.from('quote_line_items')
+    .select('id').eq('quote_id', quoteId).eq('box_id', caller.box_id)
+
   const lineRows = input.lines.map((l, i) => ({
     quote_id: quoteId, box_id: caller.box_id, kind: l.kind,
     package_id: l.kind === 'package' ? (l.packageId ?? null) : null,
     label: l.label.trim(), quantity: l.quantity,
     unit_amount_aed: l.unitAmountAed, line_total_aed: lineTotal(l), sort_order: i,
   }))
+  // Insert the new lines FIRST — if this fails, the old lines are still intact (no zero-line wipe).
   const { error: linesErr } = await supabase.from('quote_line_items').insert(lineRows)
   if (linesErr) return actionError('updateQuote', linesErr)
+
+  // Then remove the old lines. If THIS fails, the quote shows duplicates (recoverable) — not zero lines.
+  const oldIds = (oldLines ?? []).map((r) => r.id)
+  if (oldIds.length) {
+    const { error: delErr } = await supabase.from('quote_line_items')
+      .delete().in('id', oldIds).eq('box_id', caller.box_id)
+    if (delErr) console.error('[updateQuote] new lines inserted but old not deleted — possible duplicates on quote:', quoteId, delErr)
+  }
 
   revalidatePath(`/dashboard/quotes/${quoteId}`)
   return { error: null }

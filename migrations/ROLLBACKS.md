@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`078` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`080` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,17 @@ Reverse procedures for migrations `008`–`078` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 080_webhooks
+```sql
+drop table if exists webhook_deliveries;
+drop table if exists webhook_subscriptions;   -- ⚠️ deletes gym webhook endpoints + secrets
+```
+
+### 079_api_idempotency_keys
+```sql
+drop table if exists api_idempotency_keys;
+```
 
 ### 078_api_keys
 ```sql

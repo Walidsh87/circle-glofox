@@ -334,6 +334,13 @@ async function main() {
     await asUser(OWNER_A, async () => {
       check('api_keys: authenticated owner sees 0 rows (RLS denies, no policy)', (await countWhere('api_keys', 'box_id', BOX_A)) === 0)
     })
+
+    // The other public-API stores are service-role-only too (migs 079, 080).
+    for (const t of ['api_idempotency_keys', 'webhook_subscriptions', 'webhook_deliveries']) {
+      const rls = await scalar(`select relrowsecurity from pg_class where relname = '${t}'`)
+      const pol = await scalar(`select count(*)::int n from pg_policies where tablename = '${t}'`)
+      check(`${t} is service-role-only (RLS on, no policies)`, rls === true && pol === 0, `rls=${rls} policies=${pol}`)
+    }
   }
 
   const total = pass + fail

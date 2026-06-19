@@ -6,6 +6,7 @@ export type AuditAction =
   | 'invoice.refund' | 'staff.role_change' | 'member.remove' | 'staff.mfa_reset'
   | 'desk.cash_recorded' | 'desk.payment_link' | 'desk.package_sold'
   | 'api.key_issued' | 'api.key_revoked'
+  | 'webhook.subscribed' | 'webhook.unsubscribed'
 
 export type AuditEvent = {
   boxId: string
@@ -26,6 +27,8 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   'desk.package_sold': 'Package sold',
   'api.key_issued': 'API key issued',
   'api.key_revoked': 'API key revoked',
+  'webhook.subscribed': 'Webhook added',
+  'webhook.unsubscribed': 'Webhook removed',
 }
 
 /** Append-only audit write. NEVER throws — an audit hiccup must not break the action. */

@@ -1,4 +1,4 @@
-import { deriveVatFromInclusive } from './invoices'
+import { deriveVatFromInclusive, formatDocumentPrefix } from './invoices'
 
 export type QuoteLineKind = 'package' | 'custom' | 'discount'
 
@@ -112,6 +112,5 @@ export function canTransition(from: QuoteStatus, to: QuoteStatus): boolean {
 }
 
 export function formatQuoteNumber(boxSlug: string, year: number, sequence: number): string {
-  const prefix = (boxSlug || 'GYM').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) || 'GYM'
-  return `QUO-${prefix}-${year}-${String(sequence).padStart(4, '0')}`
+  return `QUO-${formatDocumentPrefix(boxSlug)}-${year}-${String(sequence).padStart(4, '0')}`
 }

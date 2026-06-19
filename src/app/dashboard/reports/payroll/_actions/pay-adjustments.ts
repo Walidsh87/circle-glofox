@@ -1,6 +1,7 @@
 'use server'
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { validateAdjustment } from '@/lib/reports/payroll'
 import { revalidatePath } from 'next/cache'
 
@@ -20,7 +21,7 @@ export async function addPayAdjustment(coachId: string, month: string, amountAed
     note: note.trim(),
     created_by: user.id,
   })
-  if (error) return { error: error.message }
+  if (error) return actionError('addPayAdjustment', error)
   revalidatePath('/dashboard/reports/payroll')
   return { error: null }
 }
@@ -31,7 +32,7 @@ export async function deletePayAdjustment(id: string): Promise<{ error: string |
   const { supabase, profile } = auth
 
   const { error } = await supabase.from('pay_adjustments').delete().eq('id', id).eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('deletePayAdjustment', error)
   revalidatePath('/dashboard/reports/payroll')
   return { error: null }
 }

@@ -4,6 +4,7 @@ import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateTemplateInput } from '../_lib/validation'
 import { validateStrengthPrescription, type StrengthSet, type ScalingTier } from '@/app/dashboard/wod/_lib/validation'
+import { actionError } from '@/lib/action-error'
 
 export type WodFields = {
   title: string
@@ -48,7 +49,7 @@ export async function copyWodToDates(fields: WodFields, dates: string[]): Promis
   }))
 
   const { error } = await supabase.from('workouts').upsert(rows, { onConflict: 'box_id,date' })
-  if (error) return { error: error.message }
+  if (error) return actionError('copyWodToDates', error)
 
   revalidatePath('/dashboard/programming')
   revalidatePath('/dashboard/wod')

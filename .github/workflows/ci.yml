@@ -30,6 +30,22 @@ jobs:
       - name: Test (with coverage thresholds)
         run: npm run test:coverage
 
+      # Catch build-breaking changes (bad RSC boundaries, imports, static-gen)
+      # that `tsc --noEmit` does not. Placeholder env satisfies src/env.ts Zod
+      # validation; no real services are contacted (pages are dynamic).
+      # The `gitleaks:allow` markers tell the secret-scan job these are dummy
+      # build-only values, not leaked credentials.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key # gitleaks:allow
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key # gitleaks:allow
+          NEXT_PUBLIC_APP_URL: https://example.com
+          RESEND_API_KEY: placeholder-resend-key # gitleaks:allow
+          CRON_SECRET: placeholder-cron-secret-0123456789 # gitleaks:allow
+          PORTAL_SIGN_SECRET: placeholder-portal-sign-secret-0123456789-abcdef # gitleaks:allow
+
   supply-chain:
     runs-on: ubuntu-latest
     steps:

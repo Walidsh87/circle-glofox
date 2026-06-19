@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { redirect } from 'next/navigation'
 
 const RESERVED_SLUGS = ['dashboard', 'onboarding', 'auth', 'api', 'login', 'signup', 'admin', 'settings']
@@ -33,14 +34,14 @@ export async function createGym(prevState: State, formData: FormData): Promise<S
 
   if (boxError) {
     if (boxError.code === '23505') return { error: 'That URL is already taken. Please choose another.' }
-    return { error: boxError.message }
+    return actionError('createGym', boxError)
   }
 
   const { error: profileError } = await service
     .from('profiles')
     .insert({ id: user.id, box_id: box.id, role: 'owner', full_name: fullName, email: user.email })
 
-  if (profileError) return { error: profileError.message }
+  if (profileError) return actionError('createGym', profileError)
 
   redirect('/dashboard')
 }

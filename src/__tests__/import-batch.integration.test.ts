@@ -101,7 +101,7 @@ test('surfaces a DB error from the upsert without reporting a write', async () =
   })
   serverCreate.mockResolvedValue(rls)
   const res = await commitImport('2026-07-01 time\nFran\n21-15-9')
-  expect(res.error).toBe('db down')
+  expect(res.error).toBe('Could not import the WODs.') // sanitized, not the raw DB message
   expect(res.written).toBe(0)
 })
 

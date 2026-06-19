@@ -7,6 +7,7 @@ import { getMembershipStatus } from '@/lib/membership-status'
 import { selectBestBatch, decideEntitlement } from '@/lib/credits'
 import { bookingClosed } from '@/lib/booking-policy'
 import { resolveBookingTarget } from '@/lib/family'
+import { actionError } from '@/lib/action-error'
 
 type BookResult = { error: string | null; needsCredits?: boolean }
 
@@ -97,7 +98,7 @@ export async function bookClass(instanceId: string, forAthleteId?: string): Prom
     })
     if (error) {
       if (error.code === '23505') return { error: 'Already booked.' }
-      return { error: error.message }
+      return actionError('bookClass', error)
     }
     // Booked → leave the waitlist for this class (best-effort; a missing row is fine).
     await service.from('class_waitlist').delete().eq('class_instance_id', instanceId).eq('athlete_id', targetId)
@@ -129,7 +130,7 @@ export async function bookClass(instanceId: string, forAthleteId?: string): Prom
     const { error: refundErr } = await service.rpc('refund_credit', { p_credit_id: creditId })
     if (refundErr) console.error('refund_credit failed after booking insert error; credit stranded:', creditId, refundErr)
     if (insErr.code === '23505') return { error: 'Already booked.' }
-    return { error: insErr.message }
+    return actionError('bookClass', insErr)
   }
 
   // Booked → leave the waitlist for this class (best-effort; a missing row is fine).

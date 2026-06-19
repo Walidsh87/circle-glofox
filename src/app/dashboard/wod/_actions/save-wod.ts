@@ -3,6 +3,7 @@
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateStrengthPrescription, validateScaling, type StrengthSet, type ScalingTier } from '../_lib/validation'
+import { actionError } from '@/lib/action-error'
 
 type State = { error: string | null }
 
@@ -53,7 +54,7 @@ export async function saveWod(prevState: State, formData: FormData): Promise<Sta
     { onConflict: 'box_id,date' }
   )
 
-  if (error) return { error: error.message }
+  if (error) return actionError('saveWod', error)
 
   revalidatePath('/dashboard/wod')
   revalidatePath('/dashboard/programming')

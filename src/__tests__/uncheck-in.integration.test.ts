@@ -56,5 +56,5 @@ test('returns the db error message when the update fails', async () => {
 
   const res = await uncheckIn('class-1', 'athlete-1')
 
-  expect(res.error).toBe('update failed')
+  expect(res.error).toMatch(/something went wrong/i) // sanitized, not the raw DB message
 })

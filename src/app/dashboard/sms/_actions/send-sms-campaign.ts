@@ -9,6 +9,8 @@ import { loadSmsCandidates } from '../_lib/load-sms-candidates'
 import { selectSmsRecipients, renderSmsBody } from '@/lib/sms'
 import { firstNameOf } from '@/lib/broadcast-render'
 import { smsConfigured, sendSms } from '@/lib/twilio'
+import { checkActionRateLimit } from '@/lib/rate-limit'
+import { actionError } from '@/lib/action-error'
 import type { Segment } from '@/lib/broadcast-audience'
 
 type Result = { error: string | null; campaignId?: string; sent?: number; failed?: number; skipped?: number }
@@ -17,6 +19,11 @@ export async function sendSmsCampaign(body: string, audienceStatus: string, tag:
   const auth = await requireManagerAction('Only owners or admins can send SMS.')
   if ('error' in auth) return { error: auth.error }
   const { user, profile: caller } = auth
+
+  // Per-user throttle: each campaign blasts billable Twilio messages — cap abuse.
+  if (!(await checkActionRateLimit(`sms:${user.id}`))) {
+    return { error: "You're doing that too often. Please wait a minute and try again." }
+  }
 
   const vErr = validateSmsCampaign(body, audienceStatus)
   if (vErr) return { error: vErr }
@@ -40,7 +47,7 @@ export async function sendSmsCampaign(body: string, audienceStatus: string, tag:
     recipient_count: included.length,
     skipped_count: skipped,
   }).select('id').single()
-  if (cErr || !c) return { error: cErr?.message ?? 'Could not create campaign.' }
+  if (cErr || !c) return actionError('sendSmsCampaign', cErr, 'Could not create campaign.')
   const campaignId = c.id as string
 
   if (included.length > 0) {

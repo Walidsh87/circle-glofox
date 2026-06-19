@@ -2,6 +2,7 @@
 
 import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 import { validateWaTemplate } from '../_lib/wa-validation'
 
 export type SaveWaTemplateInput = { name: string; contentSid: string; bodyPreview: string; varCount: number }
@@ -22,7 +23,7 @@ export async function saveWaTemplate(input: SaveWaTemplateInput): Promise<{ erro
     var_count: input.varCount,
     created_by: user.id,
   })
-  if (error) return { error: error.message }
+  if (error) return actionError('saveWaTemplate', error)
   revalidatePath('/dashboard/whatsapp')
   return { error: null }
 }

@@ -1,6 +1,7 @@
 'use server'
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { BELTS, SKILL_KEYS } from '@/lib/skills'
 
@@ -14,13 +15,13 @@ export async function setSkillLevel(athleteId: string, skillKey: string, belt: s
 
   if (belt === '') {
     const { error } = await supabase.from('skill_levels').delete().eq('athlete_id', athleteId).eq('skill_key', skillKey).eq('box_id', profile.box_id)
-    if (error) return { error: error.message }
+    if (error) return actionError('setSkillLevel', error)
   } else {
     const { error } = await supabase.from('skill_levels').upsert(
       { box_id: profile.box_id, athlete_id: athleteId, skill_key: skillKey, belt, updated_at: new Date().toISOString() },
       { onConflict: 'athlete_id,skill_key' },
     )
-    if (error) return { error: error.message }
+    if (error) return actionError('setSkillLevel', error)
   }
 
   revalidatePath('/dashboard/members/[memberId]', 'page')

@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -29,7 +30,7 @@ export async function addLead(prevState: State, formData: FormData): Promise<Sta
     drop_in_date: dropInDate || null,
   })
 
-  if (error) return { error: error.message }
+  if (error) return actionError('addLead', error)
 
   revalidatePath('/dashboard/members')
   return { error: null }

@@ -53,7 +53,10 @@ export async function saveLift(prevState: State, formData: FormData): Promise<St
     { onConflict: 'athlete_id,lift_name' }
   )
 
-  if (error) return { error: error.message, pr: null }
+  if (error) {
+    console.error('[saveLift]', error)
+    return { error: 'Could not save your lift.', pr: null }
+  }
 
   // The history row powers the chart marker and the activity feed, so a PR is
   // only "real" once it persists — otherwise we'd celebrate a PR that never

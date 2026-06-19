@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import { revalidatePath } from 'next/cache'
 import { validateTask } from '@/lib/follow-up-tasks'
@@ -30,7 +31,7 @@ export async function createTask(input: CreateTaskInput): Promise<{ error: strin
     assigned_to: input.assignedTo ?? null,
     created_by: user.id,
   })
-  if (error) return { error: error.message }
+  if (error) return actionError('createTask', error)
   revalidatePath('/dashboard/tasks')
   revalidatePath('/dashboard/members')
   return { error: null }

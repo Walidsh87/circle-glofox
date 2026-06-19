@@ -2,6 +2,7 @@
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function markParqReviewed(athleteId: string): Promise<{ error: string | null }> {
@@ -28,7 +29,7 @@ export async function markParqReviewed(athleteId: string): Promise<{ error: stri
     .update({ reviewed_at: new Date().toISOString(), reviewed_by: user.id })
     .eq('id', latest.id)
     .eq('box_id', caller.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('markParqReviewed', error)
   revalidatePath(`/dashboard/members/${athleteId}`)
   return { error: null }
 }

@@ -69,7 +69,10 @@ export async function logScore(prevState: State, formData: FormData): Promise<St
     { onConflict: 'workout_id,athlete_id' }
   )
 
-  if (error) return { error: error.message, pr: null }
+  if (error) {
+    console.error('[logScore]', error)
+    return { error: 'Could not log your score.', pr: null }
+  }
 
   revalidatePath('/dashboard/wod')
   revalidatePath('/dashboard/feed')

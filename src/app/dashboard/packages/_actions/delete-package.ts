@@ -1,6 +1,7 @@
 'use server'
 
 import { requireManagerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function deletePackage(packageId: string): Promise<{ error: string | null }> {
@@ -16,7 +17,7 @@ export async function deletePackage(packageId: string): Promise<{ error: string 
   if (error) {
     // FK from package_credits.package_id will block deletes once credits exist.
     if (error.code === '23503') return { error: 'Cannot delete: this package has sold credits. Deactivate it instead.' }
-    return { error: error.message }
+    return actionError('deletePackage', error)
   }
 
   revalidatePath('/dashboard/packages')

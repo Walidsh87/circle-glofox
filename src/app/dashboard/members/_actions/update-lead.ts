@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function updateLeadStatus(
@@ -17,7 +18,7 @@ export async function updateLeadStatus(
     .eq('id', leadId)
     .eq('box_id', caller.box_id)
 
-  if (error) return { error: error.message }
+  if (error) return actionError('updateLeadStatus', error)
 
   revalidatePath('/dashboard/members')
   return { error: null }

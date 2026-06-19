@@ -10,6 +10,8 @@ import { selectSmsRecipients } from '@/lib/sms'
 import { renderWaVars, type WaVarValues } from '@/lib/whatsapp'
 import { firstNameOf } from '@/lib/broadcast-render'
 import { waConfigured, sendWhatsApp } from '@/lib/twilio'
+import { checkActionRateLimit } from '@/lib/rate-limit'
+import { actionError } from '@/lib/action-error'
 import type { Segment } from '@/lib/broadcast-audience'
 
 type Result = { error: string | null; campaignId?: string; sent?: number; failed?: number; skipped?: number }
@@ -18,6 +20,11 @@ export async function sendWaCampaign(templateId: string, varValues: WaVarValues,
   const auth = await requireManagerAction('Only owners or admins can send WhatsApp campaigns.')
   if ('error' in auth) return { error: auth.error }
   const { supabase, user, profile: caller } = auth
+
+  // Per-user throttle: each campaign blasts billable Twilio messages — cap abuse.
+  if (!(await checkActionRateLimit(`wa:${user.id}`))) {
+    return { error: "You're doing that too often. Please wait a minute and try again." }
+  }
 
   if (!templateId) return { error: 'Choose a template.' }
   const { data: t } = await supabase.from('wa_templates').select('id, content_sid, body_preview, var_count').eq('id', templateId).eq('box_id', caller.box_id).single()
@@ -46,7 +53,7 @@ export async function sendWaCampaign(templateId: string, varValues: WaVarValues,
     recipient_count: included.length,
     skipped_count: skipped,
   }).select('id').single()
-  if (cErr || !c) return { error: cErr?.message ?? 'Could not create campaign.' }
+  if (cErr || !c) return actionError('sendWaCampaign', cErr, 'Could not create campaign.')
   const campaignId = c.id as string
 
   if (included.length > 0) {

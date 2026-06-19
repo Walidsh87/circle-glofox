@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { actionError } from '@/lib/action-error'
 
 export async function markRead(conversationId: string): Promise<{ error: string | null }> {
   const supabase = await createClient()
@@ -12,10 +13,10 @@ export async function markRead(conversationId: string): Promise<{ error: string 
   const isStaff = caller.role === 'owner' || caller.role === 'coach'
   if (isStaff) {
     const { error } = await supabase.from('conversations').update({ staff_unread: false }).eq('id', conversationId).eq('box_id', caller.box_id)
-    if (error) return { error: error.message }
+    if (error) return actionError('markRead', error)
   } else {
     const { error } = await supabase.from('conversations').update({ member_unread: false }).eq('id', conversationId).eq('member_id', user.id)
-    if (error) return { error: error.message }
+    if (error) return actionError('markRead', error)
   }
   return { error: null }
 }

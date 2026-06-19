@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateWalkIn } from '../_lib/validation'
 
@@ -22,7 +23,7 @@ export async function deskCreateLead(input: Input): Promise<State> {
     email: input.email?.trim().toLowerCase() || null,
     source: input.source || 'walk_in',
   })
-  if (error) return { error: error.message }
+  if (error) return actionError('deskCreateLead', error)
 
   revalidatePath('/dashboard/desk')
   revalidatePath('/dashboard/members')

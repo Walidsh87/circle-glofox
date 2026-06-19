@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 
 export async function joinWaitlist(instanceId: string): Promise<{ error: string | null }> {
   const supabase = await createClient()
@@ -50,7 +51,7 @@ export async function joinWaitlist(instanceId: string): Promise<{ error: string 
   })
   if (error) {
     if (error.code === '23505') return { error: "You're already on the waitlist." }
-    return { error: error.message }
+    return actionError('joinWaitlist', error)
   }
 
   revalidatePath('/dashboard/schedule')

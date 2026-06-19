@@ -1,6 +1,7 @@
 'use server'
 
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { headers } from 'next/headers'
 import { canTransition, isExpired, type QuoteStatus } from '@/lib/quotes'
 
@@ -31,6 +32,6 @@ export async function acceptQuote(token: string, signedName: string): Promise<{ 
     status: 'accepted', accepted_at: now,
     signed_name: name, signed_at: now, signed_ip: ip, signed_user_agent: ua,
   }).eq('id', q.id).eq('status', 'sent')
-  if (error) return { error: error.message }
+  if (error) return actionError('acceptQuote', error)
   return { error: null }
 }

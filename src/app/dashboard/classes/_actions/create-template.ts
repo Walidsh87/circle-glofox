@@ -1,6 +1,7 @@
 'use server'
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 type State = { error: string | null }
@@ -31,7 +32,7 @@ export async function createTemplate(prevState: State, formData: FormData): Prom
     season,
   })
 
-  if (error) return { error: error.message }
+  if (error) return actionError('createTemplate', error)
 
   revalidatePath('/dashboard/classes')
   return { error: null }

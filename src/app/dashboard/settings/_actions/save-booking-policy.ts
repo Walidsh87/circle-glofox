@@ -2,6 +2,7 @@
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function saveBookingPolicy(closeMinutes: number, lateCancelHours: number, rosterPublic: boolean): Promise<{ error: string | null }> {
@@ -14,7 +15,7 @@ export async function saveBookingPolicy(closeMinutes: number, lateCancelHours: n
 
   const service = createServiceClient()
   const { error } = await service.from('boxes').update({ booking_close_minutes: closeMinutes, late_cancel_hours: lateCancelHours, roster_public: rosterPublic === true }).eq('id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('saveBookingPolicy', error)
 
   revalidatePath('/dashboard/settings')
   return { error: null }

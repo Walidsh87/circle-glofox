@@ -2,6 +2,7 @@
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { logAudit } from '@/lib/audit'
 import { revalidatePath } from 'next/cache'
 
@@ -22,7 +23,7 @@ export async function changeStaffRole(profileId: string, role: string): Promise<
   if (target.role === 'athlete') return { error: 'Members cannot be given staff roles here.' }
 
   const { error } = await service.from('profiles').update({ role }).eq('id', profileId).eq('box_id', caller.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('changeStaffRole', error)
 
   await logAudit(service, {
     boxId: caller.box_id,

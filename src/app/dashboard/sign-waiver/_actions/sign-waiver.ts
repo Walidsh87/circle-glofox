@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { actionError } from '@/lib/action-error'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { validateAgreements } from '../_lib/validation'
@@ -90,7 +91,7 @@ export async function signAgreements(prevState: State, formData: FormData): Prom
       ip_address: ipAddress,
       user_agent: userAgent,
     })
-    if (e && e.code !== '23505') return { error: e.message }
+    if (e && e.code !== '23505') return actionError('signAgreements', e)
   }
 
   if (!termsAlreadySigned) {
@@ -102,7 +103,7 @@ export async function signAgreements(prevState: State, formData: FormData): Prom
       ip_address: ipAddress,
       user_agent: userAgent,
     })
-    if (e && e.code !== '23505') return { error: e.message }
+    if (e && e.code !== '23505') return actionError('signAgreements', e)
   }
 
   if (parqDue && parqAnswers && parqDoc) {
@@ -116,7 +117,7 @@ export async function signAgreements(prevState: State, formData: FormData): Prom
       ip_address: ipAddress,
       user_agent: userAgent,
     })
-    if (e && e.code !== '23505') return { error: e.message }
+    if (e && e.code !== '23505') return actionError('signAgreements', e)
   }
 
   redirect('/dashboard')

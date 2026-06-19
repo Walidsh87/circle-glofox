@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function toggleTask(id: string, done: boolean): Promise<{ error: string | null }> {
@@ -13,7 +14,7 @@ export async function toggleTask(id: string, done: boolean): Promise<{ error: st
     : { done: false, completed_at: null, completed_by: null }
 
   const { error } = await supabase.from('follow_up_tasks').update(patch).eq('id', id).eq('box_id', caller.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('toggleTask', error)
   revalidatePath('/dashboard/tasks')
   revalidatePath('/dashboard/members')
   return { error: null }

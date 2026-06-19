@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 
 export type PackageOption = { id: string; name: string; price_aed: number }
 type State = { error: string | null; packages?: PackageOption[] }
@@ -16,6 +17,6 @@ export async function loadActivePackages(): Promise<State> {
     .eq('box_id', profile.box_id)
     .eq('active', true)
     .order('name')
-  if (error) return { error: error.message }
+  if (error) return actionError('loadActivePackages', error)
   return { error: null, packages: (data ?? []).map((p) => ({ id: p.id, name: p.name, price_aed: Number(p.price_aed) })) }
 }

@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteLead(leadId: string): Promise<{ error: string | null }> {
@@ -14,7 +15,7 @@ export async function deleteLead(leadId: string): Promise<{ error: string | null
     .eq('id', leadId)
     .eq('box_id', caller.box_id)
 
-  if (error) return { error: error.message }
+  if (error) return actionError('deleteLead', error)
 
   revalidatePath('/dashboard/members')
   return { error: null }

@@ -75,7 +75,10 @@ export async function createQuote(
     const { data: newLead, error: leadErr } = await supabase.from('leads').insert({
       box_id: caller.box_id, full_name: buyerName, email: buyerEmail, source: 'sales',
     }).select('id').single()
-    if (leadErr || !newLead) return { error: leadErr?.message ?? 'Could not create the lead.', quoteId: null }
+    if (leadErr || !newLead) {
+      console.error('[createQuote]', leadErr)
+      return { error: 'Could not create the lead.', quoteId: null }
+    }
     leadId = newLead.id as string
   }
   if (!buyerEmail) return { error: 'The buyer needs an email to receive the quote.', quoteId: null }
@@ -101,7 +104,10 @@ export async function createQuote(
     total_aed: totalAed,
     created_by: user.id,
   }).select('id').single()
-  if (qErr || !quote) return { error: qErr?.message ?? 'Could not create the quote.', quoteId: null }
+  if (qErr || !quote) {
+    console.error('[createQuote]', qErr)
+    return { error: 'Could not create the quote.', quoteId: null }
+  }
 
   if (mode === 'one_off' && input.lines.length) {
     const lineRows = input.lines.map((l: QuoteLineInput, i: number) => ({
@@ -111,7 +117,10 @@ export async function createQuote(
       unit_amount_aed: l.unitAmountAed, line_total_aed: lineTotal(l), sort_order: i,
     }))
     const { error: linesErr } = await supabase.from('quote_line_items').insert(lineRows)
-    if (linesErr) return { error: linesErr.message, quoteId: null }
+    if (linesErr) {
+      console.error('[createQuote]', linesErr)
+      return { error: 'Could not create the quote.', quoteId: null }
+    }
   }
 
   revalidatePath('/dashboard/quotes')

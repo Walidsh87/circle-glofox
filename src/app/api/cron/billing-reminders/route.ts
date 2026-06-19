@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase.rpc('cron_eligible_memberships', { p_today: today })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[billing-reminders cron]', error)
+    return NextResponse.json({ error: 'Could not load memberships.' }, { status: 500 })
   }
 
   const rows = (data ?? []) as Row[]

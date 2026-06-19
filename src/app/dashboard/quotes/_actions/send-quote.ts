@@ -1,17 +1,24 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { randomUUID } from 'crypto'
 import { formatQuoteNumber, canTransition, type QuoteStatus } from '@/lib/quotes'
 import { sendQuoteEmail } from '@/lib/email'
+import { checkActionRateLimit } from '@/lib/rate-limit'
 import { env } from '@/env'
 
 export async function sendQuote(quoteId: string): Promise<{ error: string | null }> {
   const auth = await requireStaffAction('Only staff can send quotes.')
   if ('error' in auth) return { error: auth.error }
-  const { supabase, profile: caller } = auth
+  const { supabase, user, profile: caller } = auth
+
+  // Per-user throttle: sending emails a quote link via Resend — cap a runaway loop.
+  if (!(await checkActionRateLimit(`quote:${user.id}`))) {
+    return { error: "You're doing that too often. Please wait a minute and try again." }
+  }
 
   const { data: q } = await supabase.from('quotes')
     .select('id, status, title, total_aed, buyer_email, buyer_name, public_token, quote_number')
@@ -32,7 +39,7 @@ export async function sendQuote(quoteId: string): Promise<{ error: string | null
     status: 'sent', sent_at: new Date().toISOString(),
     sequence: seq, quote_number: quoteNumber, public_token: token,
   }).eq('id', quoteId).eq('box_id', caller.box_id)
-  if (upErr) return { error: upErr.message }
+  if (upErr) return actionError('sendQuote', upErr)
 
   await sendQuoteEmail({
     to: q.buyer_email as string,

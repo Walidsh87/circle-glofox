@@ -2,6 +2,7 @@
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateMemberFields } from '../_lib/member-fields-validation'
 import { validateIdDocument, normalizeIdNumber } from '@/lib/national-id'
@@ -66,7 +67,7 @@ export async function updateMember(prevState: State, formData: FormData): Promis
     .eq('id', memberId)
     .eq('box_id', viewer.box_id)
 
-  if (error) return { error: error.message }
+  if (error) return actionError('updateMember', error)
 
   revalidatePath('/dashboard/members')
   revalidatePath(`/dashboard/members/${memberId}`)

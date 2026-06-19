@@ -1,6 +1,7 @@
 'use server'
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validatePlan } from '../_lib/plan-validation'
 
@@ -30,7 +31,7 @@ export async function createMembershipPlan(prevState: State, formData: FormData)
     is_trial: isTrial,
     trial_days: trialDays,
   })
-  if (error) return { error: error.message }
+  if (error) return actionError('createMembershipPlan', error)
 
   revalidatePath('/dashboard/payments')
   return { error: null }

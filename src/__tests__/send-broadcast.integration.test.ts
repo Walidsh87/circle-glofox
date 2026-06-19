@@ -1,22 +1,32 @@
 import { vi, test, expect, beforeEach } from 'vitest'
 import { makeSupabaseMock } from './helpers/supabase-mock'
 
-const { serverCreate, serviceCreate, emailMock } = vi.hoisted(() => ({
+const { serverCreate, serviceCreate, emailMock, rlHolder } = vi.hoisted(() => ({
   serverCreate: vi.fn(),
   serviceCreate: vi.fn(),
   emailMock: vi.fn<(messages: { to: string; subject: string; html: string }[]) => Promise<{ ok: boolean; error: string | null; ids: (string | null)[] }>>(
     () => Promise.resolve({ ok: true, error: null, ids: ['re_1'] })
   ),
+  rlHolder: { allowed: true },
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: serviceCreate }))
 vi.mock('@/lib/email', () => ({ sendBroadcastEmails: emailMock }))
+vi.mock('@/lib/rate-limit', () => ({ checkActionRateLimit: vi.fn(async () => rlHolder.allowed) }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 import { sendBroadcast } from '@/app/dashboard/broadcasts/_actions/send-broadcast'
 import type { Block } from '@/lib/email-blocks'
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks(); rlHolder.allowed = true })
+
+test('throttles an owner over the broadcast rate limit (no send)', async () => {
+  rlHolder.allowed = false
+  serverCreate.mockResolvedValue(ownerRls())
+  const res = await sendBroadcast('Subject', 'Body', 'all', null)
+  expect(res.error).toMatch(/too often|slow down|wait/i)
+  expect(emailMock).not.toHaveBeenCalled()
+})
 
 function ownerRls() {
   return makeSupabaseMock({ user: { id: 'owner1' }, results: { profiles: { data: { box_id: 'b1', role: 'owner' }, error: null } } })

@@ -4,6 +4,7 @@ import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateTemplateInput } from '../_lib/validation'
 import { validateStrengthPrescription, type StrengthSet } from '@/app/dashboard/wod/_lib/validation'
+import { actionError } from '@/lib/action-error'
 
 type State = { error: string | null }
 
@@ -46,7 +47,7 @@ export async function saveTemplate(prevState: State, formData: FormData): Promis
     ? await supabase.from('workout_templates').update(row).eq('id', id).eq('box_id', profile.box_id)
     : await supabase.from('workout_templates').insert({ ...row, created_by: user.id })
 
-  if (error) return { error: error.message }
+  if (error) return actionError('saveTemplate', error)
 
   revalidatePath('/dashboard/programming/library')
   return { error: null }

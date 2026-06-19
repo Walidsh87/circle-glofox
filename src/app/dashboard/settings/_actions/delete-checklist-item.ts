@@ -1,6 +1,7 @@
 'use server'
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteChecklistItem(id: string): Promise<{ error: string | null }> {
@@ -9,7 +10,7 @@ export async function deleteChecklistItem(id: string): Promise<{ error: string |
   const { supabase, profile: caller } = auth
 
   const { error } = await supabase.from('checklist_items').delete().eq('id', id).eq('box_id', caller.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('deleteChecklistItem', error)
   revalidatePath('/dashboard/settings')
   return { error: null }
 }

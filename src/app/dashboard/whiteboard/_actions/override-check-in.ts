@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { awardConsistency } from './_award'
+import { actionError } from '@/lib/action-error'
 
 const overrideSchema = z.object({
   instanceId: z.string().min(1),
@@ -40,7 +41,7 @@ export async function overrideCheckIn(
     .eq('athlete_id', athleteId)
     .eq('box_id', profile.box_id)
 
-  if (error) return { error: error.message }
+  if (error) return actionError('overrideCheckIn', error)
 
   try { await awardConsistency(service, profile.box_id, athleteId, now.slice(0, 10)) }
   catch (e) { console.error('awardConsistency failed (override still succeeded):', e) }

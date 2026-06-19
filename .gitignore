@@ -25,10 +25,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files (everything except the committed template)
+# local env files (everything except the committed templates)
 .env
 .env.*
 !.env.example
+!.env.staging.example
 
 # vercel
 .vercel

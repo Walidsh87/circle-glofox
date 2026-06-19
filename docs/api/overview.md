@@ -36,6 +36,14 @@ A key carries one or more scopes; each endpoint requires a specific one:
 | GET | `/api/v1/bookings` | `bookings:read` | `?class_id&member_id` |
 | GET | `/api/v1/memberships` | `memberships:read` | `?member_id` |
 | GET | `/api/v1/packages` | `packages:read` | |
+| POST | `/api/v1/bookings` | `bookings:write` | body `{ class_instance_id, member_id }` |
+| POST | `/api/v1/leads` | `leads:write` | body `{ full_name, email?, phone?, source?, notes? }` |
+
+## Writes & idempotency
+`POST` requests accept an optional **`Idempotency-Key`** header. A retry with the same key replays the original response (so a network retry never double-books or double-creates); the same key reused with a *different* body returns **409**. A booking that needs an active membership/credits, or into a full/closed class, returns **422**; an already-booked member returns **409**.
+
+## Webhooks
+Subscribe to events (`booking.created`, `booking.cancelled`, `member.created`, `lead.created`, `payment.*`, …) in **Settings → Webhooks**. Deliveries are signed (`Circle-Webhook-Signature: t=…,v1=…`) and retried with exponential backoff. See [webhooks.md](./webhooks.md) for the payload shape + signature verification.
 
 ## Pagination
 List endpoints return:

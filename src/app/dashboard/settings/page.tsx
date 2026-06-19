@@ -12,6 +12,7 @@ import { LeadWidgetCard } from './_components/lead-widget-card'
 import { ScheduleWidgetCard } from './_components/schedule-widget-card'
 import { ChecklistEditor, type EditorItem } from './_components/checklist-editor'
 import { ApiKeysCard, type ApiKeyRow } from './_components/api-keys-card'
+import { WebhooksCard, type WebhookSubRow } from './_components/webhooks-card'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export default async function SettingsPage() {
@@ -46,12 +47,21 @@ export default async function SettingsPage() {
 
   const ramadanSuggested = upcomingRamadanWindow(todayInTimezone(boxes?.timezone ?? 'Asia/Dubai'))
 
-  // api_keys is service-role-only (RLS, no policies) — fetch with the service client, box-scoped.
-  const { data: apiKeys } = await createServiceClient()
-    .from('api_keys')
-    .select('id, label, key_prefix, scopes, last_used_at, revoked_at, created_at')
-    .eq('box_id', profile.box_id)
-    .order('created_at', { ascending: false })
+  // api_keys + webhook_subscriptions are service-role-only (RLS, no policies) —
+  // fetch with the service client, box-scoped.
+  const service = createServiceClient()
+  const [{ data: apiKeys }, { data: webhookSubs }] = await Promise.all([
+    service
+      .from('api_keys')
+      .select('id, label, key_prefix, scopes, last_used_at, revoked_at, created_at')
+      .eq('box_id', profile.box_id)
+      .order('created_at', { ascending: false }),
+    service
+      .from('webhook_subscriptions')
+      .select('id, url, event_types, active, created_at')
+      .eq('box_id', profile.box_id)
+      .order('created_at', { ascending: false }),
+  ])
 
   return (
     <DashboardShell
@@ -79,6 +89,7 @@ export default async function SettingsPage() {
         <ScheduleWidgetCard snippet={scheduleSnippet} />
         <ChecklistEditor items={checklistItems} />
         <ApiKeysCard keys={(apiKeys ?? []) as ApiKeyRow[]} apiConfigured={!!env.API_KEY_PEPPER} />
+        <WebhooksCard subs={(webhookSubs ?? []) as WebhookSubRow[]} />
       </div>
     </DashboardShell>
   )

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Role } from '@/lib/auth/roles'
+import { emitWebhook } from '@/lib/webhooks/emit'
 
 export type CreateMemberInput = {
   boxId: string
@@ -43,6 +44,9 @@ export async function createMemberCore(service: SupabaseClient, input: CreateMem
     await service.auth.admin.deleteUser(newUser.user.id)
     console.error('[createMemberCore] profile insert failed:', profileError)
     return { athleteId: null, error: 'Could not create the member.' }
+  }
+  if (input.role === 'athlete') {
+    await emitWebhook(service, input.boxId, 'member.created', { id: newUser.user.id, full_name: input.fullName, role: input.role })
   }
   return { athleteId: newUser.user.id, error: null }
 }

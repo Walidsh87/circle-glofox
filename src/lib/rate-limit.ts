@@ -28,3 +28,46 @@ export const ratelimit =
         analytics: false,
       })
     : null
+
+// Per-USER limiter for expensive authenticated server actions (AI parse, SMS,
+// WhatsApp, email broadcasts). The edge limiter above is per-IP and only covers
+// public routes; cost-driving actions are authenticated and keyed by user id, so
+// they need their own throttle. Tighter is unnecessary — the goal is to cap a
+// runaway loop (thousands of paid Anthropic/Twilio/Resend calls), not legit use.
+const actionLimiter =
+  url && token
+    ? new Ratelimit({
+        redis: new Redis({ url, token }),
+        limiter: Ratelimit.slidingWindow(15, '60 s'),
+        prefix: 'circle-rl-action',
+        analytics: false,
+      })
+    : null
+
+/** Minimal limiter shape — so the decision logic can be unit-tested with a fake. */
+type ActionLimiter = { limit: (key: string) => Promise<{ success: boolean }> }
+
+/**
+ * Pure decision: is this key allowed? Fail-OPEN — when no limiter is configured
+ * (local dev / a deploy without Redis) or the limiter throws (Redis outage), the
+ * call is ALLOWED. A rate-limiter must never take the app down.
+ */
+export async function evaluateLimit(limiter: ActionLimiter | null, key: string): Promise<boolean> {
+  if (!limiter) return true
+  try {
+    const { success } = await limiter.limit(key)
+    return success
+  } catch (e) {
+    console.error('action rate limit check failed (failing open):', e)
+    return true
+  }
+}
+
+/**
+ * Throttle an expensive action per user. `key` should be namespaced per action
+ * type, e.g. `ai:${userId}` / `sms:${userId}`, so each action gets its own bucket.
+ * Returns true if allowed, false if the user is over their limit.
+ */
+export function checkActionRateLimit(key: string): Promise<boolean> {
+  return evaluateLimit(actionLimiter, key)
+}

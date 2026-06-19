@@ -1,22 +1,32 @@
 import { vi, test, expect, beforeEach } from 'vitest'
 import { makeSupabaseMock } from './helpers/supabase-mock'
 
-const { serverCreate, serviceCreate, sendSmsMock, configuredMock } = vi.hoisted(() => ({
+const { serverCreate, serviceCreate, sendSmsMock, configuredMock, rlHolder } = vi.hoisted(() => ({
   serverCreate: vi.fn(),
   serviceCreate: vi.fn(),
   sendSmsMock: vi.fn<(i: { to: string; body: string; statusCallback?: string }) => Promise<{ sid: string | null; status: string | null; error: string | null }>>(
     () => Promise.resolve({ sid: 'SM1', status: 'queued', error: null })
   ),
   configuredMock: vi.fn(() => true),
+  rlHolder: { allowed: true },
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: serviceCreate }))
 vi.mock('@/lib/twilio', () => ({ sendSms: sendSmsMock, smsConfigured: configuredMock }))
+vi.mock('@/lib/rate-limit', () => ({ checkActionRateLimit: vi.fn(async () => rlHolder.allowed) }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 import { sendSmsCampaign } from '@/app/dashboard/sms/_actions/send-sms-campaign'
 
-beforeEach(() => { vi.clearAllMocks(); configuredMock.mockReturnValue(true) })
+beforeEach(() => { vi.clearAllMocks(); configuredMock.mockReturnValue(true); rlHolder.allowed = true })
+
+test('throttles an owner over the SMS rate limit (no send)', async () => {
+  rlHolder.allowed = false
+  serverCreate.mockResolvedValue(ownerRls())
+  const res = await sendSmsCampaign('Hi team', 'all', null)
+  expect(res.error).toMatch(/too often|slow down|wait/i)
+  expect(sendSmsMock).not.toHaveBeenCalled()
+})
 
 function ownerRls() {
   return makeSupabaseMock({ user: { id: 'owner1' }, results: { profiles: { data: { box_id: 'b1', role: 'owner' }, error: null } } })

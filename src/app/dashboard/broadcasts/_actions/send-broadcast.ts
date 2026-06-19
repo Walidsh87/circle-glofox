@@ -10,6 +10,8 @@ import { selectRecipients, type Segment } from '@/lib/broadcast-audience'
 import { renderEmail, firstNameOf } from '@/lib/broadcast-render'
 import { validateBlocks, flattenBlocks, type Block } from '@/lib/email-blocks'
 import { sendBroadcastEmails, type BroadcastMessage } from '@/lib/email'
+import { checkActionRateLimit } from '@/lib/rate-limit'
+import { actionError } from '@/lib/action-error'
 
 type Result = { error: string | null; broadcastId?: string; sent?: number; failed?: number; skipped?: number }
 
@@ -25,6 +27,11 @@ export async function sendBroadcast(
   const auth = await requireManagerAction('Only owners or admins can send broadcasts.')
   if ('error' in auth) return { error: auth.error }
   const { user, profile: caller } = auth
+
+  // Per-user throttle: each broadcast emails a whole segment via Resend — cap abuse.
+  if (!(await checkActionRateLimit(`broadcast:${user.id}`))) {
+    return { error: "You're doing that too often. Please wait a minute and try again." }
+  }
 
   // Blocks (if any) flatten to the NOT-NULL body column; subject + audience always validated.
   const effectiveBody = bodyBlocks ? (flattenBlocks(bodyBlocks) || subject.trim()) : body.trim()
@@ -59,7 +66,7 @@ export async function sendBroadcast(
     })
     .select('id')
     .single()
-  if (bcErr || !bc) return { error: bcErr?.message ?? 'Could not create broadcast.' }
+  if (bcErr || !bc) return actionError('sendBroadcast', bcErr, 'Could not create broadcast.')
   const broadcastId = bc.id as string
 
   const rows = [

@@ -1,14 +1,16 @@
 import { vi, test, expect, beforeEach } from 'vitest'
 import { makeSupabaseMock } from './helpers/supabase-mock'
 
-const { serverCreate, createMock, envHolder } = vi.hoisted(() => ({
+const { serverCreate, createMock, envHolder, rlHolder } = vi.hoisted(() => ({
   serverCreate: vi.fn(),
   createMock: vi.fn(),
   envHolder: { ANTHROPIC_API_KEY: 'sk-test' as string | undefined },
+  rlHolder: { allowed: true },
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
 vi.mock('@/env', () => ({ env: envHolder }))
 vi.mock('@anthropic-ai/sdk', () => ({ default: class { messages = { create: createMock } } }))
+vi.mock('@/lib/rate-limit', () => ({ checkActionRateLimit: vi.fn(async () => rlHolder.allowed) }))
 
 import { aiParseProgramming } from '@/app/dashboard/programming/_actions/ai-parse-programming'
 
@@ -17,6 +19,15 @@ const staff = () => makeSupabaseMock({ user: { id: 'c1' }, results: { profiles: 
 beforeEach(() => {
   vi.clearAllMocks()
   envHolder.ANTHROPIC_API_KEY = 'sk-test'
+  rlHolder.allowed = true
+})
+
+test('throttles a user over the AI rate limit (no AI call)', async () => {
+  rlHolder.allowed = false
+  serverCreate.mockResolvedValue(staff())
+  const res = await aiParseProgramming('Mon Fran')
+  expect(res.error).toMatch(/too often|slow down|wait/i)
+  expect(createMock).not.toHaveBeenCalled()
 })
 
 test('rejects empty input before auth', async () => {

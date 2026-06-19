@@ -1,22 +1,32 @@
 import { vi, test, expect, beforeEach } from 'vitest'
 import { makeSupabaseMock } from './helpers/supabase-mock'
 
-const { serverCreate, serviceCreate, sendWaMock, waConfiguredMock } = vi.hoisted(() => ({
+const { serverCreate, serviceCreate, sendWaMock, waConfiguredMock, rlHolder } = vi.hoisted(() => ({
   serverCreate: vi.fn(),
   serviceCreate: vi.fn(),
   sendWaMock: vi.fn<(i: { to: string; contentSid: string; contentVariables: Record<string, string>; statusCallback?: string }) => Promise<{ sid: string | null; status: string | null; error: string | null }>>(
     () => Promise.resolve({ sid: 'WA1', status: 'queued', error: null })
   ),
   waConfiguredMock: vi.fn(() => true),
+  rlHolder: { allowed: true },
 }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: serviceCreate }))
 vi.mock('@/lib/twilio', () => ({ sendWhatsApp: sendWaMock, waConfigured: waConfiguredMock }))
+vi.mock('@/lib/rate-limit', () => ({ checkActionRateLimit: vi.fn(async () => rlHolder.allowed) }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 import { sendWaCampaign } from '@/app/dashboard/whatsapp/_actions/send-wa-campaign'
 
-beforeEach(() => { vi.clearAllMocks(); waConfiguredMock.mockReturnValue(true) })
+beforeEach(() => { vi.clearAllMocks(); waConfiguredMock.mockReturnValue(true); rlHolder.allowed = true })
+
+test('throttles an owner over the WhatsApp rate limit (no send)', async () => {
+  rlHolder.allowed = false
+  serverCreate.mockResolvedValue(ownerRls())
+  const res = await sendWaCampaign('t1', {}, 'all', null)
+  expect(res.error).toMatch(/too often|slow down|wait/i)
+  expect(sendWaMock).not.toHaveBeenCalled()
+})
 
 const SID = 'HX' + 'a'.repeat(32)
 const template = { id: 't1', content_sid: SID, body_preview: 'Hi {{1}}', var_count: 1 }

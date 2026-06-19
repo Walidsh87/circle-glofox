@@ -3,7 +3,10 @@
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import Anthropic from '@anthropic-ai/sdk'
 import { env } from '@/env'
+import { checkActionRateLimit } from '@/lib/rate-limit'
 import { buildParsePrompt, extractBlockText } from '../_lib/ai-prompt'
+
+const TOO_OFTEN = "You're doing that too often. Please wait a minute and try again."
 
 const MAX_INPUT = 8000
 
@@ -14,6 +17,9 @@ export async function aiParseProgramming(freeform: string): Promise<{ error: str
 
   const auth = await requireProgrammingAction('Only owners and coaches can use the AI parser.')
   if ('error' in auth) return { error: auth.error, text: null }
+
+  // Per-user throttle: this calls the paid Anthropic API, so cap a runaway loop.
+  if (!(await checkActionRateLimit(`ai:${auth.user.id}`))) return { error: TOO_OFTEN, text: null }
 
   if (!env.ANTHROPIC_API_KEY) return { error: "AI parsing isn't configured yet.", text: null }
 

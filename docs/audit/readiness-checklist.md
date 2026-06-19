@@ -48,7 +48,7 @@ These are organized by *what kills a paying multi-tenant SaaS*, not by stack lay
 - Webhook idempotency: each Stripe event provisions **at most once** (no duplicate invoice / double credit-grant).
 - Charged amount is the **server-stored** value, never client-supplied.
 
-**Enforcer:** 🔒 GATE — credit-ledger SQL guards in the RLS harness (`tests/rls/run.mjs`, run by the `rls-isolation` CI job) + webhook idempotency regression tests (`src/__tests__/{dunning,package-grant,quote-refund}-webhook.integration.test.ts`) + membership-status boundary tests. *Highest-risk, lowest-effort gap — money bugs are existential.* **Open follow-ups:** webhook refund-amount cap, `invoices` UNIQUE(box_id, provider_charge_ref) backstop, multi-active-membership MRR rule (see PR notes).
+**Enforcer:** 🔒 GATE — credit-ledger SQL guards in the RLS harness (`tests/rls/run.mjs`, run by the `rls-isolation` CI job) + webhook idempotency regression tests (`src/__tests__/{dunning,package-grant,quote-refund}-webhook.integration.test.ts`) + membership-status boundary tests. *Highest-risk, lowest-effort gap — money bugs are existential.* **Fixed (same PR):** webhook refund-amount cap, `invoices` UNIQUE(provider_charge_ref) backstop (mig 077), and MRR dedup-by-athlete. *Residual product call: whether to also prevent a second active membership (vs. the current MRR dedup).*
 
 ### 15 — Tenant isolation (first-class) 🔴
 *The prime invariant; one cross-tenant leak is existential.*

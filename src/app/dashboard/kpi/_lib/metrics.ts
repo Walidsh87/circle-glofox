@@ -46,7 +46,18 @@ export function monthStart(monthEnd: string): string {
 }
 
 export function mrrAt(rows: MembershipRow[], onDate: string): number {
-  return rows.reduce((s, r) => (activeOn(r, onDate) ? s + (r.monthly_price_aed ?? 0) : s), 0)
+  // Dedup by athlete: a member contributes to MRR ONCE even if a data anomaly
+  // leaves them with two active rows (activeAt already dedups the count, so a
+  // raw sum would inflate MRR/ARM/LTV). Take the max active price per athlete.
+  const byAthlete = new Map<string, number>()
+  for (const r of rows) {
+    if (!activeOn(r, onDate)) continue
+    const price = r.monthly_price_aed ?? 0
+    byAthlete.set(r.athlete_id, Math.max(byAthlete.get(r.athlete_id) ?? 0, price))
+  }
+  let total = 0
+  for (const v of byAthlete.values()) total += v
+  return total
 }
 
 export function activeAt(rows: MembershipRow[], onDate: string): number {

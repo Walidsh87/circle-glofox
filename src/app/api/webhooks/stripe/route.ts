@@ -469,9 +469,23 @@ async function handleRefunded(
     .maybeSingle()
   if (existing) return NextResponse.json({ received: true })
 
+  // Cap the credit note so the SUM of all credit notes never exceeds the invoice
+  // total (mirrors the server-action refund guard in refund-invoice.ts). Stripe
+  // normally bounds a single refund to the charge, but multiple partial /
+  // out-of-order refunds could otherwise over-credit. Clamp to the remaining.
+  const { data: priorNotes } = await service
+    .from('credit_notes')
+    .select('total_aed')
+    .eq('invoice_id', invoice.id)
+  const alreadyRefunded = ((priorNotes ?? []) as { total_aed: number | string }[])
+    .reduce((s, n) => s + Number(n.total_aed), 0)
+  const remaining = Math.round((Number(invoice.total_aed) - alreadyRefunded) * 100) / 100
+  if (remaining <= 0) return NextResponse.json({ received: true }) // already fully credited
+  const creditAmount = Math.min(event.amountAed, remaining)
+
   const { data: box } = await service.from('boxes').select('slug').eq('id', boxId).single()
   const vatRate = Number(invoice.vat_rate)
-  const { subtotalAed, vatAed } = deriveVatFromInclusive(event.amountAed, vatRate)
+  const { subtotalAed, vatAed } = deriveVatFromInclusive(creditAmount, vatRate)
 
   const { data: seqData } = await service.rpc('next_credit_note_sequence', { p_box_id: boxId })
   if (typeof seqData !== 'number') return NextResponse.json({ received: true })
@@ -486,7 +500,7 @@ async function handleRefunded(
     subtotal_aed: subtotalAed,
     vat_rate: vatRate,
     vat_aed: vatAed,
-    total_aed: event.amountAed,
+    total_aed: creditAmount,
     reason: event.reason ?? 'Refunded via provider dashboard',
     trn_snapshot: invoice.trn_snapshot,
     legal_name_snapshot: invoice.legal_name_snapshot,

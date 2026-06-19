@@ -1,4 +1,4 @@
-import { getMembershipStatus, isFrozenOn } from '@/lib/membership-status'
+import { getMembershipStatus, isFrozenOn, type MembershipRow } from '@/lib/membership-status'
 
 describe('getMembershipStatus', () => {
   const today = '2026-05-26'
@@ -36,6 +36,26 @@ describe('getMembershipStatus', () => {
   test('returns no_membership when all memberships are expired', () => {
     const rows = [{ payment_status: 'paid' as const, end_date: '2024-01-01' }]
     expect(getMembershipStatus(rows, today)).toBe('no_membership')
+  })
+
+  // Scheduled cancellation: a future end_date is "active until then" — must keep
+  // paid/active status (and stay selectable for undo), not be revoked early.
+  test('returns paid when end_date is in the future (scheduled cancellation still active)', () => {
+    const rows = [{ payment_status: 'paid' as const, end_date: '2026-06-30' }]
+    expect(getMembershipStatus(rows, today)).toBe('paid')
+  })
+
+  test('returns paid when end_date is exactly today (inclusive boundary)', () => {
+    const rows = [{ payment_status: 'paid' as const, end_date: today }]
+    expect(getMembershipStatus(rows, today)).toBe('paid')
+  })
+
+  // Cross-module contract: the dunning webhook writes payment_status:'overdue'
+  // (mig 014) — outside the narrowed paid|unpaid type — and getMembershipStatus
+  // must treat any non-'paid' value as unpaid so an overdue member is blocked.
+  test("treats a DB 'overdue' payment_status as unpaid (dunning contract)", () => {
+    const rows = [{ payment_status: 'overdue', end_date: null } as unknown as MembershipRow]
+    expect(getMembershipStatus(rows, today)).toBe('unpaid')
   })
 })
 

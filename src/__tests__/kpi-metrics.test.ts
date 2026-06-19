@@ -31,6 +31,18 @@ describe('mrrAt / activeAt', () => {
     expect(activeAt(rows, '2025-12-01')).toBe(2)
     expect(activeAt(rows, '2026-02-01')).toBe(1)
   })
+
+  // An athlete with two active paid memberships (a data anomaly the add-membership
+  // UI allows) must contribute to MRR ONCE — activeAt already dedups the count, so
+  // mrrAt summing both rows would inflate MRR/ARM/LTV. Take the max price.
+  test('dedups multiple active memberships for one athlete (counts once, max price)', () => {
+    const dup: MembershipRow[] = [
+      { athlete_id: 'x', monthly_price_aed: 500, start_date: '2025-01-01', end_date: null },
+      { athlete_id: 'x', monthly_price_aed: 400, start_date: '2025-02-01', end_date: null },
+    ]
+    expect(mrrAt(dup, '2025-12-01')).toBe(500) // not 900
+    expect(activeAt(dup, '2025-12-01')).toBe(1)
+  })
 })
 
 describe('packageRevInMonth', () => {

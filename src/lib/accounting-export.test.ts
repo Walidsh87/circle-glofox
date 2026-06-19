@@ -45,6 +45,10 @@ describe('fmtMoney', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(fmtMoney(null as any)).toBe('')
   })
+
+  it('returns empty string for an empty string (not 0.00)', () => {
+    expect(fmtMoney('')).toBe('')
+  })
 })
 
 describe('fmtInvoiceDate', () => {

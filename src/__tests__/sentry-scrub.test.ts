@@ -63,4 +63,25 @@ describe('scrubEvent', () => {
     const event = { user: null }
     expect(scrubEvent(event)).toBe(event)
   })
+
+  test('strips username from the Sentry user object', () => {
+    const event = { user: { id: 'u1', username: 'bob@example.com' } }
+    const out = scrubEvent(event)
+    expect(out.user?.id).toBe('u1')
+    expect(out.user?.username).toBeUndefined()
+  })
+
+  test('scrubs contexts (PII keys redacted, rest kept)', () => {
+    const event = { contexts: { runtime: { phone: '+971500000000', ok: 'node' } } }
+    const out = scrubEvent(event)
+    expect((out.contexts?.runtime as Record<string, unknown>).phone).toBe('[redacted]')
+    expect((out.contexts?.runtime as Record<string, unknown>).ok).toBe('node')
+  })
+
+  test('scrubs request headers (auth redacted, rest kept)', () => {
+    const event = { request: { headers: { authorization: 'Bearer sk_live_x', host: 'example.com' } } }
+    const out = scrubEvent(event)
+    expect((out.request?.headers as Record<string, unknown>).authorization).toBe('[redacted]')
+    expect((out.request?.headers as Record<string, unknown>).host).toBe('example.com')
+  })
 })

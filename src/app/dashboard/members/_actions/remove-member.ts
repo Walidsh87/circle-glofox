@@ -40,7 +40,12 @@ export async function removeMember(memberId: string): Promise<{ error: string | 
 
   // Delete auth user only after profile is confirmed deleted
   const { error: authDeleteError } = await service.auth.admin.deleteUser(memberId)
-  if (authDeleteError) return actionError('removeMember', authDeleteError)
+  if (authDeleteError) {
+    // The profile (and its cascades) is already gone but the auth account survived → the user would
+    // land in a permanent onboarding loop. Log the uid so it can be cleaned up in the Supabase dashboard.
+    console.error('[removeMember] profile deleted but auth.admin.deleteUser failed — orphaned auth uid:', memberId, authDeleteError)
+    return actionError('removeMember', authDeleteError)
+  }
 
   await logAudit(service, {
     boxId: callerProfile.box_id,

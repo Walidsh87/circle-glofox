@@ -25,7 +25,7 @@ export const ACCOUNTING_HEADERS: string[] = [
 ]
 
 export function fmtMoney(v: number | string): string {
-  if (v === null || v === undefined) return ''
+  if (v === null || v === undefined || v === '') return ''
   const n = Number(v)
   return Number.isFinite(n) ? n.toFixed(2) : ''
 }

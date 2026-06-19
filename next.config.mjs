@@ -54,7 +54,7 @@ const nextConfig = {
 export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
-  silent: !process.env.CI,
+  silent: true, // source-map upload only happens on Vercel (real SENTRY_* set there); silence CI build noise
   widenClientFileUpload: true,
   hideSourceMaps: true,
   disableLogger: true,

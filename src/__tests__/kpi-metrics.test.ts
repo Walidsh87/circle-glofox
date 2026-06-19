@@ -43,6 +43,14 @@ describe('mrrAt / activeAt', () => {
     expect(mrrAt(dup, '2025-12-01')).toBe(500) // not 900
     expect(activeAt(dup, '2025-12-01')).toBe(1)
   })
+
+  test('mrrAt: an athlete with one null-price and one priced active row uses the priced one', () => {
+    const dup: MembershipRow[] = [
+      { athlete_id: 'x', monthly_price_aed: null, start_date: '2025-01-01', end_date: null },
+      { athlete_id: 'x', monthly_price_aed: 400, start_date: '2025-02-01', end_date: null },
+    ]
+    expect(mrrAt(dup, '2025-12-01')).toBe(400) // null coalesces to 0; max picks 400
+  })
 })
 
 describe('packageRevInMonth', () => {

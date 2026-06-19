@@ -10,6 +10,7 @@ type DbTask = { id: string; title: string; due_date: string; done: boolean; lead
 export default async function DeskPage() {
   const { supabase, profile, boxName } = await requireStaffPage()
 
+  // UTC today, mirrors the tasks hub exactly — keep in lockstep if the hub ever moves to gym-tz.
   const today = new Date().toISOString().slice(0, 10)
   const cols = 'id, title, due_date, done, lead_id, member_id, assigned_to, completed_at'
   const { data: openRows } = await supabase
@@ -26,10 +27,10 @@ export default async function DeskPage() {
   const leadIds = [...new Set(due.map((t) => t.lead_id).filter(Boolean) as string[])]
   const [{ data: members }, { data: leads }] = await Promise.all([
     memberIds.length
-      ? supabase.from('profiles').select('id, full_name').in('id', memberIds)
+      ? supabase.from('profiles').select('id, full_name').in('id', memberIds).eq('box_id', profile.box_id)
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
     leadIds.length
-      ? supabase.from('leads').select('id, full_name').in('id', leadIds)
+      ? supabase.from('leads').select('id, full_name').in('id', leadIds).eq('box_id', profile.box_id)
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
   ])
   const memberName = new Map(((members ?? []) as { id: string; full_name: string | null }[]).map((m) => [m.id, m.full_name ?? 'Member']))

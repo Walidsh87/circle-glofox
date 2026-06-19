@@ -5,6 +5,7 @@ import { env } from '@/env'
 import { parseResendEvent } from '@/lib/resend-webhook'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30 // cap a hung handler (webhooks finish in <5s); bounds runaway cost
 
 export async function POST(req: NextRequest) {
   if (!env.RESEND_WEBHOOK_SECRET) {

@@ -17,16 +17,27 @@ Practical runbook for "something is on fire." Keep it current; **drill the resto
 ## 1. Backups & restore
 
 - **Know your plan.** Supabase Free = daily backups, **no PITR**. Pro = point-in-time recovery (~7 days). You store payments + PII → **be on Pro with PITR.**
-- **Canonical schema:** `migrations/000_canonical_schema.sql` (regenerate via the `pg_dump` in `migrations/README.md` after every applied migration).
+- **Schema source of truth:** there is **no single committed dump today** — the prod schema is reproduced by `schema.sql` + the loose root reconciliation files + every numbered migration in `migrations/`, applied **in order**. The CI `rls-isolation` job replays exactly this sequence (`tests/rls/run.mjs`), so it is the canonical, continuously-tested rebuild path. See `migrations/README.md`.
 
-**Restore — point in time (Pro):** Supabase → Database → Backups → Restore → pick timestamp.
+**Restore — point in time (Pro):** Supabase → Database → Backups → Restore → pick timestamp. *(This is the primary path — fastest, preserves data.)*
 
 **Restore — full rebuild (DB lost):**
 1. New Supabase project.
-2. Run `migrations/000_canonical_schema.sql` (NOT the historical files).
+2. Reproduce the schema: apply `schema.sql`, then the root reconciliation SQL, then every `migrations/*.sql` in numerical order — the same sequence the CI `rls-isolation` job replays (see `migrations/README.md`).
 3. Restore data from the latest backup/dump.
 4. Update `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` in Vercel → redeploy.
 5. Re-point Stripe webhooks if the URL changed.
+
+### Recovery targets (RTO / RPO)
+Proposed defaults grounded in the current stack — **owner to ratify**:
+
+| Scenario | RPO (max data loss) | RTO (time to recover) |
+|---|---|---|
+| Bad deploy (app) | 0 | **≤ 5 min** — Vercel promote previous deployment |
+| DB point-in-time restore (Pro/PITR) | **≤ 5 min** (PITR granularity) | ≤ 1 hour |
+| Full DB rebuild (project lost) | last backup (**≤ 24 h** on daily backups; ≤ 5 min if PITR snapshot available) | **≤ 2 hours** |
+
+> RPO depends entirely on PITR being **on** — on Free (daily backups only) worst-case RPO is ~24 h. This is the single biggest reason to be on Pro.
 
 ---
 

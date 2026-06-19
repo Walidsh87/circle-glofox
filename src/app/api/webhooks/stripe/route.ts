@@ -10,6 +10,7 @@ import { convertLeadCore } from '@/lib/convert-lead'
 import { env } from '@/env'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30 // cap a hung handler (webhooks finish in <5s); bounds runaway cost
 
 const service = createServiceClient()
 

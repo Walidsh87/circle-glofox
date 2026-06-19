@@ -1,6 +1,7 @@
 'use server'
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import { revalidatePath } from 'next/cache'
 
@@ -16,7 +17,7 @@ export async function setInstanceCoach(instanceId: string, coachId: string | nul
 
   // class_instances programming-tier write policy (mig 058) covers this update.
   const { error } = await supabase.from('class_instances').update({ coach_id: coachId }).eq('id', instanceId).eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('setInstanceCoach', error)
   revalidatePath('/dashboard/prep')
   revalidatePath('/dashboard/reports/payroll')
   return { error: null }

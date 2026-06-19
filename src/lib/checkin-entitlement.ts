@@ -39,7 +39,10 @@ export async function assessCheckInEntitlement(
     .eq('athlete_id', args.athleteId)
     .eq('box_id', args.boxId)
     .maybeSingle()
-  if (bookingErr) return { status: 'error', message: bookingErr.message }
+  if (bookingErr) {
+    console.error('[assessCheckInEntitlement] booking lookup failed:', bookingErr)
+    return { status: 'error', message: 'Could not verify check-in eligibility. Please try again.' }
+  }
   if (booking?.credit_id) return { status: 'ok' }
 
   const lastPaidDate = (memberships ?? [])

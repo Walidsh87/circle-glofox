@@ -2,6 +2,7 @@
 
 import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 import type { TriggerType } from '@/lib/automations'
 import type { SequenceStep } from '@/lib/sequences'
 import { validateSequence } from '../_lib/sequence-validation'
@@ -31,10 +32,10 @@ export async function saveSequence(input: SaveSequenceInput): Promise<{ error: s
 
   if (input.id) {
     const { error } = await supabase.from('sequences').update(row).eq('id', input.id).eq('box_id', caller.box_id)
-    if (error) return { error: error.message }
+    if (error) return actionError('saveSequence', error)
   } else {
     const { error } = await supabase.from('sequences').insert({ ...row, box_id: caller.box_id, created_by: user.id })
-    if (error) return { error: error.message }
+    if (error) return actionError('saveSequence', error)
   }
   revalidatePath('/dashboard/sequences')
   return { error: null }

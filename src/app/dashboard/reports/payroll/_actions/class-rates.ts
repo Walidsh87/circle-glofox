@@ -1,6 +1,7 @@
 'use server'
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { validateClassRate } from '@/lib/reports/payroll'
 import { revalidatePath } from 'next/cache'
 
@@ -33,7 +34,7 @@ export async function deleteClassRate(id: string): Promise<{ error: string | nul
   const { supabase, profile } = auth
 
   const { error } = await supabase.from('coach_class_rates').delete().eq('id', id).eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('deleteClassRate', error)
   revalidatePath('/dashboard/reports/payroll')
   return { error: null }
 }

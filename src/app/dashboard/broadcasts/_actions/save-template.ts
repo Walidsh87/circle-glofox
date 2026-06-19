@@ -2,6 +2,7 @@
 
 import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 import { validateBlocks, type Block } from '@/lib/email-blocks'
 
 export async function saveTemplate(name: string, subject: string, bodyBlocks: Block[]): Promise<{ error: string | null }> {
@@ -21,7 +22,7 @@ export async function saveTemplate(name: string, subject: string, bodyBlocks: Bl
     body_blocks: bodyBlocks,
     created_by: user.id,
   })
-  if (error) return { error: error.message }
+  if (error) return actionError('saveTemplate', error)
   revalidatePath('/dashboard/broadcasts')
   return { error: null }
 }

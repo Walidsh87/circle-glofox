@@ -9,6 +9,7 @@ import { env } from '@/env'
 import { isLateCancel } from '@/lib/booking-policy'
 import { resolveBookingTarget } from '@/lib/family'
 import { getT, resolveLocale } from '@/lib/i18n'
+import { actionError } from '@/lib/action-error'
 
 export async function cancelBooking(instanceId: string, forAthleteId?: string): Promise<{ error: string | null; forfeited?: boolean }> {
   const supabase = await createClient()
@@ -41,7 +42,7 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
     .delete()
     .eq('class_instance_id', instanceId)
     .eq('athlete_id', targetId)
-  if (error) return { error: error.message }
+  if (error) return actionError('cancelBooking', error)
 
   // Late-cancel policy: cancelling within late_cancel_hours of the start forfeits the credit.
   const { data: policyInstance } = await supabase

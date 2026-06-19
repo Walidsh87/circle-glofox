@@ -8,6 +8,7 @@ import { normalizeUaePhone } from '@/lib/sms'
 import { sendWhatsAppText } from '@/lib/twilio'
 import { sendPushTo } from '@/lib/push'
 import { getT, resolveLocale } from '@/lib/i18n'
+import { actionError } from '@/lib/action-error'
 
 export async function sendMessage(memberId: string, body: string): Promise<{ error: string | null; conversationId?: string }> {
   const supabase = await createClient()
@@ -56,7 +57,7 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
     staff_unread: side === 'member',
     member_unread: side === 'staff',
   }, { onConflict: 'box_id,member_id' }).select('id').single()
-  if (cErr || !conv) return { error: cErr?.message ?? 'Could not open the conversation.' }
+  if (cErr || !conv) return actionError('sendMessage', cErr, 'Could not open the conversation.')
   const conversationId = conv.id as string
 
   const { error: mErr } = await supabase.from('messages').insert({
@@ -67,7 +68,7 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
     channel: messageChannel,
     body: text,
   })
-  if (mErr) return { error: mErr.message }
+  if (mErr) return actionError('sendMessage', mErr, 'Could not send the message.')
 
   // Staff replies nudge the member's phone (#22 infra: no-ops without VAPID, never throws).
   if (isStaff) {

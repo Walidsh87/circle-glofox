@@ -2,6 +2,7 @@
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -38,7 +39,7 @@ export async function clearDay(date: string): Promise<{ error: string | null }> 
     .delete()
     .eq('id', workout.id)
     .eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('clearDay', error)
 
   revalidatePath('/dashboard/programming')
   revalidatePath('/dashboard/wod')

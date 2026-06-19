@@ -1,6 +1,7 @@
 'use server'
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteMembershipPlan(planId: string): Promise<{ error: string | null }> {
@@ -16,7 +17,7 @@ export async function deleteMembershipPlan(planId: string): Promise<{ error: str
   if (error) {
     // memberships.plan_id FK (RESTRICT) blocks deletion once the plan is in use.
     if (error.code === '23503') return { error: 'Cannot delete: this plan is in use. Deactivate it instead.' }
-    return { error: error.message }
+    return actionError('deleteMembershipPlan', error)
   }
 
   revalidatePath('/dashboard/payments')

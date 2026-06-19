@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function removeTag(athleteId: string, tag: string): Promise<{ error: string | null }> {
@@ -14,7 +15,7 @@ export async function removeTag(athleteId: string, tag: string): Promise<{ error
     .eq('athlete_id', athleteId)
     .eq('tag', tag)
     .eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('removeTag', error)
 
   revalidatePath('/dashboard/members')
   revalidatePath('/dashboard/members/[memberId]', 'page')

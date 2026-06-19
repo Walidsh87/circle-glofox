@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { assessCheckInEntitlement } from '@/lib/checkin-entitlement'
 import { checkInWindow } from '@/lib/self-checkin'
 import { awardConsistency } from '@/app/dashboard/whiteboard/_actions/_award'
+import { actionError } from '@/lib/action-error'
 
 export async function selfCheckIn(instanceId: string): Promise<{ error: string | null }> {
   const auth = await requireUserAction()
@@ -44,7 +45,7 @@ export async function selfCheckIn(instanceId: string): Promise<{ error: string |
     .eq('class_instance_id', instanceId)
     .eq('athlete_id', user.id)
     .eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('selfCheckIn', error)
 
   try { await awardConsistency(service, profile.box_id, user.id, new Date().toISOString().slice(0, 10)) }
   catch (e) { console.error('awardConsistency failed (self check-in still succeeded):', e) }

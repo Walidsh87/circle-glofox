@@ -103,7 +103,10 @@ export async function commitImport(text: string): Promise<{ error: string | null
   }))
 
   const { error } = await supabase.from('workouts').upsert(insertRows, { onConflict: 'box_id,date' })
-  if (error) return { error: error.message, written: 0, rows }
+  if (error) {
+    console.error('[commitImport]', error)
+    return { error: 'Could not import the WODs.', written: 0, rows }
+  }
 
   revalidatePath('/dashboard/programming')
   revalidatePath('/dashboard/wod')

@@ -3,6 +3,7 @@
 import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 
 export async function uncheckIn(
   instanceId: string,
@@ -26,7 +27,7 @@ export async function uncheckIn(
     .eq('athlete_id', athleteId)
     .eq('box_id', profile.box_id)
 
-  if (error) return { error: error.message }
+  if (error) return actionError('uncheckIn', error)
 
   revalidatePath('/dashboard/whiteboard')
   return { error: null }

@@ -41,7 +41,8 @@ export async function createMemberCore(service: SupabaseClient, input: CreateMem
   })
   if (profileError) {
     await service.auth.admin.deleteUser(newUser.user.id)
-    return { athleteId: null, error: profileError.message }
+    console.error('[createMemberCore] profile insert failed:', profileError)
+    return { athleteId: null, error: 'Could not create the member.' }
   }
   return { athleteId: newUser.user.id, error: null }
 }

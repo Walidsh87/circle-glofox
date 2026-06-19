@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 
 export async function leaveWaitlist(instanceId: string): Promise<{ error: string | null }> {
   const supabase = await createClient()
@@ -13,7 +14,7 @@ export async function leaveWaitlist(instanceId: string): Promise<{ error: string
     .delete()
     .eq('class_instance_id', instanceId)
     .eq('athlete_id', user.id)
-  if (error) return { error: error.message }
+  if (error) return actionError('leaveWaitlist', error)
 
   revalidatePath('/dashboard/schedule')
   return { error: null }

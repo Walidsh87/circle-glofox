@@ -2,6 +2,7 @@
 
 import { requireManagerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 import { validateBlocks, type Block } from '@/lib/email-blocks'
 import type { TriggerType } from '@/lib/automations'
 import { validateAutomation } from '../_lib/automation-validation'
@@ -62,10 +63,10 @@ export async function saveAutomation(input: SaveAutomationInput): Promise<{ erro
 
   if (input.id) {
     const { error } = await supabase.from('automations').update(row).eq('id', input.id).eq('box_id', caller.box_id)
-    if (error) return { error: error.message }
+    if (error) return actionError('saveAutomation', error)
   } else {
     const { error } = await supabase.from('automations').insert({ ...row, box_id: caller.box_id, created_by: user.id })
-    if (error) return { error: error.message }
+    if (error) return actionError('saveAutomation', error)
   }
   revalidatePath('/dashboard/automations')
   return { error: null }

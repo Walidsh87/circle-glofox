@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import {
   validateQuoteDraft, computeQuoteTotals, lineTotal,
@@ -33,7 +34,7 @@ export async function updateQuote(quoteId: string, input: {
     title: input.title.trim(), terms: input.terms ?? '', valid_until: input.validUntil,
     subtotal_aed: subtotalAed, vat_aed: vatAed, total_aed: totalAed,
   }).eq('id', quoteId).eq('box_id', caller.box_id)
-  if (upErr) return { error: upErr.message }
+  if (upErr) return actionError('updateQuote', upErr)
 
   await supabase.from('quote_line_items').delete().eq('quote_id', quoteId).eq('box_id', caller.box_id)
   const lineRows = input.lines.map((l, i) => ({
@@ -43,7 +44,7 @@ export async function updateQuote(quoteId: string, input: {
     unit_amount_aed: l.unitAmountAed, line_total_aed: lineTotal(l), sort_order: i,
   }))
   const { error: linesErr } = await supabase.from('quote_line_items').insert(lineRows)
-  if (linesErr) return { error: linesErr.message }
+  if (linesErr) return actionError('updateQuote', linesErr)
 
   revalidatePath(`/dashboard/quotes/${quoteId}`)
   return { error: null }
@@ -57,7 +58,7 @@ export async function deleteQuote(quoteId: string): Promise<{ error: string | nu
   if (!q) return { error: 'Quote not found.' }
   if (q.status !== 'draft') return { error: 'Only draft quotes can be deleted. Void it instead.' }
   const { error } = await supabase.from('quotes').delete().eq('id', quoteId).eq('box_id', caller.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('deleteQuote', error)
   revalidatePath('/dashboard/quotes')
   return { error: null }
 }
@@ -70,7 +71,7 @@ export async function voidQuote(quoteId: string): Promise<{ error: string | null
   if (!q) return { error: 'Quote not found.' }
   if (!canTransition(q.status as QuoteStatus, 'void')) return { error: `A ${q.status} quote can't be voided.` }
   const { error } = await supabase.from('quotes').update({ status: 'void' }).eq('id', quoteId).eq('box_id', caller.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('voidQuote', error)
   revalidatePath('/dashboard/quotes')
   revalidatePath(`/dashboard/quotes/${quoteId}`)
   return { error: null }

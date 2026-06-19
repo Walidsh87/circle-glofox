@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { redirect } from 'next/navigation'
 
 type State = { error: string | null }
@@ -31,7 +32,7 @@ export async function createAthlete(gymSlug: string, prevState: State, formData:
     email: user.email,
   })
 
-  if (error) return { error: error.message }
+  if (error) return actionError('createAthlete', error)
 
   redirect('/dashboard')
 }

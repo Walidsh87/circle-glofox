@@ -64,6 +64,6 @@ test('returns error on db failure', async () => {
   serverCreate.mockResolvedValue(rls)
 
   const res = await loadActivePlans()
-  expect(res.error).toMatch(/db error/)
+  expect(res.error).toMatch(/something went wrong/i) // sanitized, not the raw DB message
   expect(res.plans).toBeUndefined()
 })

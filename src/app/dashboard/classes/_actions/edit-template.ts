@@ -1,6 +1,7 @@
 'use server'
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateEditTemplateInput } from '../_lib/validation'
 
@@ -36,7 +37,7 @@ export async function editTemplate(
     .eq('id', templateId)
     .eq('box_id', profile.box_id)
 
-  if (error) return { error: error.message }
+  if (error) return actionError('editTemplate', error)
 
   revalidatePath('/dashboard/classes')
   return { error: null, saved: true }

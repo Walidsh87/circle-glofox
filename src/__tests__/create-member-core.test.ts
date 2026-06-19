@@ -17,6 +17,6 @@ test('rolls back the auth user when the profile insert fails', async () => {
   const svc = makeSupabaseMock({ results: { profiles: { data: null, error: { message: 'dup' } } } })
   const res = await createMemberCore(svc as never, { boxId: 'b1', fullName: 'Sara', email: 'sara@x.com', phone: null, role: 'athlete' })
   expect(res.athleteId).toBeNull()
-  expect(res.error).toBe('dup')
+  expect(res.error).toBe('Could not create the member.') // sanitized, not the raw DB message
   expect(svc.auth.admin.deleteUser).toHaveBeenCalledWith('new1')
 })

@@ -29,6 +29,6 @@ test('returns error on db failure', async () => {
     packages: { data: null, error: { message: 'db error' } },
   } }))
   const res = await loadActivePackages()
-  expect(res.error).toMatch(/db error/)
+  expect(res.error).toMatch(/something went wrong/i) // sanitized, not the raw DB message
   expect(res.packages).toBeUndefined()
 })

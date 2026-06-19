@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { logAudit } from '@/lib/audit'
 import { revalidatePath } from 'next/cache'
 
@@ -35,11 +36,11 @@ export async function removeMember(memberId: string): Promise<{ error: string | 
 
   // Delete profile first (cascades memberships, bookings, scores, lifts)
   const { error: profileDeleteError } = await service.from('profiles').delete().eq('id', memberId)
-  if (profileDeleteError) return { error: profileDeleteError.message }
+  if (profileDeleteError) return actionError('removeMember', profileDeleteError)
 
   // Delete auth user only after profile is confirmed deleted
   const { error: authDeleteError } = await service.auth.admin.deleteUser(memberId)
-  if (authDeleteError) return { error: authDeleteError.message }
+  if (authDeleteError) return actionError('removeMember', authDeleteError)
 
   await logAudit(service, {
     boxId: callerProfile.box_id,

@@ -1,6 +1,7 @@
 'use server'
 
 import { requireManagerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function markReferralRewarded(memberId: string): Promise<{ error: string | null }> {
@@ -9,7 +10,7 @@ export async function markReferralRewarded(memberId: string): Promise<{ error: s
   const { supabase, profile: caller } = auth
 
   const { error } = await supabase.from('profiles').update({ referral_rewarded_at: new Date().toISOString() }).eq('id', memberId).eq('box_id', caller.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('markReferralRewarded', error)
   revalidatePath('/dashboard/referrals')
   return { error: null }
 }

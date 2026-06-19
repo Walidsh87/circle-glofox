@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import type { MembershipStatus } from '@/lib/membership-status'
 import { assessCheckInEntitlement } from '@/lib/checkin-entitlement'
 import { awardConsistency } from './_award'
+import { actionError } from '@/lib/action-error'
 
 type CheckInResult = {
   error: string | null
@@ -36,7 +37,7 @@ export async function checkIn(
     .eq('athlete_id', athleteId)
     .eq('box_id', profile.box_id)
 
-  if (error) return { error: error.message }
+  if (error) return actionError('checkIn', error)
 
   const today = new Date().toISOString().slice(0, 10)
   try { await awardConsistency(service, profile.box_id, athleteId, today) }

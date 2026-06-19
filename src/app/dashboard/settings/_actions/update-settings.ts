@@ -2,6 +2,7 @@
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateTrn } from '@/lib/invoices'
 
@@ -70,7 +71,7 @@ export async function updateSettings(prevState: State, formData: FormData): Prom
 
   if (error) {
     if (error.code === '23505') return { error: 'That URL is already taken. Please choose another.' }
-    return { error: error.message }
+    return actionError('updateSettings', error)
   }
 
   revalidatePath('/dashboard/settings')

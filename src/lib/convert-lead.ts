@@ -49,7 +49,8 @@ export async function convertLeadCore(
   })
   if (profileError) {
     await service.auth.admin.deleteUser(newUser.user.id)
-    return { athleteId: null, error: profileError.message }
+    console.error('[convertLeadCore] profile insert failed:', profileError)
+    return { athleteId: null, error: 'Could not convert the lead.' }
   }
 
   await service.from('leads').delete().eq('id', leadId)

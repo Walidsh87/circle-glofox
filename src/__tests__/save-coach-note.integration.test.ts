@@ -45,7 +45,7 @@ test('surfaces a DB error from the upsert', async () => {
   })
   serverCreate.mockResolvedValue(rls)
   const res = await saveCoachNote('a2', 'bad shoulder')
-  expect(res.error).toBe('upsert failed')
+  expect(res.error).toMatch(/something went wrong/i) // sanitized, not the raw DB message
 })
 
 test('surfaces a DB error from the delete', async () => {
@@ -58,7 +58,7 @@ test('surfaces a DB error from the delete', async () => {
   })
   serverCreate.mockResolvedValue(rls)
   const res = await saveCoachNote('a2', '   ')
-  expect(res.error).toBe('delete failed')
+  expect(res.error).toMatch(/something went wrong/i) // sanitized, not the raw DB message
 })
 
 test('an empty note deletes the row (box + athlete scoped), no upsert', async () => {

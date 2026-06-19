@@ -2,6 +2,7 @@
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
+import { actionError } from '@/lib/action-error'
 
 export async function deleteTemplate(templateId: string): Promise<{ error: string | null }> {
   if (!templateId?.trim()) return { error: 'Missing template.' }
@@ -17,7 +18,7 @@ export async function deleteTemplate(templateId: string): Promise<{ error: strin
     .eq('id', templateId)
     .eq('box_id', profile.box_id)
 
-  if (error) return { error: error.message }
+  if (error) return actionError('deleteTemplate', error)
 
   revalidatePath('/dashboard/programming/library')
   return { error: null }

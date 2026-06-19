@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 
 export type PlanOption = { id: string; name: string; monthly_price_aed: number | null; provider_plan_ref: string | null; is_trial: boolean }
 type State = { error: string | null; plans?: PlanOption[] }
@@ -16,6 +17,6 @@ export async function loadActivePlans(): Promise<State> {
     .eq('box_id', profile.box_id)
     .eq('active', true)
     .order('name')
-  if (error) return { error: error.message }
+  if (error) return actionError('loadActivePlans', error)
   return { error: null, plans: (data ?? []) as PlanOption[] }
 }

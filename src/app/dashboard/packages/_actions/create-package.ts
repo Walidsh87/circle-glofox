@@ -1,6 +1,7 @@
 'use server'
 
 import { requireManagerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validatePackageInput } from '../_lib/validation'
 
@@ -29,7 +30,7 @@ export async function createPackage(prevState: State, formData: FormData): Promi
     price_aed: priceAed,
     expiry_days: expiryDays,
   })
-  if (error) return { error: error.message }
+  if (error) return actionError('createPackage', error)
 
   revalidatePath('/dashboard/packages')
   return { error: null }

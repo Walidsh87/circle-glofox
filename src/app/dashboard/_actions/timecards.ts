@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction, requireOwnerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function clockIn(): Promise<{ error: string | null }> {
@@ -12,7 +13,7 @@ export async function clockIn(): Promise<{ error: string | null }> {
   if (open) return { error: 'Already clocked in.' }
 
   const { error } = await supabase.from('timecards').insert({ box_id: profile.box_id, staff_id: user.id })
-  if (error) return { error: error.message }
+  if (error) return actionError('clockIn', error)
   revalidatePath('/dashboard')
   return { error: null }
 }
@@ -26,7 +27,7 @@ export async function clockOut(): Promise<{ error: string | null }> {
   if (!open) return { error: 'Not clocked in.' }
 
   const { error } = await supabase.from('timecards').update({ clock_out: new Date().toISOString() }).eq('id', open.id).eq('staff_id', user.id)
-  if (error) return { error: error.message }
+  if (error) return actionError('clockOut', error)
   revalidatePath('/dashboard')
   return { error: null }
 }
@@ -42,7 +43,7 @@ export async function closeTimecard(id: string, clockOutIso: string): Promise<{ 
   if (Number.isNaN(end) || end <= Date.parse(card.clock_in)) return { error: 'End time must be after the start.' }
 
   const { error } = await supabase.from('timecards').update({ clock_out: new Date(end).toISOString() }).eq('id', id).eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('closeTimecard', error)
   revalidatePath('/dashboard/reports/payroll')
   return { error: null }
 }
@@ -53,7 +54,7 @@ export async function deleteTimecard(id: string): Promise<{ error: string | null
   const { supabase, profile } = auth
 
   const { error } = await supabase.from('timecards').delete().eq('id', id).eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('deleteTimecard', error)
   revalidatePath('/dashboard/reports/payroll')
   return { error: null }
 }

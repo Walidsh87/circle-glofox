@@ -2,6 +2,7 @@
 
 import { requireUserAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { planChangeTitle, pendingPlanChangeTo } from '@/lib/plan-change'
 import { revalidatePath } from 'next/cache'
 
@@ -55,7 +56,7 @@ export async function requestPlanChange(planId: string): Promise<{ error: string
     created_by: user.id,
     done: false,
   })
-  if (error) return { error: error.message }
+  if (error) return actionError('requestPlanChange', error)
 
   revalidatePath(`/dashboard/members/${user.id}`)
   return { error: null }

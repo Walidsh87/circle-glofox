@@ -78,7 +78,7 @@ test('surfaces an upsert error and does not celebrate', async () => {
   })
   serverCreate.mockResolvedValue(rls)
   const res = await saveLift({ error: null, pr: null }, fd('back_squat', '142.5'))
-  expect(res).toEqual({ error: 'db down', pr: null })
+  expect(res).toEqual({ error: 'Could not save your lift.', pr: null }) // sanitized, not the raw DB message
 })
 
 test('does not claim a PR if the history row (feed/chart source) fails to persist', async () => {

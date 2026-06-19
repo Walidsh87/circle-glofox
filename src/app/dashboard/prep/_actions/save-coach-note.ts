@@ -1,6 +1,7 @@
 'use server'
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateCoachNote } from '../_lib/validation'
 
@@ -19,7 +20,7 @@ export async function saveCoachNote(athleteId: string, note: string): Promise<{ 
       .delete()
       .eq('box_id', profile.box_id)
       .eq('athlete_id', athleteId)
-    if (error) return { error: error.message }
+    if (error) return actionError('saveCoachNote', error)
   } else {
     const { error } = await supabase.from('athlete_coach_notes').upsert(
       {
@@ -31,7 +32,7 @@ export async function saveCoachNote(athleteId: string, note: string): Promise<{ 
       },
       { onConflict: 'box_id,athlete_id' }
     )
-    if (error) return { error: error.message }
+    if (error) return actionError('saveCoachNote', error)
   }
 
   revalidatePath('/dashboard/prep')

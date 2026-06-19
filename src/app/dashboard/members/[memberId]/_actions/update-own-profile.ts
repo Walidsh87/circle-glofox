@@ -2,6 +2,7 @@
 
 import { requireUserAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateOwnProfile, type OwnProfileInput } from '../_lib/own-profile-validation'
 
@@ -33,7 +34,7 @@ export async function updateOwnProfile(input: OwnProfileInput): Promise<{ error:
       allergies: trimmed.allergies,
     })
     .eq('id', user.id)
-  if (error) return { error: error.message }
+  if (error) return actionError('updateOwnProfile', error)
 
   revalidatePath(`/dashboard/members/${user.id}`)
   return { error: null }

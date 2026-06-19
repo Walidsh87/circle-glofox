@@ -2,6 +2,7 @@
 
 import { requireManagerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateHouseholdName } from '../_lib/household-validation'
 
@@ -31,7 +32,7 @@ export async function createHousehold(primaryAthleteId: string, name: string): P
     .single()
   if (insErr || !hh) return { error: 'Could not create the household.' }
   const { error } = await svc.from('profiles').update({ household_id: hh.id }).eq('id', primaryAthleteId).eq('box_id', ctx.boxId)
-  if (error) return { error: error.message }
+  if (error) return actionError('createHousehold', error)
   revalidate()
   return { error: null }
 }
@@ -40,7 +41,7 @@ export async function addToHousehold(householdId: string, athleteId: string): Pr
   const ctx = await ownerBox()
   if ('error' in ctx) return { error: ctx.error }
   const { error } = await service().from('profiles').update({ household_id: householdId }).eq('id', athleteId).eq('box_id', ctx.boxId)
-  if (error) return { error: error.message }
+  if (error) return actionError('addToHousehold', error)
   revalidate()
   return { error: null }
 }
@@ -49,7 +50,7 @@ export async function removeFromHousehold(athleteId: string): Promise<{ error: s
   const ctx = await ownerBox()
   if ('error' in ctx) return { error: ctx.error }
   const { error } = await service().from('profiles').update({ household_id: null }).eq('id', athleteId).eq('box_id', ctx.boxId)
-  if (error) return { error: error.message }
+  if (error) return actionError('removeFromHousehold', error)
   revalidate()
   return { error: null }
 }

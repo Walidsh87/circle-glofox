@@ -2,6 +2,7 @@
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
+import { actionError } from '@/lib/action-error'
 import { logAudit } from '@/lib/audit'
 import { revalidatePath } from 'next/cache'
 
@@ -16,13 +17,13 @@ export async function resetStaffMfa(profileId: string): Promise<{ error: string 
   if (target.role === 'athlete') return { error: 'Not a staff account.' }
 
   const { data, error: listErr } = await service.auth.admin.mfa.listFactors({ userId: profileId })
-  if (listErr) return { error: listErr.message }
+  if (listErr) return actionError('resetStaffMfa', listErr)
   const factors = data?.factors ?? []
   if (factors.length === 0) return { error: 'No MFA enrolled.' }
 
   for (const f of factors) {
     const { error } = await service.auth.admin.mfa.deleteFactor({ id: f.id, userId: profileId })
-    if (error) return { error: error.message }
+    if (error) return actionError('resetStaffMfa', error)
   }
 
   await logAudit(service, {

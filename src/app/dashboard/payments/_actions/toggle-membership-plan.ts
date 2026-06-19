@@ -1,6 +1,7 @@
 'use server'
 
 import { requireOwnerAction } from '@/lib/auth/action-guards'
+import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 
 export async function toggleMembershipPlan(planId: string, active: boolean): Promise<{ error: string | null }> {
@@ -13,7 +14,7 @@ export async function toggleMembershipPlan(planId: string, active: boolean): Pro
     .update({ active })
     .eq('id', planId)
     .eq('box_id', profile.box_id)
-  if (error) return { error: error.message }
+  if (error) return actionError('toggleMembershipPlan', error)
 
   revalidatePath('/dashboard/payments')
   return { error: null }

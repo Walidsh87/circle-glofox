@@ -117,5 +117,5 @@ test('surfaces a DB error from the upsert and does not celebrate', async () => {
   })
   serverCreate.mockResolvedValue(rls)
   const res = await logScore({ error: null, pr: null }, fd({ workoutId: 'w1', scoreValue: '200', rx: true }))
-  expect(res).toEqual({ error: 'db down', pr: null })
+  expect(res).toEqual({ error: 'Could not log your score.', pr: null }) // sanitized, not the raw DB message
 })

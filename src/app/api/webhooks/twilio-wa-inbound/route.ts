@@ -6,6 +6,7 @@ import { normalizeUaePhone } from '@/lib/sms'
 import { messagePreview } from '@/lib/inbox'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30 // cap a hung handler (webhooks finish in <5s); bounds runaway cost
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()

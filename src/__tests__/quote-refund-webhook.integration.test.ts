@@ -136,9 +136,9 @@ describe('stripe webhook — refund dedup + membership flip', () => {
     findProvider.mockResolvedValue(refundEvent(true))
     const svc = makeSupabaseMock({
       results: {
-        invoices: { data: { id: 'inv-1', vat_rate: 5, membership_id: 'mem-1', athlete_id: 'ath-1', invoice_number: 'INV-1', trn_snapshot: null, legal_name_snapshot: 'FF', billing_address_snapshot: null, customer_name_snapshot: 'Sara', customer_email_snapshot: 'sara@x.com' }, error: null },
-        // No existing note → proceed to insert.
-        credit_notes: { data: null, error: null },
+        invoices: { data: { id: 'inv-1', total_aed: 525, vat_rate: 5, membership_id: 'mem-1', athlete_id: 'ath-1', invoice_number: 'INV-1', trn_snapshot: null, legal_name_snapshot: 'FF', billing_address_snapshot: null, customer_name_snapshot: 'Sara', customer_email_snapshot: 'sara@x.com' }, error: null },
+        // credit_notes hit in order: existing-check (none) → prior-notes sum (none) → insert.
+        credit_notes: [{ data: null, error: null }, { data: [], error: null }, { data: null, error: null }],
         boxes: { data: { slug: 'functional-fitness' }, error: null },
         memberships: { data: null, error: null },
       },
@@ -163,8 +163,9 @@ describe('stripe webhook — refund dedup + membership flip', () => {
     findProvider.mockResolvedValue(refundEvent(false))
     const svc = makeSupabaseMock({
       results: {
-        invoices: { data: { id: 'inv-1', vat_rate: 5, membership_id: 'mem-1', athlete_id: 'ath-1', invoice_number: 'INV-1', trn_snapshot: null, legal_name_snapshot: 'FF', billing_address_snapshot: null, customer_name_snapshot: 'Sara', customer_email_snapshot: 'sara@x.com' }, error: null },
-        credit_notes: { data: null, error: null },
+        invoices: { data: { id: 'inv-1', total_aed: 525, vat_rate: 5, membership_id: 'mem-1', athlete_id: 'ath-1', invoice_number: 'INV-1', trn_snapshot: null, legal_name_snapshot: 'FF', billing_address_snapshot: null, customer_name_snapshot: 'Sara', customer_email_snapshot: 'sara@x.com' }, error: null },
+        // credit_notes hit in order: existing-check (none) → prior-notes sum (none) → insert.
+        credit_notes: [{ data: null, error: null }, { data: [], error: null }, { data: null, error: null }],
         boxes: { data: { slug: 'functional-fitness' }, error: null },
         memberships: { data: null, error: null },
       },
@@ -180,5 +181,56 @@ describe('stripe webhook — refund dedup + membership flip', () => {
     expect(svc.builder('credit_notes').insert).toHaveBeenCalled()
     // ...but a partial refund must NOT flip the membership.
     expect(svc.builder('memberships')).toBeUndefined()
+  })
+})
+
+describe('stripe webhook — refund amount cap (sum of credit notes <= invoice total)', () => {
+  beforeEach(() => { findProvider.mockReset(); serviceCreate.mockReset() })
+
+  function refundOf(amountAed: number, refundRef: string) {
+    return { boxId: 'box-1', event: { kind: 'refunded', rawId: 'evt_r', paymentRef: 'pi_r', refundRef, amountAed, fullyRefunded: false, reason: 'requested_by_customer' } }
+  }
+
+  it('clamps the credit note to the invoice remaining balance (prior notes already cover part)', async () => {
+    findProvider.mockResolvedValue(refundOf(50, 're_2')) // would over-credit: 80 prior + 50 = 130 > 100 total
+    const svc = makeSupabaseMock({
+      results: {
+        invoices: { data: { id: 'inv-1', total_aed: 100, vat_rate: 5, membership_id: null, athlete_id: 'ath-1', invoice_number: 'INV-1', trn_snapshot: null, legal_name_snapshot: 'FF', billing_address_snapshot: null, customer_name_snapshot: 'Sara', customer_email_snapshot: 'sara@x.com' }, error: null },
+        // existing-check (none) → prior-notes sum (80 already refunded) → insert
+        credit_notes: [{ data: null, error: null }, { data: [{ total_aed: 80 }], error: null }, { data: null, error: null }],
+        boxes: { data: { slug: 'ff' }, error: null },
+      },
+      rpc: { data: 2, error: null },
+    })
+    serviceCreate.mockReturnValue(svc)
+
+    const POST = await loadPost()
+    const res = await POST(req())
+
+    expect(res.status).toBe(200)
+    // remaining = 100 - 80 = 20, so the note is clamped to 20 (not the 50 Stripe reported).
+    expect(svc.builder('credit_notes').insert).toHaveBeenCalledWith(
+      expect.objectContaining({ total_aed: 20 }),
+    )
+  })
+
+  it('skips inserting a credit note when the invoice is already fully credited', async () => {
+    findProvider.mockResolvedValue(refundOf(30, 're_3'))
+    const svc = makeSupabaseMock({
+      results: {
+        invoices: { data: { id: 'inv-1', total_aed: 100, vat_rate: 5, membership_id: null, athlete_id: 'ath-1', invoice_number: 'INV-1', trn_snapshot: null, legal_name_snapshot: 'FF', billing_address_snapshot: null, customer_name_snapshot: 'Sara', customer_email_snapshot: 'sara@x.com' }, error: null },
+        // existing-check (none) → prior-notes already sum to the full invoice total
+        credit_notes: [{ data: null, error: null }, { data: [{ total_aed: 100 }], error: null }, { data: null, error: null }],
+        boxes: { data: { slug: 'ff' }, error: null },
+      },
+      rpc: { data: 3, error: null },
+    })
+    serviceCreate.mockReturnValue(svc)
+
+    const POST = await loadPost()
+    const res = await POST(req())
+
+    expect(res.status).toBe(200)
+    expect(svc.builder('credit_notes').insert).not.toHaveBeenCalled()
   })
 })

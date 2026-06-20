@@ -2,7 +2,7 @@
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
-import { TIMEZONE_OFFSETS } from '@/lib/timezone'
+import { TIMEZONE_OFFSETS, formatTimezoneOffset } from '@/lib/timezone'
 import { inRamadanWindow } from '@/lib/hijri'
 import { findCoachConflicts } from '@/lib/coach-availability'
 
@@ -17,9 +17,7 @@ function addDays(dateStr: string, days: number): string {
 }
 
 function buildStartsAt(dateStr: string, timeStr: string, offsetHours: number): string {
-  const sign = offsetHours >= 0 ? '+' : '-'
-  const offset = `${sign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`
-  return `${dateStr}T${timeStr}${offset}`
+  return `${dateStr}T${timeStr}${formatTimezoneOffset(offsetHours)}`
 }
 
 type Result = { created: number; skipped: number; error: string | null; ramadanGap: boolean; coachConflicts: number }

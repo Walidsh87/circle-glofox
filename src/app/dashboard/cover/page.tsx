@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { isCoachOff } from '@/lib/coach-availability'
 import { eligibleToClaim } from '@/lib/sub-finder'
+import { minuteOfDay } from '@/lib/timezone'
 import { PostCoverButton } from './_components/post-cover-button'
 import { ClaimCoverButton } from './_components/claim-cover-button'
 
@@ -38,14 +39,13 @@ export default async function CoverPage() {
     supabase.from('sub_requests').select('instance_id').eq('box_id', profile.box_id).eq('status', 'open'),
   ])
 
-  const minuteOfDay = (iso: string) => { const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)).replace(/^24:/, '00:'); const [h, m] = hhmm.split(':'); return Number(h) * 60 + Number(m) }
   const gymDate = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso))
   const fmtDayTime = (iso: string) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso))
 
   const timeOffRows = (myTimeOff ?? []) as { coach_id: string; start_date: string; end_date: string }[]
   const myBusy = [
-    ...((myClasses ?? []) as { starts_at: string; duration_minutes: number }[]).map((c) => ({ date: gymDate(c.starts_at), start: minuteOfDay(c.starts_at), end: minuteOfDay(c.starts_at) + c.duration_minutes })),
-    ...((myPts ?? []) as { scheduled_at: string; duration_minutes: number }[]).map((p) => ({ date: gymDate(p.scheduled_at), start: minuteOfDay(p.scheduled_at), end: minuteOfDay(p.scheduled_at) + p.duration_minutes })),
+    ...((myClasses ?? []) as { starts_at: string; duration_minutes: number }[]).map((c) => ({ date: gymDate(c.starts_at), start: minuteOfDay(c.starts_at, tz), end: minuteOfDay(c.starts_at, tz) + c.duration_minutes })),
+    ...((myPts ?? []) as { scheduled_at: string; duration_minutes: number }[]).map((p) => ({ date: gymDate(p.scheduled_at), start: minuteOfDay(p.scheduled_at, tz), end: minuteOfDay(p.scheduled_at, tz) + p.duration_minutes })),
   ]
   const postedInstanceIds = new Set(((openByInstance ?? []) as { instance_id: string }[]).map((r) => r.instance_id))
 
@@ -56,7 +56,7 @@ export default async function CoverPage() {
     const inst = one(req.class_instances)
     if (!inst) return { ok: false, reason: 'Unavailable' }
     const date = gymDate(inst.starts_at)
-    const startMin = minuteOfDay(inst.starts_at)
+    const startMin = minuteOfDay(inst.starts_at, tz)
     const endMin = startMin + inst.duration_minutes
     const onLeave = isCoachOff(profile.id, date, timeOffRows)
     const busy = myBusy.filter((b) => b.date === date)

@@ -29,14 +29,21 @@ function round2(n: number): number {
 }
 
 /**
+ * Document-number prefix from a gym slug: uppercase, alphanumeric-only,
+ * capped at 12 chars, falling back to 'GYM'. Shared by invoice / credit-note /
+ * quote numbering so the rule can't drift between them.
+ */
+export function formatDocumentPrefix(boxSlug: string): string {
+  return (boxSlug || 'GYM').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) || 'GYM'
+}
+
+/**
  * Format the human-readable invoice number.
  * Format: INV-{boxSlugUpper}-{YYYY}-{seq:0000}
  * Example: INV-CROSSFITDXB-2026-0042
  */
 export function formatInvoiceNumber(boxSlug: string, year: number, sequence: number): string {
-  const prefix = (boxSlug || 'GYM').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) || 'GYM'
-  const seq = String(sequence).padStart(4, '0')
-  return `INV-${prefix}-${year}-${seq}`
+  return `INV-${formatDocumentPrefix(boxSlug)}-${year}-${String(sequence).padStart(4, '0')}`
 }
 
 /**
@@ -44,9 +51,7 @@ export function formatInvoiceNumber(boxSlug: string, year: number, sequence: num
  * Example: CN-CROSSFITDXB-2026-0007
  */
 export function formatCreditNoteNumber(boxSlug: string, year: number, sequence: number): string {
-  const prefix = (boxSlug || 'GYM').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) || 'GYM'
-  const seq = String(sequence).padStart(4, '0')
-  return `CN-${prefix}-${year}-${seq}`
+  return `CN-${formatDocumentPrefix(boxSlug)}-${year}-${String(sequence).padStart(4, '0')}`
 }
 
 /**

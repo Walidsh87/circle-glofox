@@ -1,8 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
+import { groupMembershipsAndTags, type MRow } from '@/lib/broadcast-candidates'
 import type { Candidate } from '@/lib/broadcast-audience'
-
-type MRow = MembershipRow & { athlete_id: string; is_trial: boolean | null }
 
 export async function loadCandidates(
   service: SupabaseClient,
@@ -15,18 +14,10 @@ export async function loadCandidates(
     service.from('member_tags').select('athlete_id, tag').eq('box_id', boxId),
   ])
 
-  const mByAthlete = new Map<string, MRow[]>()
-  for (const m of (memberships ?? []) as MRow[]) {
-    const arr = mByAthlete.get(m.athlete_id) ?? []
-    arr.push(m)
-    mByAthlete.set(m.athlete_id, arr)
-  }
-  const tagsByAthlete = new Map<string, string[]>()
-  for (const t of (tags ?? []) as { athlete_id: string; tag: string }[]) {
-    const arr = tagsByAthlete.get(t.athlete_id) ?? []
-    arr.push(t.tag)
-    tagsByAthlete.set(t.athlete_id, arr)
-  }
+  const { mByAthlete, tagsByAthlete } = groupMembershipsAndTags(
+    (memberships ?? []) as MRow[],
+    (tags ?? []) as { athlete_id: string; tag: string }[],
+  )
 
   return ((members ?? []) as { id: string; full_name: string | null; email: string | null; marketing_opt_out: boolean | null }[]).map((m) => {
     const rows = mByAthlete.get(m.id) ?? []

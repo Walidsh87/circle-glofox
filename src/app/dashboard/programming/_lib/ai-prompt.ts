@@ -1,4 +1,4 @@
-export type ParsePrompt = { system: string; user: string }
+type ParsePrompt = { system: string; user: string }
 
 // Builds the Claude prompt that converts freeform programming into the strict
 // block format `parseBatch` understands. Pure: `today` is injected (defaults to

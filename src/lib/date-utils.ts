@@ -2,3 +2,8 @@
 export function addDays(iso: string, n: number): string {
   return new Date(Date.parse(iso + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10)
 }
+
+/** True if `s` matches the 'YYYY-MM-DD' shape (format only — not a calendar-validity check). */
+export function isIsoDateFormat(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s)
+}

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { validateTemplateInput } from '../_lib/validation'
 import { validateStrengthPrescription, type StrengthSet, type ScalingTier } from '@/app/dashboard/wod/_lib/validation'
 import { actionError } from '@/lib/action-error'
+import { isIsoDateFormat } from '@/lib/date-utils'
 
 export type WodFields = {
   title: string
@@ -17,13 +18,11 @@ export type WodFields = {
   scaling?: ScalingTier[] | null
 }
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
-
 export async function copyWodToDates(fields: WodFields, dates: string[]): Promise<{ error: string | null }> {
   const validationError = validateTemplateInput(fields.title, fields.description, fields.scoringType)
   if (validationError) return { error: validationError }
 
-  const clean = Array.from(new Set((dates ?? []).filter((d) => DATE_RE.test(d))))
+  const clean = Array.from(new Set((dates ?? []).filter(isIsoDateFormat)))
   if (clean.length === 0) return { error: 'Pick at least one date to copy to.' }
 
   const lift = fields.strengthLift?.trim() || ''

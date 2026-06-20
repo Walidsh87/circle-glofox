@@ -39,6 +39,10 @@ import { ChecklistCard } from './_components/checklist-card'
 import { mergeChecklist, type ChecklistKind } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { getServerT } from '@/lib/i18n/server'
+import { formatDate } from './_lib/profile-format'
+import { LiftsScoresCards } from './_components/lifts-scores-cards'
+import { RecentBookingsCard } from './_components/recent-bookings-card'
+import { InvoicesCard } from './_components/invoices-card'
 
 const ROLE_TONES: Record<string, 'accent' | 'ok' | 'neutral'> = {
   owner: 'accent',
@@ -50,32 +54,6 @@ const STATUS_TONES: Record<string, 'ok' | 'warn' | 'danger'> = {
   paid: 'ok',
   unpaid: 'warn',
   overdue: 'danger',
-}
-
-const LIFT_LABELS: Record<string, string> = {
-  back_squat: 'Back Squat', front_squat: 'Front Squat', deadlift: 'Deadlift',
-  clean: 'Clean', clean_and_jerk: 'Clean & Jerk', snatch: 'Snatch',
-  overhead_squat: 'OHS', shoulder_press: 'Press', push_press: 'Push Press',
-  thruster: 'Thruster', bench_press: 'Bench Press',
-}
-
-function formatLiftName(name: string): string {
-  return LIFT_LABELS[name] ?? name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-function formatScore(value: number, scoringType: string): string {
-  if (scoringType === 'time') {
-    const m = Math.floor(value / 60)
-    const s = Math.round(value % 60)
-    return `${m}:${String(s).padStart(2, '0')}`
-  }
-  if (scoringType === 'load_kg') return `${value} kg`
-  return `${value} reps`
-}
-
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    .format(new Date(iso))
 }
 
 function ageFromDob(dob: string, today: string): number | null {
@@ -389,8 +367,6 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const consistencyBadge = currentMilestone(consistencyTotal)
   const consistencyNext = nextMilestone(consistencyTotal)
 
-  const rowClass = 'border-b border-line last:border-0'
-
   return (
     <DashboardShell
       active="members"
@@ -638,143 +614,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {/* 1RMs + Recent Scores */}
-        <div className="mb-4 grid gap-4 md:grid-cols-2">
-          {/* 1RM Lifts */}
-          <Card className="overflow-hidden">
-            <div className="border-b border-line bg-surface-2 px-4 py-3">
-              <span className="text-[13px] font-semibold text-ink">{t('profile.lifts.section')}</span>
-            </div>
-            {lifts && lifts.length > 0 ? (
-              <table className="w-full">
-                <tbody>
-                  {lifts.map((lift) => (
-                    <tr key={lift.lift_name} className={rowClass}>
-                      <td className="px-4 py-2.5 text-[13.5px] text-ink-2">{formatLiftName(lift.lift_name)}</td>
-                      <td className="px-4 py-2.5 text-end">
-                        <span className="font-mono text-[15px] font-bold text-ink">
-                          {(lift.one_rm_grams / 1000).toFixed(1)} kg
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="px-4 py-7 text-center text-[13px] text-ink-3">{t('profile.lifts.empty')}</div>
-            )}
-          </Card>
-
-          {/* Recent WOD Scores */}
-          <Card className="overflow-hidden">
-            <div className="border-b border-line bg-surface-2 px-4 py-3">
-              <span className="text-[13px] font-semibold text-ink">{t('profile.scores.section')}</span>
-            </div>
-            {scores && scores.length > 0 ? (
-              <table className="w-full">
-                <tbody>
-                  {scores.map((s, i) => {
-                    const wod = Array.isArray(s.workouts) ? s.workouts[0] : s.workouts
-                    return (
-                      <tr key={i} className={rowClass}>
-                        <td className="px-4 py-2.5 text-[13px] text-ink-2">{wod?.title ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-end">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {s.rx && (
-                              <span className="rounded bg-ok-soft px-1 py-px font-mono text-[9.5px] font-bold text-ok">{t('common.rx')}</span>
-                            )}
-                            <span className="font-mono text-sm font-bold text-ink">
-                              {wod ? formatScore(s.score_value, wod.scoring_type) : s.score_value}
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="px-4 py-7 text-center text-[13px] text-ink-3">{t('profile.scores.empty')}</div>
-            )}
-          </Card>
-        </div>
+        <LiftsScoresCards lifts={lifts} scores={scores} />
 
         {/* Recent Bookings */}
-        <Card className="overflow-hidden">
-          <div className="flex items-center justify-between border-b border-line bg-surface-2 px-4 py-3">
-            <span className="text-[13px] font-semibold text-ink">{t('profile.bookings.section')}</span>
-          </div>
-          {bookings && bookings.length > 0 ? (
-            <table className="w-full">
-              <tbody>
-                {bookings.map((b) => {
-                  const inst = Array.isArray(b.class_instances) ? b.class_instances[0] : b.class_instances
-                  const tmpl = inst ? (Array.isArray(inst.class_templates) ? inst.class_templates[0] : inst.class_templates) : null
-                  const startsAt = inst?.starts_at ? new Date(inst.starts_at) : null
-                  return (
-                    <tr key={b.id} className={rowClass}>
-                      <td className="px-4 py-2.5 text-[13px] text-ink-2">{tmpl?.name ?? '—'}</td>
-                      <td className="px-4 py-2.5 text-end">
-                        <span className="font-mono text-xs text-ink-3">
-                          {startsAt ? formatDate(startsAt.toISOString()) : '—'}
-                        </span>
-                      </td>
-                      <td className="w-[60px] px-4 py-2.5 text-end">
-                        {b.checked_in && <span className="text-[11.5px] font-semibold text-ok">{t('profile.bookings.checkedIn')}</span>}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <div className="px-4 py-7 text-center text-[13px] text-ink-3">{t('profile.bookings.empty')}</div>
-          )}
-        </Card>
+        <RecentBookingsCard bookings={bookings} />
 
         {/* Invoices */}
-        {(invoices ?? []).length > 0 && (
-          <Card className="mt-5 overflow-hidden">
-            <div className="border-b border-line bg-surface-2 px-4 py-3">
-              <span className="text-[13px] font-semibold text-ink">{t('profile.invoices.section')}</span>
-            </div>
-            <table className="w-full">
-              <tbody>
-                {(invoices ?? []).map((inv) => {
-                  const cns = (inv as { credit_notes?: { total_aed: number }[] }).credit_notes ?? []
-                  const refunded = cns.reduce((s, c) => s + Number(c.total_aed), 0)
-                  return (
-                    <tr key={inv.id} className={rowClass}>
-                      <td className="px-4 py-2.5">
-                        <Link
-                          href={`/dashboard/invoices/${inv.id}`}
-                          className="font-mono text-xs text-ink transition-colors hover:text-accent-ink"
-                        >
-                          {inv.invoice_number}
-                        </Link>
-                        {refunded > 0 && (
-                          <Badge tone="warn" className="ms-2 text-[10.5px]">
-                            {refunded >= Number(inv.total_aed) - 0.001 ? t('profile.invoices.refunded') : t('profile.invoices.partialRefund')}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-end">
-                        <span className="font-mono text-xs text-ink-3">{formatDate(inv.issued_at)}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-end tabular-nums">
-                        <span className="text-[13px] font-semibold text-ink">
-                          AED {Number(inv.total_aed).toFixed(2)}
-                        </span>
-                        {refunded > 0 && (
-                          <div className="text-[11px] text-warn">−AED {refunded.toFixed(2)}</div>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </Card>
-        )}
+        <InvoicesCard invoices={invoices} />
 
         {/* Packages & credits — owner only */}
         {isOwner && (

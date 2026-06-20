@@ -53,6 +53,7 @@ export const en = {
     my1rms: 'My 1RMs',
     skills: 'Skills',
     goals: 'My goals',
+    program: 'My program',
     activityFeed: 'Activity Feed',
     committedClub: 'Committed Club',
     achievements: 'Achievements',

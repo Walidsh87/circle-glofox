@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`081` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`082` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,13 @@ Reverse procedures for migrations `008`–`081` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 082_member_programs
+```sql
+drop table if exists program_exercises;   -- ⚠️ structured program exercises
+drop table if exists program_sessions;    -- ⚠️ program sessions
+drop table if exists member_programs;      -- ⚠️ member training programs
+```
 
 ### 081_member_goals
 ```sql

@@ -55,6 +55,7 @@ export const ar: typeof en = {
     my1rms: 'أرقامي القياسية 1RM',
     skills: 'المهارات',
     goals: 'أهدافي',
+    program: 'برنامجي',
     activityFeed: 'سجلّ النشاط',
     committedClub: 'نادي الملتزمين',
     achievements: 'الإنجازات',

@@ -72,6 +72,31 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  member_programs: async () => {
+    // Owned by a NON-athlete profile → probe reflects pure role access (staff_read).
+    const r = await client.query(
+      `insert into member_programs (box_id, athlete_id, title) values ($1, $2, 'Probe program') returning id`,
+      [BOX_T, roleProfile.owner]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
+  program_sessions: async () => {
+    const p = await client.query(`insert into member_programs (box_id, athlete_id, title) values ($1, $2, 'Probe program S') returning id`, [BOX_T, roleProfile.owner]);
+    const r = await client.query(
+      `insert into program_sessions (box_id, athlete_id, program_id, client_uid, title) values ($1, $2, $3, gen_random_uuid(), 'Probe session') returning id`,
+      [BOX_T, roleProfile.owner, p.rows[0].id]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
+  program_exercises: async () => {
+    const p = await client.query(`insert into member_programs (box_id, athlete_id, title) values ($1, $2, 'Probe program E') returning id`, [BOX_T, roleProfile.owner]);
+    const s = await client.query(`insert into program_sessions (box_id, athlete_id, program_id, client_uid, title) values ($1, $2, $3, gen_random_uuid(), 'Probe session E') returning id`, [BOX_T, roleProfile.owner, p.rows[0].id]);
+    const r = await client.query(
+      `insert into program_exercises (box_id, athlete_id, session_id, client_uid, name) values ($1, $2, $3, gen_random_uuid(), 'Probe exercise') returning id`,
+      [BOX_T, roleProfile.owner, s.rows[0].id]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   sub_requests: async () => {
     // class_instances.template_id/coach_id are nullable → minimal instance, then a sub_request
     // posted by the coach profile, NOT claimed (claimed_by null) so visibility reflects ROLE access.

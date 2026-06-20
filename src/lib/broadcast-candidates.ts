@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import type { Candidate } from '@/lib/broadcast-audience'
 
@@ -29,6 +30,23 @@ export function groupMembershipsAndTags(
     tagsByAthlete.set(t.athlete_id, arr)
   }
   return { mByAthlete, tagsByAthlete }
+}
+
+/**
+ * Fetch a box's membership + tag rows and return them grouped by athlete. The
+ * broadcast and SMS loaders each fetch their own `profiles` row (the SMS one also
+ * selects `phone`) and pair it with this; sharing the membership/tag query keeps
+ * the two box-scoped reads identical.
+ */
+export async function loadGroupedMemberships(service: SupabaseClient, boxId: string) {
+  const [{ data: memberships }, { data: tags }] = await Promise.all([
+    service.from('memberships').select('athlete_id, payment_status, end_date, frozen_from, frozen_until, is_trial').eq('box_id', boxId),
+    service.from('member_tags').select('athlete_id, tag').eq('box_id', boxId),
+  ])
+  return groupMembershipsAndTags(
+    (memberships ?? []) as MRow[],
+    (tags ?? []) as { athlete_id: string; tag: string }[],
+  )
 }
 
 /**

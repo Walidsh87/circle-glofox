@@ -1,18 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useT } from '@/components/i18n/locale-provider'
+import { useCopy } from '@/hooks/use-copy'
 
 export function ReferCard({ link, referred, joined }: { link: string | null; referred: number; joined: number }) {
   const t = useT()
-  const [copied, setCopied] = useState(false)
-  function copy() {
-    if (!link) return
-    navigator.clipboard.writeText(link)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
+  const { copied, copy } = useCopy()
   if (!link) return null
   return (
     <div className="flex flex-col gap-2.5">
@@ -25,7 +19,7 @@ export function ReferCard({ link, referred, joined }: { link: string | null; ref
           value={link}
           className="min-w-[200px] flex-1 rounded-lg border border-line bg-canvas px-3 py-2 text-xs text-ink-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
-        <Button variant="outline" size="sm" onClick={copy}>
+        <Button variant="outline" size="sm" onClick={() => copy(link)}>
           {copied ? t('profile.refer.copied') : t('profile.refer.copyButton')}
         </Button>
       </div>

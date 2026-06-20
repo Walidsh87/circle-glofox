@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useCopy } from '@/hooks/use-copy'
 import { loadMemberContext } from '../_actions/load-member-context'
 import { loadActivePackages, type PackageOption } from '../_actions/load-active-packages'
 import { deskRecordCash, deskPaymentLink, deskSellPackage } from '../_actions/desk-money'
@@ -20,6 +21,7 @@ export function PaymentActions({ athleteId }: { athleteId: string }) {
   const [linkUrl, setLinkUrl] = useState<string | null>(null)
   const [linkQr, setLinkQr] = useState<string | null>(null)
   const [selectedPackageId, setSelectedPackageId] = useState('')
+  const { copy } = useCopy()
 
   useEffect(() => {
     Promise.all([loadMemberContext(athleteId), loadActivePackages()]).then(([ctx, pkgs]) => {
@@ -152,7 +154,7 @@ export function PaymentActions({ athleteId }: { athleteId: string }) {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => navigator.clipboard.writeText(linkUrl)}
+              onClick={() => copy(linkUrl)}
             >
               Copy
             </Button>

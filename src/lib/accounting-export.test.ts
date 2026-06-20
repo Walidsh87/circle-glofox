@@ -2,10 +2,21 @@ import { describe, it, expect } from 'vitest'
 import {
   fmtMoney,
   fmtInvoiceDate,
+  fmtDateDMY,
+  csvSafe,
   toAccountingRow,
   buildAccountingExport,
+  buildXeroCsv,
+  buildQuickBooksCsv,
+  buildZohoInvoicesCsv,
+  buildZohoCreditNotesCsv,
   ACCOUNTING_HEADERS,
+  XERO_HEADERS,
+  QUICKBOOKS_HEADERS,
+  ZOHO_INVOICE_HEADERS,
+  ZOHO_CREDIT_NOTE_HEADERS,
   type InvoiceRecord,
+  type CreditNoteRecord,
 } from './accounting-export'
 
 const makeInvoice = (overrides: Partial<InvoiceRecord> = {}): InvoiceRecord => ({
@@ -19,6 +30,20 @@ const makeInvoice = (overrides: Partial<InvoiceRecord> = {}): InvoiceRecord => (
   vat_aed: '47.62',
   total_aed: '1000.00',
   trn_snapshot: '100123456700003',
+  ...overrides,
+})
+
+const makeCreditNote = (overrides: Partial<CreditNoteRecord> = {}): CreditNoteRecord => ({
+  credit_note_number: 'CN-001',
+  issued_at: '2026-03-19T10:00:00Z',
+  invoice_number_snapshot: 'INV-001',
+  customer_name_snapshot: 'Ahmed Al-Rashid',
+  customer_email_snapshot: 'ahmed@example.com',
+  reason: 'Overcharge',
+  subtotal_aed: '100.00',
+  vat_rate: '5.00',
+  vat_aed: '5.00',
+  total_aed: '105.00',
   ...overrides,
 })
 
@@ -133,5 +158,165 @@ describe('buildAccountingExport', () => {
     const { rows, totals } = buildAccountingExport(invoices, 'Asia/Dubai')
     expect(rows).toHaveLength(3)
     expect(totals.count).toBe(3)
+  })
+})
+
+describe('fmtDateDMY', () => {
+  it('formats a UTC timestamp as DD/MM/YYYY in the gym timezone', () => {
+    expect(fmtDateDMY('2026-03-19T10:00:00Z', 'Asia/Dubai')).toBe('19/03/2026')
+  })
+
+  it('rolls to the next day when the UTC time crosses midnight in-zone', () => {
+    // 2026-03-19 22:30 UTC → 2026-03-20 02:30 in Asia/Dubai (+4)
+    expect(fmtDateDMY('2026-03-19T22:30:00Z', 'Asia/Dubai')).toBe('20/03/2026')
+  })
+})
+
+describe('csvSafe', () => {
+  it.each(['=cmd', '+1', '-1', '@x', '\tx', '\rx'])('neutralizes formula-trigger cell %j', (v) => {
+    expect(csvSafe(v)).toBe(`'${v}`)
+  })
+
+  it('leaves a normal value untouched', () => {
+    expect(csvSafe('Ahmed Al-Rashid')).toBe('Ahmed Al-Rashid')
+  })
+
+  it('leaves an empty string untouched', () => {
+    expect(csvSafe('')).toBe('')
+  })
+})
+
+describe('buildXeroCsv', () => {
+  it('emits the Xero header set', () => {
+    expect(buildXeroCsv([], [], 'Asia/Dubai').headers).toEqual(XERO_HEADERS)
+  })
+
+  it('maps an invoice to a NET line with defaults (account 200, 5% VAT on Income, AED, DD/MM/YYYY)', () => {
+    const { rows } = buildXeroCsv([makeInvoice()], [], 'Asia/Dubai')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toEqual([
+      'Ahmed Al-Rashid',
+      'ahmed@example.com',
+      'INV-001',
+      '',
+      '19/03/2026',
+      '19/03/2026',
+      'Monthly membership',
+      '1',
+      '952.38', // NET, not the 1000.00 gross — Xero adds the VAT itself
+      '200',
+      '5% (VAT on Income)',
+      'AED',
+    ])
+  })
+
+  it('emits credit notes as NEGATIVE net lines in the same file, referencing the original invoice', () => {
+    const { rows } = buildXeroCsv([makeInvoice()], [makeCreditNote()], 'Asia/Dubai')
+    expect(rows).toHaveLength(2)
+    const cn = rows[1]
+    expect(cn[2]).toBe('CN-001')
+    expect(cn[3]).toBe('INV-001') // Reference → original invoice number
+    expect(cn[6]).toBe('Refund: Overcharge')
+    expect(cn[8]).toBe('-100.00') // negative net
+  })
+
+  it('honours configurable taxType / accountCode / currency', () => {
+    const { rows } = buildXeroCsv([makeInvoice()], [], 'Asia/Dubai', {
+      taxType: 'Standard Rated (5%)',
+      accountCode: '201',
+      currency: 'USD',
+    })
+    expect(rows[0][9]).toBe('201')
+    expect(rows[0][10]).toBe('Standard Rated (5%)')
+    expect(rows[0][11]).toBe('USD')
+  })
+
+  it('falls back to a generic description when the invoice has none', () => {
+    const { rows } = buildXeroCsv([makeInvoice({ description: null })], [], 'Asia/Dubai')
+    expect(rows[0][6]).toBe('Sale')
+  })
+
+  it('neutralizes CSV injection in the customer name', () => {
+    const { rows } = buildXeroCsv([makeInvoice({ customer_name_snapshot: '=HYPERLINK("evil")' })], [], 'Asia/Dubai')
+    expect(rows[0][0]).toBe('\'=HYPERLINK("evil")')
+  })
+})
+
+describe('buildQuickBooksCsv', () => {
+  it('emits the QuickBooks header set', () => {
+    expect(buildQuickBooksCsv([], 'Asia/Dubai').headers).toEqual(QUICKBOOKS_HEADERS)
+  })
+
+  it('maps an invoice to a single NET line with a configurable tax code', () => {
+    const { rows } = buildQuickBooksCsv([makeInvoice()], 'Asia/Dubai')
+    expect(rows[0]).toEqual([
+      'INV-001',
+      'Ahmed Al-Rashid',
+      '19/03/2026',
+      '19/03/2026',
+      'Due on receipt',
+      'Monthly membership',
+      'Monthly membership',
+      '1',
+      '952.38',
+      '952.38',
+      '5% VAT',
+    ])
+  })
+
+  it('honours a configurable tax code', () => {
+    const { rows } = buildQuickBooksCsv([makeInvoice()], 'Asia/Dubai', { taxCode: 'SR' })
+    expect(rows[0][10]).toBe('SR')
+  })
+})
+
+describe('buildZohoInvoicesCsv', () => {
+  it('emits the Zoho invoice header set', () => {
+    expect(buildZohoInvoicesCsv([], 'Asia/Dubai').headers).toEqual(ZOHO_INVOICE_HEADERS)
+  })
+
+  it('maps an invoice to a NET line with ISO dates and a Standard Rate / 5% tax pair', () => {
+    const { rows } = buildZohoInvoicesCsv([makeInvoice()], 'Asia/Dubai')
+    expect(rows[0]).toEqual([
+      'INV-001',
+      '2026-03-19',
+      '2026-03-19',
+      'Ahmed Al-Rashid',
+      'Monthly membership',
+      'Monthly membership',
+      '1',
+      '952.38',
+      '952.38',
+      'Standard Rate',
+      '5',
+      '952.38',
+      '1000.00',
+      'sent',
+    ])
+  })
+})
+
+describe('buildZohoCreditNotesCsv', () => {
+  it('emits the Zoho credit-note header set', () => {
+    expect(buildZohoCreditNotesCsv([], 'Asia/Dubai').headers).toEqual(ZOHO_CREDIT_NOTE_HEADERS)
+  })
+
+  it('maps a credit note to a POSITIVE line referencing the original invoice', () => {
+    const { rows } = buildZohoCreditNotesCsv([makeCreditNote()], 'Asia/Dubai')
+    expect(rows[0]).toEqual([
+      'CN-001',
+      '2026-03-19',
+      'Ahmed Al-Rashid',
+      'INV-001',
+      'Refund',
+      'Overcharge',
+      '1',
+      '100.00',
+      '100.00',
+      'Standard Rate',
+      '5',
+      '100.00',
+      '105.00',
+    ])
   })
 })

@@ -41,6 +41,21 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  credit_notes: async () => {
+    // credit_notes.invoice_id is NOT NULL (FK → invoices) → seed a parent invoice first.
+    // athlete_id left NULL so visibility reflects ROLE access, not row-ownership.
+    const inv = await client.query(
+      `insert into invoices (box_id, sequence, invoice_number, subtotal_aed, vat_rate, vat_aed, total_aed)
+       values ($1, 999998, 'PROBE-CN-PARENT', 100, 5, 5, 105) returning id`,
+      [BOX_T]
+    );
+    const r = await client.query(
+      `insert into credit_notes (box_id, invoice_id, sequence, credit_note_number, subtotal_aed, vat_rate, vat_aed, total_aed, invoice_number_snapshot)
+       values ($1, $2, 999998, 'PROBE-CN', 100, 5, 5, 105, 'PROBE-CN-PARENT') returning id`,
+      [BOX_T, inv.rows[0].id]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   sub_requests: async () => {
     // class_instances.template_id/coach_id are nullable → minimal instance, then a sub_request
     // posted by the coach profile, NOT claimed (claimed_by null) so visibility reflects ROLE access.

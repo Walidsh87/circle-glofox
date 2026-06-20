@@ -4,8 +4,6 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { EditMemberForm } from './_components/edit-member-form'
 import { SellPackage } from './_components/sell-package'
@@ -39,22 +37,11 @@ import { ChecklistCard } from './_components/checklist-card'
 import { mergeChecklist, type ChecklistKind } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { getServerT } from '@/lib/i18n/server'
-import { formatDate } from './_lib/profile-format'
+import { ProfileHeaderCard } from './_components/profile-header-card'
+import { PdplExportCard } from './_components/pdpl-export-card'
 import { LiftsScoresCards } from './_components/lifts-scores-cards'
 import { RecentBookingsCard } from './_components/recent-bookings-card'
 import { InvoicesCard } from './_components/invoices-card'
-
-const ROLE_TONES: Record<string, 'accent' | 'ok' | 'neutral'> = {
-  owner: 'accent',
-  coach: 'ok',
-  athlete: 'neutral',
-}
-
-const STATUS_TONES: Record<string, 'ok' | 'warn' | 'danger'> = {
-  paid: 'ok',
-  unpaid: 'warn',
-  overdue: 'danger',
-}
 
 function ageFromDob(dob: string, today: string): number | null {
   const b = Date.parse(dob + 'T00:00:00Z'), t = Date.parse(today + 'T00:00:00Z')
@@ -406,49 +393,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     >
       <div className="max-w-[800px]">
         {/* Profile card */}
-        <Card className="mb-4 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="mb-2.5 flex items-center gap-2.5">
-                <span className="font-display text-xl font-bold text-ink">{member.full_name}</span>
-                <Badge tone={ROLE_TONES[member.role] ?? 'neutral'} className="capitalize">
-                  {member.role}
-                </Badge>
-              </div>
-              <div className="flex flex-wrap gap-4">
-                {member.email && <span className="text-[13.5px] text-ink-2">{member.email}</span>}
-                {member.phone && <span className="font-mono text-[13px] text-ink-3">{member.phone}</span>}
-                <span className="text-xs text-ink-3">{t('profile.joined', { date: formatDate(member.created_at) })}</span>
-              </div>
-            </div>
-
-            {activeMembership && (
-              <div className="text-end">
-                <div className="mb-1 text-[13px] font-semibold text-ink">{activeMembership.plan_name}</div>
-                <div className="flex items-center justify-end gap-2">
-                  {activeMembership.is_trial && (
-                    <span className="font-mono text-[11px] font-bold text-accent-ink">
-                      {t('profile.trial')}{activeMembership.end_date ? ` · ${t('profile.trialEnds', { date: activeMembership.end_date })}` : ''}
-                    </span>
-                  )}
-                  {activeMembership.monthly_price_aed && (
-                    <span className="font-mono text-[13px] text-ink-3">
-                      {t('profile.monthlyPrice', { price: activeMembership.monthly_price_aed })}
-                    </span>
-                  )}
-                  <Badge tone={STATUS_TONES[activeMembership.payment_status] ?? 'warn'} className="capitalize">
-                    {activeMembership.payment_status}
-                  </Badge>
-                </div>
-                {activeMembership.last_paid_date && (
-                  <div className="mt-1 font-mono text-[11.5px] text-ink-3">
-                    {t('profile.lastPaid', { date: activeMembership.last_paid_date })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </Card>
+        <ProfileHeaderCard member={member} activeMembership={activeMembership} />
 
         {viewer.role === 'owner' && activeMembership && (
           <Section label="Membership lifecycle">
@@ -640,57 +585,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         )}
 
         {/* PDPL Data Export — owner only */}
-        {viewer.role === 'owner' && (
-          <Card className="mt-5 p-5">
-            <div className="mb-3.5 flex items-start justify-between gap-4">
-              <div>
-                <div className="mb-0.5 text-[13px] font-semibold text-ink">PDPL Data Export</div>
-                <div className="text-[11.5px] text-ink-3">
-                  UAE Federal Decree-Law No. 45 of 2021 — data subject access request
-                </div>
-              </div>
-              <a
-                href={`/api/pdpl/export/${params.memberId}`}
-                download
-                className={cn(buttonVariants({ size: 'sm' }), 'whitespace-nowrap')}
-              >
-                Export JSON ↓
-              </a>
-            </div>
-
-            <div className="mt-1.5 border-t border-line pt-3">
-              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-3">
-                Export history
-              </div>
-              {(pdplExports ?? []).length === 0 ? (
-                <div className="text-xs text-ink-3">No exports yet.</div>
-              ) : (
-                (pdplExports ?? []).map((e, i) => {
-                  const exporter = (Array.isArray(e.exporter) ? e.exporter[0] : e.exporter) as { full_name?: string } | null
-                  return (
-                    <div
-                      key={i}
-                      className={cn(
-                        'grid grid-cols-[1fr_auto] gap-2.5 py-1.5 text-xs text-ink-2',
-                        i < (pdplExports ?? []).length - 1 && 'border-b border-line'
-                      )}
-                    >
-                      <div>
-                        <span className="text-ink">{exporter?.full_name ?? 'Owner'}</span>
-                        {e.ip_address && (
-                          <span className="ml-2 font-mono text-[11px] text-ink-faint">{e.ip_address}</span>
-                        )}
-                      </div>
-                      <div className="font-mono text-[11px] text-ink-faint">
-                        {new Date(e.exported_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-          </Card>
-        )}
+        {viewer.role === 'owner' && <PdplExportCard memberId={params.memberId} exports={pdplExports} />}
       </div>
     </DashboardShell>
   )

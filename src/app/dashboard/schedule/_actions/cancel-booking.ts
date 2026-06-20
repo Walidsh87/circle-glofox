@@ -10,6 +10,7 @@ import { isLateCancel } from '@/lib/booking-policy'
 import { resolveBookingTarget } from '@/lib/family'
 import { getT, resolveLocale } from '@/lib/i18n'
 import { actionError } from '@/lib/action-error'
+import { emitWebhook } from '@/lib/webhooks/emit'
 
 export async function cancelBooking(instanceId: string, forAthleteId?: string): Promise<{ error: string | null; forfeited?: boolean }> {
   const supabase = await createClient()
@@ -47,7 +48,7 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
   // Late-cancel policy: cancelling within late_cancel_hours of the start forfeits the credit.
   const { data: policyInstance } = await supabase
     .from('class_instances')
-    .select('starts_at, boxes(late_cancel_hours)')
+    .select('starts_at, box_id, boxes(late_cancel_hours)')
     .eq('id', instanceId)
     .single()
   const policyBox = Array.isArray(policyInstance?.boxes) ? policyInstance.boxes[0] : policyInstance?.boxes
@@ -122,6 +123,10 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
     }
   } catch (e) {
     console.error('waitlist notify failed (cancel still succeeded):', e)
+  }
+
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY && policyInstance?.box_id) {
+    await emitWebhook(createServiceClient(), policyInstance.box_id as string, 'booking.cancelled', { class_instance_id: instanceId, member_id: targetId })
   }
 
   revalidatePath('/dashboard/schedule')

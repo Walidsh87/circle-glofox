@@ -9,6 +9,10 @@ const schema = z.object({
   CRON_SECRET: z.string().min(16),
   RESEND_FROM_EMAIL: z.string().email().default('onboarding@resend.dev'),
   PORTAL_SIGN_SECRET: z.string().min(32),
+  // Optional: server pepper mixed into public-API key hashing (#65). When absent
+  // the public REST API is inert (keys can't be issued/authenticated). Rotating
+  // it invalidates all issued keys.
+  API_KEY_PEPPER: z.string().min(32).optional(),
   // Optional: enables the AI workout parser (#16). Absent → feature reports "not configured".
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   // Optional: Resend webhook signing secret. Enables email open/click analytics (#41).
@@ -36,6 +40,7 @@ export const env = schema.parse({
   CRON_SECRET: process.env.CRON_SECRET,
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
   PORTAL_SIGN_SECRET: process.env.PORTAL_SIGN_SECRET,
+  API_KEY_PEPPER: process.env.API_KEY_PEPPER,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,

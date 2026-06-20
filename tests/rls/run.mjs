@@ -315,6 +315,34 @@ async function main() {
     check('invoices has the UNIQUE(provider_charge_ref) idempotency backstop (mig 077)', invUniq === 1, `got ${invUniq}`)
   }
 
+  // ============================================================
+  // PUBLIC API (#65): api_keys must be SERVICE-ROLE-ONLY — RLS on, no policies —
+  // so the anon/authenticated client can never read or forge keys. (The per-box
+  // tenant scoping of the API itself is app-layer + integration-tested.)
+  // ============================================================
+  console.log('\n=== public API: api_keys is not client-readable (mig 078) ===')
+  {
+    await client.query(
+      `insert into api_keys(id, box_id, label, key_hash, key_prefix, scopes)
+       values ('dddddddd-0000-0000-0000-000000000001', $1, 'probe', 'deadbeef', 'ck_live_aaaa', '{members:read}')`,
+      [BOX_A],
+    )
+    const rlsOn = await scalar(`select relrowsecurity from pg_class where relname = 'api_keys'`)
+    check('api_keys has RLS enabled', rlsOn === true, `got ${rlsOn}`)
+    const polCount = await scalar(`select count(*)::int n from pg_policies where tablename = 'api_keys'`)
+    check('api_keys has NO policies (service-role only)', polCount === 0, `got ${polCount}`)
+    await asUser(OWNER_A, async () => {
+      check('api_keys: authenticated owner sees 0 rows (RLS denies, no policy)', (await countWhere('api_keys', 'box_id', BOX_A)) === 0)
+    })
+
+    // The other public-API stores are service-role-only too (migs 079, 080).
+    for (const t of ['api_idempotency_keys', 'webhook_subscriptions', 'webhook_deliveries']) {
+      const rls = await scalar(`select relrowsecurity from pg_class where relname = '${t}'`)
+      const pol = await scalar(`select count(*)::int n from pg_policies where tablename = '${t}'`)
+      check(`${t} is service-role-only (RLS on, no policies)`, rls === true && pol === 0, `rls=${rls} policies=${pol}`)
+    }
+  }
+
   const total = pass + fail
   console.log('\n==============================================================')
   if (fail === 0) {

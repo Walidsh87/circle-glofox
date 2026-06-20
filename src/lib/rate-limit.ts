@@ -44,6 +44,20 @@ const actionLimiter =
       })
     : null
 
+// Per-API-KEY limiter for the public REST API (#65). Far more generous than the
+// per-user action throttle — integrations poll/sync legitimately — but still
+// caps a runaway/abusive key. Keyed `api:${keyId}` so one tenant can't starve
+// another. No-op (allows) when Redis is absent, like the others.
+const apiLimiter =
+  url && token
+    ? new Ratelimit({
+        redis: new Redis({ url, token }),
+        limiter: Ratelimit.slidingWindow(600, '60 s'),
+        prefix: 'circle-rl-api',
+        analytics: false,
+      })
+    : null
+
 /** Minimal limiter shape — so the decision logic can be unit-tested with a fake. */
 type ActionLimiter = { limit: (key: string) => Promise<{ success: boolean }> }
 
@@ -70,4 +84,9 @@ export async function evaluateLimit(limiter: ActionLimiter | null, key: string):
  */
 export function checkActionRateLimit(key: string): Promise<boolean> {
   return evaluateLimit(actionLimiter, key)
+}
+
+/** Throttle a public-API request per key (`api:${keyId}`). Fail-open. */
+export function checkApiRateLimit(key: string): Promise<boolean> {
+  return evaluateLimit(apiLimiter, key)
 }

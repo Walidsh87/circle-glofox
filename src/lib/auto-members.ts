@@ -3,6 +3,16 @@ import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status
 import type { AutoMember } from '@/lib/automations'
 
 type MRow = MembershipRow & { athlete_id: string; is_trial: boolean | null }
+type ProfileRow = {
+  id: string
+  full_name: string | null
+  email: string | null
+  phone: string | null
+  marketing_opt_out: boolean | null
+  created_at: string
+  date_of_birth: string | null
+  unsubscribe_token: string
+}
 
 export async function loadAutoMembers(
   service: SupabaseClient,
@@ -33,7 +43,7 @@ export async function loadAutoMembers(
   }
 
   const tokenByAthlete = new Map<string, string>()
-  const members: AutoMember[] = ((profiles ?? []) as { id: string; full_name: string | null; email: string | null; phone: string | null; marketing_opt_out: boolean | null; created_at: string; date_of_birth: string | null; unsubscribe_token: string }[]).map((p) => {
+  const members: AutoMember[] = ((profiles ?? []) as ProfileRow[]).map((p) => {
     tokenByAthlete.set(p.id, p.unsubscribe_token)
     const rows = mByAthlete.get(p.id) ?? []
     const trialEnds = rows

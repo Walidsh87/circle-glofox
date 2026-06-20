@@ -9,6 +9,7 @@ import { lastCheckInByAthlete, daysBetween } from './_lib/aggregate'
 import { MarkContacted } from './_components/mark-contacted'
 import { DownloadCsvButton } from '@/components/download-csv-button'
 import { todayInTimezone } from '@/lib/timezone'
+import { groupBy } from '@/lib/grouping'
 
 const SNOOZE_DAYS = 14
 
@@ -31,12 +32,7 @@ export default async function RetentionPage() {
     .select('athlete_id, end_date, payment_status, start_date, frozen_from, frozen_until, profiles(full_name)')
     .eq('box_id', profile.box_id)
 
-  const rowsByAthlete = new Map<string, MembershipRowFull[]>()
-  for (const m of (memberships ?? []) as MembershipRowFull[]) {
-    const arr = rowsByAthlete.get(m.athlete_id) ?? []
-    arr.push(m)
-    rowsByAthlete.set(m.athlete_id, arr)
-  }
+  const rowsByAthlete = groupBy((memberships ?? []) as MembershipRowFull[], (m) => m.athlete_id)
   const memberIds = [...rowsByAthlete.keys()]
 
   const [attendance, outreach] = memberIds.length

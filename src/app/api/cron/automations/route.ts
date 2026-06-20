@@ -10,6 +10,7 @@ import { sendBroadcastEmails, type BroadcastMessage } from '@/lib/email'
 import { renderWaVars } from '@/lib/whatsapp'
 import { normalizeUaePhone } from '@/lib/sms'
 import { sendWhatsApp } from '@/lib/twilio'
+import { groupBy } from '@/lib/grouping'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,12 +29,7 @@ export async function GET(request: NextRequest) {
   const { data: automations } = await service.from('automations').select('id, box_id, name, trigger_type, trigger_days, subject, body_blocks, channel, wa_template_id, wa_var_values').eq('enabled', true)
   const rules = (automations ?? []) as AutomationRow[]
 
-  const byBox = new Map<string, AutomationRow[]>()
-  for (const r of rules) {
-    const arr = byBox.get(r.box_id) ?? []
-    arr.push(r)
-    byBox.set(r.box_id, arr)
-  }
+  const byBox = groupBy(rules, (r) => r.box_id)
 
   let processed = 0, sent = 0, skipped = 0
   const errors: string[] = []

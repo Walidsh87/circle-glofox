@@ -11,6 +11,7 @@ import { ClockCard } from './_components/clock-card'
 import { countIncompleteOnboarding } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { todayInTimezone } from '@/lib/timezone'
+import { groupBy } from '@/lib/grouping'
 
 export default async function DashboardPage() {
   const { supabase, profile, boxName, user } = await requirePage()
@@ -92,10 +93,7 @@ export default async function DashboardPage() {
     const obIds = new Set(((ob ?? []) as { id: string }[]).map((r) => r.id))
     const total = obIds.size
     if (total > 0) {
-      const memsByAthlete = new Map<string, MembershipRow[]>()
-      for (const m of (mems ?? []) as (MembershipRow & { athlete_id: string })[]) {
-        const arr = memsByAthlete.get(m.athlete_id) ?? []; arr.push(m); memsByAthlete.set(m.athlete_id, arr)
-      }
+      const memsByAthlete = groupBy((mems ?? []) as (MembershipRow & { athlete_id: string })[], (m) => m.athlete_id)
       const doneByMember = new Map<string, number>()
       for (const p of (prog ?? []) as { member_id: string; item_id: string }[]) {
         if (obIds.has(p.item_id)) doneByMember.set(p.member_id, (doneByMember.get(p.member_id) ?? 0) + 1)

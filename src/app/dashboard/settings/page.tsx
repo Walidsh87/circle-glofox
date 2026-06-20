@@ -17,7 +17,7 @@ export default async function SettingsPage() {
 
   // Don't fetch the raw secret key — query a count of rows where it's set instead.
   // The boolean is all the UI needs; the secret never leaves the database.
-  const [{ data: box }, { count: stripeConnectedCount }] = await Promise.all([
+  const [{ data: box }, { count: stripeConnectedCount }, { data: checklistRows }] = await Promise.all([
     supabase
       .from('boxes')
       .select('trn, legal_name, billing_address, tv_token, checkin_token, booking_close_minutes, late_cancel_hours, roster_public, ramadan_start, ramadan_end')
@@ -28,6 +28,7 @@ export default async function SettingsPage() {
       .select('id', { count: 'exact', head: true })
       .eq('id', profile.box_id)
       .not('stripe_secret_key', 'is', null),
+    supabase.from('checklist_items').select('id, label, kind').eq('box_id', profile.box_id).order('position', { ascending: true }),
   ])
   const stripeConnected = (stripeConnectedCount ?? 0) > 0
 
@@ -39,7 +40,6 @@ export default async function SettingsPage() {
     ? `<iframe src="${env.NEXT_PUBLIC_APP_URL}/embed/schedule/${boxes.slug}" width="100%" height="640" style="border:0" title="${boxes.name} — class schedule"></iframe>`
     : null
 
-  const { data: checklistRows } = await supabase.from('checklist_items').select('id, label, kind').eq('box_id', profile.box_id).order('position', { ascending: true })
   const checklistItems = (checklistRows ?? []) as EditorItem[]
 
   const ramadanSuggested = upcomingRamadanWindow(todayInTimezone(boxes?.timezone ?? 'Asia/Dubai'))

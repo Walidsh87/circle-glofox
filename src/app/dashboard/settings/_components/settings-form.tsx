@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { updateSettings } from '../_actions/update-settings'
+import { RESERVED_SLUGS, toSlug } from '@/app/onboarding/_lib/slug'
 
 const TIMEZONES = [
   { value: 'Asia/Dubai',   label: 'Dubai (GST +4)' },
@@ -13,16 +14,6 @@ const TIMEZONES = [
   { value: 'Asia/Bahrain', label: 'Bahrain (AST +3)' },
   { value: 'Asia/Muscat',  label: 'Muscat (GST +4)' },
 ]
-
-const RESERVED_SLUGS = ['dashboard', 'onboarding', 'auth', 'api', 'login', 'signup', 'admin', 'settings', 'join']
-
-function toSlug(name: string) {
-  return name.toLowerCase().trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 40)
-}
 
 const inputClass =
   'h-[42px] w-full rounded-[10px] border-[1.5px] border-line-strong bg-surface px-3.5 text-sm text-ink outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent'

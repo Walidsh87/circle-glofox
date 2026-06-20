@@ -11,6 +11,7 @@ import { rosterFirstNames } from '@/lib/roster'
 import { CalendarSyncCard } from './_components/calendar-sync-card'
 import { PushCard } from './_components/push-card'
 import { getServerT, getLocale } from '@/lib/i18n/server'
+import { groupByInto } from '@/lib/grouping'
 
 function formatDateTime(startsAt: string, timezone: string, locale: 'en' | 'ar') {
   const date = new Date(startsAt)
@@ -66,12 +67,11 @@ export default async function SchedulePage() {
   const feedUrl = me?.calendar_token ? `${env.NEXT_PUBLIC_APP_URL}/api/calendar/${me.calendar_token}` : null
   const bookedInstanceIds = new Set((myBookings ?? []).map((b) => b.class_instance_id))
 
-  const waitlistByInstance = new Map<string, { athlete_id: string; created_at: string }[]>()
-  for (const w of (waitlist ?? []) as { class_instance_id: string; athlete_id: string; created_at: string }[]) {
-    const arr = waitlistByInstance.get(w.class_instance_id) ?? []
-    arr.push({ athlete_id: w.athlete_id, created_at: w.created_at })
-    waitlistByInstance.set(w.class_instance_id, arr)
-  }
+  const waitlistByInstance = groupByInto(
+    (waitlist ?? []) as { class_instance_id: string; athlete_id: string; created_at: string }[],
+    (w) => w.class_instance_id,
+    (w) => ({ athlete_id: w.athlete_id, created_at: w.created_at }),
+  )
 
   const grouped = new Map<string, typeof instances>()
   for (const instance of instances ?? []) {

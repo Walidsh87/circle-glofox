@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { markPaid, markUnpaid } from '../_actions/mark-paid'
 import { createCheckout } from '../_actions/create-checkout'
 import { cn } from '@/lib/utils'
+import { useCopy } from '@/hooks/use-copy'
 
 type Props = {
   membershipId: string
@@ -18,6 +19,7 @@ const smallBtn =
 export function PaymentActions({ membershipId, currentStatus, hasStripePlan, stripeConnected }: Props) {
   const [loading, setLoading] = useState(false)
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
+  const { copy } = useCopy()
   const isPaid = currentStatus === 'paid'
 
   async function handleToggle() {
@@ -35,10 +37,6 @@ export function PaymentActions({ membershipId, currentStatus, hasStripePlan, str
     setLoading(false)
   }
 
-  function handleCopy() {
-    if (checkoutUrl) navigator.clipboard.writeText(checkoutUrl)
-  }
-
   return (
     <div className="flex items-center justify-end gap-1.5">
       {stripeConnected && hasStripePlan && !checkoutUrl && (
@@ -52,7 +50,7 @@ export function PaymentActions({ membershipId, currentStatus, hasStripePlan, str
       )}
       {checkoutUrl && (
         <button
-          onClick={handleCopy}
+          onClick={() => copy(checkoutUrl)}
           className={cn(smallBtn, 'border border-ok bg-ok-soft text-ok')}
           title={checkoutUrl}
         >

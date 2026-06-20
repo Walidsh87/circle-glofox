@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useCopy } from '@/hooks/use-copy'
 import { WEBHOOK_EVENTS } from '@/lib/webhooks/events'
 import { createWebhook } from '../_actions/create-webhook'
 import { deleteWebhook } from '../_actions/delete-webhook'
@@ -39,7 +40,7 @@ export function WebhooksCard({ subs }: { subs: WebhookSubRow[] }) {
   const [url, setUrl] = useState('')
   const [events, setEvents] = useState<string[]>([])
   const [secret, setSecret] = useState<string | null>(null) // signing secret, shown once
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopy()
 
   function toggle(e: string) {
     setEvents((cur) => (cur.includes(e) ? cur.filter((x) => x !== e) : [...cur, e]))
@@ -78,7 +79,7 @@ export function WebhooksCard({ subs }: { subs: WebhookSubRow[] }) {
           <div className="text-[12px] font-bold text-accent-ink">Copy your signing secret now — you won&apos;t see it again.</div>
           <div className="mt-1.5 flex gap-2">
             <input readOnly value={secret} onFocus={(e) => e.target.select()} className="h-9 flex-1 rounded-lg border border-line-strong bg-surface px-2.5 font-mono text-[12px] text-ink-2 outline-none" />
-            <button type="button" className={btn} onClick={() => { navigator.clipboard.writeText(secret); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>{copied ? 'Copied' : 'Copy'}</button>
+            <button type="button" className={btn} onClick={() => copy(secret)}>{copied ? 'Copied' : 'Copy'}</button>
             <button type="button" className={btn} onClick={() => setSecret(null)}>Done</button>
           </div>
         </div>

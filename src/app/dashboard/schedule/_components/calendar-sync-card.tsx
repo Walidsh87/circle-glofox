@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useCopy } from '@/hooks/use-copy'
 import { setCalendarToken } from '../_actions/set-calendar-token'
 
 const btn =
@@ -11,7 +12,7 @@ const btn =
 export function CalendarSyncCard({ feedUrl }: { feedUrl: string | null }) {
   const router = useRouter()
   const [pending, start] = useTransition()
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopy()
 
   function act(action: 'generate' | 'disable') {
     start(async () => {
@@ -19,12 +20,6 @@ export function CalendarSyncCard({ feedUrl }: { feedUrl: string | null }) {
       if (res.error) { alert(res.error); return }
       router.refresh()
     })
-  }
-  function copy() {
-    if (!feedUrl) return
-    navigator.clipboard.writeText(feedUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
   }
 
   return (
@@ -43,7 +38,7 @@ export function CalendarSyncCard({ feedUrl }: { feedUrl: string | null }) {
                 onFocus={(e) => e.target.select()}
                 className="h-8 flex-1 rounded-lg border border-line-strong bg-surface-2 px-2.5 font-mono text-[11.5px] text-ink-2 outline-none"
               />
-              <button type="button" onClick={copy} className={btn}>{copied ? 'Copied' : 'Copy'}</button>
+              <button type="button" onClick={() => copy(feedUrl)} className={btn}>{copied ? 'Copied' : 'Copy'}</button>
             </div>
             <div className="mt-2 flex items-center gap-2">
               <button type="button" disabled={pending} onClick={() => act('generate')} className={btn}>Regenerate</button>

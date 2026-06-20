@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useCopy } from '@/hooks/use-copy'
 import { createApiKey } from '../_actions/create-api-key'
 import { revokeApiKey } from '../_actions/revoke-api-key'
 
@@ -37,7 +38,7 @@ export function ApiKeysCard({ keys, apiConfigured }: { keys: ApiKeyRow[]; apiCon
   const [label, setLabel] = useState('')
   const [scopes, setScopes] = useState<string[]>(['members:read'])
   const [created, setCreated] = useState<string | null>(null) // plaintext, shown once
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopy()
 
   function toggle(s: string) {
     setScopes((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]))
@@ -82,7 +83,7 @@ export function ApiKeysCard({ keys, apiConfigured }: { keys: ApiKeyRow[]; apiCon
           <div className="text-[12px] font-bold text-accent-ink">Copy your key now — you won&apos;t see it again.</div>
           <div className="mt-1.5 flex gap-2">
             <input readOnly value={created} onFocus={(e) => e.target.select()} className="h-9 flex-1 rounded-lg border border-line-strong bg-surface px-2.5 font-mono text-[12px] text-ink-2 outline-none" />
-            <button type="button" className={btn} onClick={() => { navigator.clipboard.writeText(created); setCopied(true); setTimeout(() => setCopied(false), 1500) }}>{copied ? 'Copied' : 'Copy'}</button>
+            <button type="button" className={btn} onClick={() => copy(created)}>{copied ? 'Copied' : 'Copy'}</button>
             <button type="button" className={btn} onClick={() => setCreated(null)}>Done</button>
           </div>
         </div>

@@ -14,6 +14,7 @@ import { AddLeadForm } from './_components/add-lead-form'
 import { LeadsList, type Lead } from './_components/leads-list'
 import { DownloadCsvButton } from '@/components/download-csv-button'
 import { RolePicker } from './_components/role-picker'
+import { groupByInto } from '@/lib/grouping'
 
 type Tab = 'members' | 'staff' | 'leads'
 
@@ -63,12 +64,7 @@ export default async function MembersPage({
       ? supabase.from('member_tags').select('athlete_id, tag').eq('box_id', profile.box_id)
       : Promise.resolve({ data: [] as { athlete_id: string; tag: string }[] }),
   ])
-  const tagsByAthlete = new Map<string, string[]>()
-  for (const r of tagRows ?? []) {
-    const arr = tagsByAthlete.get(r.athlete_id) ?? []
-    arr.push(r.tag)
-    tagsByAthlete.set(r.athlete_id, arr)
-  }
+  const tagsByAthlete = groupByInto(tagRows ?? [], (r) => r.athlete_id, (r) => r.tag)
   const allTags = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
   const shownPeople = (people ?? []).filter((p) => !tagFilter || (tagsByAthlete.get(p.id) ?? []).includes(tagFilter))
 

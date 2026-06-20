@@ -14,6 +14,7 @@ import { lastAttendedByAthlete, relativeDay } from './_lib/roster'
 import { CoachNote } from './_components/coach-note'
 import { todayInTimezone, todayWindow } from '@/lib/timezone'
 import { findCoachConflicts } from '@/lib/coach-availability'
+import { groupByInto } from '@/lib/grouping'
 
 function fmtTime(startsAt: string, timezone: string): string {
   return new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(startsAt))
@@ -96,12 +97,11 @@ export default async function PrepPage(ctx: { searchParams: Promise<{ class?: st
   const lastAttended = lastAttendedByAthlete(attendanceRows, nowIso)
   const oneRmByAthlete = new Map(((lifts.data ?? []) as { athlete_id: string; one_rm_grams: number }[]).map((r) => [r.athlete_id, r.one_rm_grams]))
   const noteByAthlete = new Map(((notes.data ?? []) as { athlete_id: string; note: string }[]).map((r) => [r.athlete_id, r.note]))
-  const membershipsByAthlete = new Map<string, MembershipRow[]>()
-  for (const m of (memberships.data ?? []) as { athlete_id: string; payment_status: 'paid' | 'unpaid'; end_date: string | null }[]) {
-    const arr = membershipsByAthlete.get(m.athlete_id) ?? []
-    arr.push({ payment_status: m.payment_status, end_date: m.end_date })
-    membershipsByAthlete.set(m.athlete_id, arr)
-  }
+  const membershipsByAthlete = groupByInto(
+    (memberships.data ?? []) as { athlete_id: string; payment_status: 'paid' | 'unpaid'; end_date: string | null }[],
+    (m) => m.athlete_id,
+    (m): MembershipRow => ({ payment_status: m.payment_status, end_date: m.end_date }),
+  )
 
   const rows = roster.map((b) => {
     const prof = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles

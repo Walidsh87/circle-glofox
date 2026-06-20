@@ -7,11 +7,10 @@ import { Card } from '@/components/ui/card'
 import { sendBroadcast } from '../_actions/send-broadcast'
 import { previewAudience } from '../_actions/preview-audience'
 import { saveTemplate } from '../_actions/save-template'
-import { SEGMENT_LABELS, type Segment } from '@/lib/broadcast-audience'
+import type { Segment } from '@/lib/broadcast-audience'
 import { renderBlocks, flattenBlocks, type Block } from '@/lib/email-blocks'
 import { BlockEditor } from './block-editor'
-
-const SEGMENTS: Segment[] = ['all', 'paid', 'unpaid', 'trial', 'frozen']
+import { AudiencePicker } from '@/app/dashboard/_components/audience-picker'
 
 export type TemplateOption = { id: string; name: string; subject: string; body_blocks: Block[] }
 
@@ -84,18 +83,15 @@ export function ComposeForm({ tags, templates }: { tags: string[]; templates: Te
         <div className="rounded-[10px] border border-line bg-white p-4" dangerouslySetInnerHTML={{ __html: previewHtml }} />
       </div>
 
-      <div className="flex flex-wrap gap-2.5">
-        <select className={inputClass} value={status} onChange={(e) => { const s = e.target.value as Segment; setStatus(s); refreshCount(s, tag) }}>
-          {SEGMENTS.map((s) => <option key={s} value={s}>{SEGMENT_LABELS[s]}</option>)}
-        </select>
-        <select className={inputClass} value={tag} onChange={(e) => { setTag(e.target.value); refreshCount(status, e.target.value) }}>
-          <option value="">Any tag</option>
-          {tags.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <span className="self-center text-[13px] text-ink-3">
-          {count === null ? 'Choose an audience to preview count' : `${count} recipient${count === 1 ? '' : 's'}`}
-        </span>
-      </div>
+      <AudiencePicker
+        status={status}
+        tag={tag}
+        tags={tags}
+        count={count}
+        selectClassName={inputClass}
+        onStatusChange={(s) => { setStatus(s); refreshCount(s, tag) }}
+        onTagChange={(t) => { setTag(t); refreshCount(status, t) }}
+      />
 
       {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
 

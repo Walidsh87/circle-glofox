@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
-import { groupMembershipsAndTags, type MRow } from '@/lib/broadcast-candidates'
+import { groupMembershipsAndTags, buildCandidateBase, type MRow } from '@/lib/broadcast-candidates'
 import type { Candidate } from '@/lib/broadcast-audience'
 
 export async function loadCandidates(
@@ -19,17 +18,6 @@ export async function loadCandidates(
     (tags ?? []) as { athlete_id: string; tag: string }[],
   )
 
-  return ((members ?? []) as { id: string; full_name: string | null; email: string | null; marketing_opt_out: boolean | null }[]).map((m) => {
-    const rows = mByAthlete.get(m.id) ?? []
-    const isTrial = rows.some((r) => (r.end_date === null || r.end_date >= today) && r.is_trial === true)
-    return {
-      athlete_id: m.id,
-      email: m.email ?? null,
-      full_name: m.full_name ?? '',
-      marketing_opt_out: m.marketing_opt_out === true,
-      membershipStatus: getMembershipStatus(rows as MembershipRow[], today),
-      isTrial,
-      tags: tagsByAthlete.get(m.id) ?? [],
-    }
-  })
+  return ((members ?? []) as { id: string; full_name: string | null; email: string | null; marketing_opt_out: boolean | null }[])
+    .map((m) => buildCandidateBase(m, mByAthlete, tagsByAthlete, today))
 }

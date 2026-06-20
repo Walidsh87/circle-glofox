@@ -24,6 +24,15 @@ export const SEGMENT_LABELS: Record<Segment, string> = {
   frozen: 'Frozen members',
 }
 
+/** Segment options in display order — the shared audience picker iterates this. */
+export const SEGMENTS: Segment[] = ['all', 'paid', 'unpaid', 'trial', 'frozen']
+
+/** "Paid members · vip" style label for a campaign's saved audience (status + optional tag). */
+export function audienceLabel(status: string, tag: string | null): string {
+  const base = SEGMENT_LABELS[status as Segment] ?? status
+  return tag ? `${base} · ${tag}` : base
+}
+
 // 'all' reaches everyone (incl. trial). 'trial' reaches trial members only.
 // paid/unpaid/frozen match the derived membership status and EXCLUDE trial
 // members (a trial member is reachable only via 'trial'), mirroring KPI semantics.

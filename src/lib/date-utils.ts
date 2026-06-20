@@ -7,3 +7,8 @@ export function addDays(iso: string, n: number): string {
 export function isIsoDateFormat(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s)
 }
+
+/** Short 'D Mon' date (en-GB) from an ISO timestamp, e.g. '20 Jun'. */
+export function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}

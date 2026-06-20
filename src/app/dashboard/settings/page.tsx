@@ -2,8 +2,9 @@ import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { SettingsForm } from './_components/settings-form'
 import { env } from '@/env'
-import { TvDisplayCard } from './_components/tv-display-card'
-import { CheckinQrCard } from './_components/checkin-qr-card'
+import { TokenLinkCard } from './_components/token-link-card'
+import { setTvToken } from './_actions/set-tv-token'
+import { setCheckinToken } from './_actions/set-checkin-token'
 import { BookingPolicyCard } from './_components/booking-policy-card'
 import { RamadanCard } from './_components/ramadan-card'
 import { upcomingRamadanWindow } from '@/lib/hijri'
@@ -80,8 +81,21 @@ export default async function SettingsPage() {
           initialBillingAddress={box?.billing_address ?? ''}
           stripeConnected={stripeConnected}
         />
-        <TvDisplayCard link={box?.tv_token ? `${env.NEXT_PUBLIC_APP_URL}/tv/${box.tv_token}` : null} />
-        <CheckinQrCard link={box?.checkin_token ? `${env.NEXT_PUBLIC_APP_URL}/checkin/${box.checkin_token}` : null} />
+        <TokenLinkCard
+          title="TV display"
+          description="A public, read-only board for a gym-floor TV — today's WOD, the live leaderboard, and PRs. Anyone with the link can view it, so keep it private; regenerate to revoke the old one."
+          link={box?.tv_token ? `${env.NEXT_PUBLIC_APP_URL}/tv/${box.tv_token}` : null}
+          action={setTvToken}
+          enableLabel="Generate link"
+        />
+        <TokenLinkCard
+          title="Door check-in QR"
+          description="Members scan a printed QR at the door to check themselves into booked classes (opens 60 min before class). Regenerate to invalidate old posters and shared links."
+          link={box?.checkin_token ? `${env.NEXT_PUBLIC_APP_URL}/checkin/${box.checkin_token}` : null}
+          action={setCheckinToken}
+          enableLabel="Enable door check-in"
+          extraLink={{ href: '/dashboard/settings/checkin-poster', label: 'Print poster' }}
+        />
         <BookingPolicyCard closeMinutes={box?.booking_close_minutes ?? 0} lateCancelHours={box?.late_cancel_hours ?? 0} rosterPublic={box?.roster_public === true} />
         <RamadanCard ramadanStart={box?.ramadan_start ?? null} ramadanEnd={box?.ramadan_end ?? null} suggested={ramadanSuggested} />
         <EmbedSnippetCard

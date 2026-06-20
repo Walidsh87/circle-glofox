@@ -1,7 +1,11 @@
-import type { MembershipRow } from '@/lib/membership-status'
+import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
+import type { Candidate } from '@/lib/broadcast-audience'
 
 /** A membership row as the broadcast/SMS candidate loaders select it. */
 export type MRow = MembershipRow & { athlete_id: string; is_trial: boolean | null }
+
+/** A `profiles` row as the candidate loaders select it (SMS also selects `phone`). */
+type MemberRow = { id: string; full_name: string | null; email: string | null; marketing_opt_out: boolean | null }
 
 /**
  * Group membership rows and tag rows by `athlete_id`. Shared by the broadcast,
@@ -25,4 +29,28 @@ export function groupMembershipsAndTags(
     tagsByAthlete.set(t.athlete_id, arr)
   }
   return { mByAthlete, tagsByAthlete }
+}
+
+/**
+ * Build the shared candidate fields from a member row and the grouped maps.
+ * The SMS loader spreads this and adds `phone` — keeping the shape here stops
+ * the broadcast and SMS loaders' candidate output from drifting apart.
+ */
+export function buildCandidateBase(
+  member: MemberRow,
+  mByAthlete: Map<string, MRow[]>,
+  tagsByAthlete: Map<string, string[]>,
+  today: string,
+): Candidate {
+  const rows = mByAthlete.get(member.id) ?? []
+  const isTrial = rows.some((r) => (r.end_date === null || r.end_date >= today) && r.is_trial === true)
+  return {
+    athlete_id: member.id,
+    email: member.email ?? null,
+    full_name: member.full_name ?? '',
+    marketing_opt_out: member.marketing_opt_out === true,
+    membershipStatus: getMembershipStatus(rows as MembershipRow[], today),
+    isTrial,
+    tags: tagsByAthlete.get(member.id) ?? [],
+  }
 }

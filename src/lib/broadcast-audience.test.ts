@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { selectRecipients, SEGMENT_LABELS, type Candidate } from './broadcast-audience'
+import { selectRecipients, SEGMENT_LABELS, audienceLabel, type Candidate } from './broadcast-audience'
 
 function c(over: Partial<Candidate>): Candidate {
   return {
@@ -61,4 +61,14 @@ test('candidates outside the segment are absent (not skipped)', () => {
 test('SEGMENT_LABELS has a human label per segment', () => {
   expect(SEGMENT_LABELS.all).toBe('All members')
   expect(SEGMENT_LABELS.trial).toBe('Trial members')
+})
+
+test('audienceLabel maps the status to its label and appends the tag when present', () => {
+  expect(audienceLabel('paid', null)).toBe('Paid members')
+  expect(audienceLabel('paid', 'vip')).toBe('Paid members · vip')
+})
+
+test('audienceLabel falls back to the raw status for an unknown segment', () => {
+  expect(audienceLabel('legacy', null)).toBe('legacy')
+  expect(audienceLabel('legacy', 'vip')).toBe('legacy · vip')
 })

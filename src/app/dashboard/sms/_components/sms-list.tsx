@@ -1,5 +1,4 @@
-import Link from 'next/link'
-import { SEGMENT_LABELS, type Segment } from '@/lib/broadcast-audience'
+import { CampaignList, type CampaignRow } from '@/app/dashboard/_components/campaign-list'
 
 export type SmsRow = {
   id: string
@@ -12,28 +11,7 @@ export type SmsRow = {
   skipped_count: number
 }
 
-function audienceLabel(status: string, tag: string | null): string {
-  const base = SEGMENT_LABELS[status as Segment] ?? status
-  return tag ? `${base} · ${tag}` : base
-}
-
 export function SmsList({ rows }: { rows: SmsRow[] }) {
-  if (rows.length === 0) {
-    return <p className="text-sm text-ink-3">No SMS campaigns yet.</p>
-  }
-  return (
-    <div className="flex flex-col gap-2">
-      {rows.map((s) => (
-        <Link key={s.id} href={`/dashboard/sms/${s.id}`} className="flex items-center gap-3 rounded-[10px] border border-line bg-surface px-4 py-3 text-ink transition-colors hover:border-line-strong">
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold">{s.body}</div>
-            <div className="text-xs text-ink-3">{audienceLabel(s.audience_status, s.audience_tag)} · {new Date(s.created_at).toLocaleDateString('en-GB')}</div>
-          </div>
-          <div className="font-mono text-[11.5px] text-ink-3">
-            {s.sent_count} sent{s.failed_count > 0 ? ` · ${s.failed_count} failed` : ''}{s.skipped_count > 0 ? ` · ${s.skipped_count} skipped` : ''}
-          </div>
-        </Link>
-      ))}
-    </div>
-  )
+  const items: CampaignRow[] = rows.map((s) => ({ ...s, title: s.body }))
+  return <CampaignList rows={items} hrefBase="/dashboard/sms" emptyText="No SMS campaigns yet." />
 }

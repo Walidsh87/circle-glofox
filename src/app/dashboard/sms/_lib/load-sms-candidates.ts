@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
-import { groupMembershipsAndTags, type MRow } from '@/lib/broadcast-candidates'
+import { groupMembershipsAndTags, buildCandidateBase, type MRow } from '@/lib/broadcast-candidates'
 import type { SmsCandidate } from '@/lib/sms'
 
 export async function loadSmsCandidates(service: SupabaseClient, boxId: string, today: string): Promise<SmsCandidate[]> {
@@ -15,18 +14,6 @@ export async function loadSmsCandidates(service: SupabaseClient, boxId: string, 
     (tags ?? []) as { athlete_id: string; tag: string }[],
   )
 
-  return ((members ?? []) as { id: string; full_name: string | null; email: string | null; phone: string | null; marketing_opt_out: boolean | null }[]).map((m) => {
-    const rows = mByAthlete.get(m.id) ?? []
-    const isTrial = rows.some((r) => (r.end_date === null || r.end_date >= today) && r.is_trial === true)
-    return {
-      athlete_id: m.id,
-      email: m.email ?? null,
-      phone: m.phone ?? null,
-      full_name: m.full_name ?? '',
-      marketing_opt_out: m.marketing_opt_out === true,
-      membershipStatus: getMembershipStatus(rows as MembershipRow[], today),
-      isTrial,
-      tags: tagsByAthlete.get(m.id) ?? [],
-    }
-  })
+  return ((members ?? []) as { id: string; full_name: string | null; email: string | null; phone: string | null; marketing_opt_out: boolean | null }[])
+    .map((m) => ({ ...buildCandidateBase(m, mByAthlete, tagsByAthlete, today), phone: m.phone ?? null }))
 }

@@ -85,6 +85,24 @@ BEGIN
 END $$;
 ```
 
+### 069_subscription_quotes
+```sql
+DROP INDEX IF EXISTS idx_quotes_membership;
+ALTER TABLE quotes
+  DROP COLUMN IF EXISTS membership_id,
+  DROP COLUMN IF EXISTS plan_id,
+  DROP COLUMN IF EXISTS mode;
+```
+
+### 068_quotes
+```sql
+-- ⚠️ drops all quotes, quote line items, and captured e-signatures
+DROP FUNCTION IF EXISTS next_quote_sequence(uuid);
+DROP TABLE IF EXISTS quote_line_items;
+DROP TABLE IF EXISTS quotes;
+ALTER TABLE boxes DROP COLUMN IF EXISTS quote_terms_template;
+```
+
 ### 067_member_language
 ```sql
 ALTER TABLE profiles DROP COLUMN IF EXISTS language;   -- ⚠️ member language preference (en/ar)

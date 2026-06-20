@@ -56,6 +56,22 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  member_goals: async () => {
+    // Owned by a NON-athlete profile so the athlete_own policy doesn't match →
+    // the probe reflects pure role access (staff_read = all staff).
+    const r = await client.query(
+      `insert into member_goals (box_id, athlete_id, goal_type, title) values ($1, $2, 'custom', 'Probe goal') returning id`,
+      [BOX_T, roleProfile.owner]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
+  member_training_plans: async () => {
+    const r = await client.query(
+      `insert into member_training_plans (box_id, athlete_id, title) values ($1, $2, 'Probe plan') returning id`,
+      [BOX_T, roleProfile.owner]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   sub_requests: async () => {
     // class_instances.template_id/coach_id are nullable → minimal instance, then a sub_request
     // posted by the coach profile, NOT claimed (claimed_by null) so visibility reflects ROLE access.

@@ -42,6 +42,9 @@ import { PdplExportCard } from './_components/pdpl-export-card'
 import { LiftsScoresCards } from './_components/lifts-scores-cards'
 import { RecentBookingsCard } from './_components/recent-bookings-card'
 import { InvoicesCard } from './_components/invoices-card'
+import { GoalsCard } from './_components/goals-card'
+import { TrainingPlanCard } from './_components/training-plan-card'
+import { loadGoalsData } from '@/app/dashboard/goals/_lib/load-goals'
 
 function ageFromDob(dob: string, today: string): number | null {
   const b = Date.parse(dob + 'T00:00:00Z'), t = Date.parse(today + 'T00:00:00Z')
@@ -142,7 +145,12 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const isOwner = viewer.role === 'owner'
   const isManager = ['owner', 'admin'].includes(viewer.role)
   const isStaff = (ALL_STAFF_ROLES as readonly string[]).includes(viewer.role)
+  const isProgramming = ['owner', 'admin', 'coach'].includes(viewer.role)
   const today = new Date().toISOString().slice(0, 10)
+
+  // #87 goals + training plans — visible to staff or the member themselves.
+  // Kick off without awaiting so it overlaps with the queries below; awaited at render.
+  const goalsDataPromise = isStaff || isSelf ? loadGoalsData(supabase, params.memberId, viewer.box_id) : null
 
   // PII columns are restricted to service-role after migration 071.
   // Only staff (owner/coach/admin) or the member themselves may see them.
@@ -353,6 +361,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const consistencyStreak = currentStreakWeeks(checkInDates, today)
   const consistencyBadge = currentMilestone(consistencyTotal)
   const consistencyNext = nextMilestone(consistencyTotal)
+  const goalsData = goalsDataPromise ? await goalsDataPromise : null
 
   return (
     <DashboardShell
@@ -438,6 +447,18 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         {isStaff && (
           <Section label="Skills">
             <SkillsEditor athleteId={member.id} levels={skillLevels} />
+          </Section>
+        )}
+
+        {goalsData && (
+          <Section label="Goals">
+            <GoalsCard athleteId={member.id} goals={goalsData.goals} canManage={isProgramming || isSelf} />
+          </Section>
+        )}
+
+        {goalsData && (
+          <Section label="Training plan">
+            <TrainingPlanCard athleteId={member.id} plans={goalsData.plans} canManage={isProgramming} />
           </Section>
         )}
 

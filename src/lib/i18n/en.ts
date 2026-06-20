@@ -52,6 +52,7 @@ export const en = {
     buyPack: 'Buy a pack',
     my1rms: 'My 1RMs',
     skills: 'Skills',
+    goals: 'My goals',
     activityFeed: 'Activity Feed',
     committedClub: 'Committed Club',
     achievements: 'Achievements',

@@ -54,6 +54,7 @@ export const ar: typeof en = {
     buyPack: 'اشترِ باقة',
     my1rms: 'أرقامي القياسية 1RM',
     skills: 'المهارات',
+    goals: 'أهدافي',
     activityFeed: 'سجلّ النشاط',
     committedClub: 'نادي الملتزمين',
     achievements: 'الإنجازات',

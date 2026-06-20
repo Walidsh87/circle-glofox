@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`080` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`081` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,12 @@ Reverse procedures for migrations `008`–`080` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 081_member_goals
+```sql
+drop table if exists member_training_plans;   -- ⚠️ coach-assigned training plans
+drop table if exists member_goals;            -- ⚠️ member goals (auto-tracked + custom)
+```
 
 ### 080_webhooks
 ```sql

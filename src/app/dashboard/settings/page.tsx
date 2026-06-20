@@ -8,8 +8,7 @@ import { BookingPolicyCard } from './_components/booking-policy-card'
 import { RamadanCard } from './_components/ramadan-card'
 import { upcomingRamadanWindow } from '@/lib/hijri'
 import { todayInTimezone } from '@/lib/timezone'
-import { LeadWidgetCard } from './_components/lead-widget-card'
-import { ScheduleWidgetCard } from './_components/schedule-widget-card'
+import { EmbedSnippetCard } from './_components/embed-snippet-card'
 import { ChecklistEditor, type EditorItem } from './_components/checklist-editor'
 
 export default async function SettingsPage() {
@@ -66,8 +65,16 @@ export default async function SettingsPage() {
         <CheckinQrCard link={box?.checkin_token ? `${env.NEXT_PUBLIC_APP_URL}/checkin/${box.checkin_token}` : null} />
         <BookingPolicyCard closeMinutes={box?.booking_close_minutes ?? 0} lateCancelHours={box?.late_cancel_hours ?? 0} rosterPublic={box?.roster_public === true} />
         <RamadanCard ramadanStart={box?.ramadan_start ?? null} ramadanEnd={box?.ramadan_end ?? null} suggested={ramadanSuggested} />
-        <LeadWidgetCard snippet={leadSnippet} />
-        <ScheduleWidgetCard snippet={scheduleSnippet} />
+        <EmbedSnippetCard
+          title="Lead-capture widget"
+          description="Paste this on your website to collect leads straight into your CRM. New submissions appear in your Lifecycle board."
+          snippet={leadSnippet}
+        />
+        <EmbedSnippetCard
+          title="Schedule widget"
+          description="Embed your public class timetable on your website. Read-only; visitors click “Book / Log in” to reserve."
+          snippet={scheduleSnippet}
+        />
         <ChecklistEditor items={checklistItems} />
       </div>
     </DashboardShell>

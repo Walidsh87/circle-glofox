@@ -97,6 +97,16 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  program_set_logs: async () => {
+    const p = await client.query(`insert into member_programs (box_id, athlete_id, title) values ($1, $2, 'Probe program L') returning id`, [BOX_T, roleProfile.owner]);
+    const s = await client.query(`insert into program_sessions (box_id, athlete_id, program_id, client_uid, title) values ($1, $2, $3, gen_random_uuid(), 'S') returning id`, [BOX_T, roleProfile.owner, p.rows[0].id]);
+    const e = await client.query(`insert into program_exercises (box_id, athlete_id, session_id, client_uid, name) values ($1, $2, $3, gen_random_uuid(), 'E') returning id`, [BOX_T, roleProfile.owner, s.rows[0].id]);
+    const r = await client.query(
+      `insert into program_set_logs (box_id, athlete_id, exercise_id, performed_on, set_number) values ($1, $2, $3, current_date, 1) returning id`,
+      [BOX_T, roleProfile.owner, e.rows[0].id]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   sub_requests: async () => {
     // class_instances.template_id/coach_id are nullable → minimal instance, then a sub_request
     // posted by the coach profile, NOT claimed (claimed_by null) so visibility reflects ROLE access.

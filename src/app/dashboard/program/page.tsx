@@ -1,35 +1,14 @@
-import Link from 'next/link'
 import { requirePage } from '@/lib/auth/page-guards'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
-import { loadResolvedProgram } from './_lib/load-program'
+import { todayInTimezone } from '@/lib/timezone'
+import { loadMemberProgram } from './_lib/load-program'
 import { RequestProgramButton } from './_components/request-program-button'
-import type { ResolvedExercise } from '@/lib/program'
-
-function ExerciseRow({ ex }: { ex: ResolvedExercise }) {
-  const prescription = [ex.sets ? `${ex.sets}×${ex.reps || '—'}` : ex.reps, ex.lift_name && ex.percentage ? `@ ${ex.percentage}%` : null].filter(Boolean).join(' ')
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-line py-2 last:border-0">
-      <div className="min-w-0">
-        <div className="text-[13.5px] font-semibold text-ink">{ex.name}</div>
-        <div className="text-[12px] text-ink-3">
-          {prescription}
-          {ex.target_note ? ` · ${ex.target_note}` : ''}
-        </div>
-      </div>
-      <div className="shrink-0 text-right">
-        {ex.load ? (
-          <span className="font-mono text-[13px] font-semibold text-accent-ink">{ex.load.barKg} kg</span>
-        ) : ex.needsOneRm ? (
-          <Link href="/dashboard/lifts" className="text-[11.5px] text-ink-3 underline">set your 1RM</Link>
-        ) : null}
-      </div>
-    </div>
-  )
-}
+import { ExerciseLogger } from './_components/exercise-logger'
 
 export default async function MyProgramPage() {
-  const { supabase, user, profile, boxName } = await requirePage()
-  const program = await loadResolvedProgram(supabase, user.id, profile.box_id)
+  const { supabase, user, profile, boxName, box } = await requirePage()
+  const program = await loadMemberProgram(supabase, user.id, profile.box_id)
+  const today = todayInTimezone(box?.timezone ?? 'Asia/Dubai')
 
   return (
     <DashboardShell active="program" userName={profile.full_name!} userRole={profile.role} boxName={boxName} title="My program">
@@ -56,7 +35,7 @@ export default async function MyProgramPage() {
                   {s.exercises.length === 0 ? (
                     <p className="py-2 text-[12.5px] text-ink-3">No exercises.</p>
                   ) : (
-                    s.exercises.map((ex) => <ExerciseRow key={ex.client_uid} ex={ex} />)
+                    s.exercises.map((ex) => <ExerciseLogger key={ex.id} exercise={ex} today={today} />)
                   )}
                 </div>
               </section>

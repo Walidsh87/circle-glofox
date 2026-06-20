@@ -1,5 +1,19 @@
 import { describe, test, expect } from 'vitest'
-import { deriveVatFromInclusive, formatInvoiceNumber, formatCreditNoteNumber, validateRefund, validateTrn } from '@/lib/invoices'
+import { deriveVatFromInclusive, formatDocumentPrefix, formatInvoiceNumber, formatCreditNoteNumber, validateRefund, validateTrn } from '@/lib/invoices'
+
+describe('formatDocumentPrefix', () => {
+  test('uppercases and strips non-alphanumerics', () => {
+    expect(formatDocumentPrefix('CrossFit-DXB')).toBe('CROSSFITDXB')
+    expect(formatDocumentPrefix('al quoz!')).toBe('ALQUOZ')
+  })
+  test('caps at 12 characters', () => {
+    expect(formatDocumentPrefix('abcdefghijklmnop')).toBe('ABCDEFGHIJKL')
+  })
+  test('falls back to GYM for empty or all-stripped slugs', () => {
+    expect(formatDocumentPrefix('')).toBe('GYM')
+    expect(formatDocumentPrefix('---')).toBe('GYM')
+  })
+})
 
 describe('deriveVatFromInclusive', () => {
   test('splits a 105 AED inclusive total at 5% into 100 + 5', () => {

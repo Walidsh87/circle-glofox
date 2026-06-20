@@ -1,3 +1,5 @@
+import { escapeHtml as esc } from './html-escape'
+
 export type Block =
   | { type: 'heading'; text: string }
   | { type: 'paragraph'; text: string }
@@ -6,10 +8,6 @@ export type Block =
   | { type: 'divider' }
 
 export const MAX_BLOCKS = 50
-
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
 
 function isHttpUrl(s: string): boolean {
   return /^https?:\/\/.+/i.test((s ?? '').trim())

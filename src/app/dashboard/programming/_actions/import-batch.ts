@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { parseBatch, type ParsedDay } from '../_lib/parse-batch'
 
-export type ImportStatus = 'NEW' | 'REPLACE' | 'BLOCKED' | 'INVALID'
+type ImportStatus = 'NEW' | 'REPLACE' | 'BLOCKED' | 'INVALID'
 
 export type PreviewRow = {
   date: string

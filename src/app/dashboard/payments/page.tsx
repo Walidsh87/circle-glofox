@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, Th, Td } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { formatShortDate } from '@/lib/date-utils'
 import { AddMembershipForm } from './_components/add-membership-form'
 import { PaymentActions } from './_components/payment-actions'
 import { CreateStripePlanForm } from './_components/create-stripe-plan-form'
@@ -219,7 +220,7 @@ export default async function PaymentsPage() {
                   </div>
                 </div>
                 <div className="font-mono text-[11px] text-ink-faint">
-                  {o.overridden_at ? new Date(o.overridden_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
+                  {o.overridden_at ? formatShortDate(o.overridden_at) : ''}
                 </div>
               </div>
             )
@@ -260,7 +261,7 @@ export default async function PaymentsPage() {
                 <div className="text-[13.5px] text-ink">{athleteProfile?.full_name ?? 'Member'}</div>
                 <Badge tone={stageTone} className="font-mono uppercase">{r.stage}</Badge>
                 <div className="font-mono text-[11px] text-ink-faint">
-                  {new Date(r.sent_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  {formatShortDate(r.sent_at)}
                 </div>
               </div>
             )

@@ -3,22 +3,12 @@
 import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
-import { TIMEZONE_OFFSETS } from '@/lib/timezone'
+import { TIMEZONE_OFFSETS, formatTimezoneOffset, dayBoundaries, minuteOfDay } from '@/lib/timezone'
 import { isCoachOff } from '@/lib/coach-availability'
 import { selectBestBatch } from '@/lib/credits'
 import { validatePtSchedule, toMinutes, overlaps, withinAvailability } from '@/lib/pt-scheduling'
 
 type ScheduleResult = { error: string | null; warning?: string }
-
-function offsetStr(h: number): string {
-  const sign = h >= 0 ? '+' : '-'
-  return `${sign}${String(Math.abs(h)).padStart(2, '0')}:00`
-}
-function minuteOfDay(iso: string, timeZone: string): number {
-  // en-GB + hour12:false can emit "24:00" for midnight in some ICU builds — normalize to "00:00".
-  const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)).replace(/^24:/, '00:')
-  return toMinutes(hhmm)
-}
 
 export async function schedulePtSession(
   athleteId: string, coachId: string, dateISO: string, startTime: string, durationMinutes: number, force = false,
@@ -47,9 +37,8 @@ export async function schedulePtSession(
   const startMin = toMinutes(startTime)
   const endMin = startMin + durationMinutes
   const weekday = new Date(`${dateISO}T00:00:00Z`).getUTCDay()
-  const scheduledAt = `${dateISO}T${startTime}:00${offsetStr(off)}`
-  const dayStart = `${dateISO}T00:00:00${offsetStr(off)}`
-  const dayEnd = `${dateISO}T23:59:59${offsetStr(off)}`
+  const scheduledAt = `${dateISO}T${startTime}:00${formatTimezoneOffset(off)}`
+  const { start: dayStart, end: dayEnd } = dayBoundaries(dateISO, timezone)
 
   // 1. Approved time-off (hard block).
   const { data: timeOff } = await service.from('coach_time_off')

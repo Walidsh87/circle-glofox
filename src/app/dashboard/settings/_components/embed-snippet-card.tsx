@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 
-export function ScheduleWidgetCard({ snippet }: { snippet: string | null }) {
+/** Copy-able embeddable-widget snippet card (lead-capture / schedule). Renders a
+ *  "set your slug" hint when no snippet is available yet. */
+export function EmbedSnippetCard({ title, description, snippet }: { title: string; description: string; snippet: string | null }) {
   const [copied, setCopied] = useState(false)
   function copy() {
     if (!snippet) return
@@ -13,10 +15,8 @@ export function ScheduleWidgetCard({ snippet }: { snippet: string | null }) {
 
   return (
     <div className="mt-6 rounded-[14px] border border-line bg-surface px-[22px] py-5">
-      <div className="text-sm font-semibold text-ink">Schedule widget</div>
-      <p className="mt-1 text-[12.5px] leading-normal text-ink-3">
-        Embed your public class timetable on your website. Read-only; visitors click “Book / Log in” to reserve.
-      </p>
+      <div className="text-sm font-semibold text-ink">{title}</div>
+      <p className="mt-1 text-[12.5px] leading-normal text-ink-3">{description}</p>
       {snippet ? (
         <>
           <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-all rounded-lg border border-line bg-canvas px-3 py-2.5 text-[11.5px] text-ink-2">{snippet}</pre>

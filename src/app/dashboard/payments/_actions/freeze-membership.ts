@@ -1,15 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { requireOwnerAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
 import { validateFreeze } from '../_lib/lifecycle-validation'
-
-async function ownerBox(): Promise<{ boxId: string } | { error: string }> {
-  const auth = await requireOwnerAction('Only owners can manage memberships.')
-  if ('error' in auth) return { error: auth.error }
-  return { boxId: auth.profile.box_id }
-}
+import { ownerBox } from '../_lib/owner-box'
 
 export async function freezeMembership(
   membershipId: string,

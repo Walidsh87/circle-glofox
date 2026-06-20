@@ -14,6 +14,7 @@ import { AddLeadForm } from './_components/add-lead-form'
 import { LeadsList, type Lead } from './_components/leads-list'
 import { DownloadCsvButton } from '@/components/download-csv-button'
 import { RolePicker } from './_components/role-picker'
+import { groupByInto } from '@/lib/grouping'
 
 type Tab = 'members' | 'staff' | 'leads'
 
@@ -41,34 +42,29 @@ export default async function MembersPage({
     .select('id, full_name, email, phone, role, created_at')
     .eq('box_id', profile.box_id)
     .order('created_at', { ascending: true })
-  const { data: people } = tab !== 'leads'
-    ? await (tab === 'staff' ? peopleBase.in('role', [...ALL_STAFF_ROLES]) : peopleBase.eq('role', 'athlete'))
-    : { data: null }
-
-  const { data: leads } = tab === 'leads'
-    ? await supabase
-        .from('leads')
-        .select('id, full_name, phone, email, source, status, notes, drop_in_date, created_at')
-        .eq('box_id', profile.box_id)
-        .order('created_at', { ascending: false })
-    : { data: null }
-
-  // Staff list for the lead-row QuickAdd assignee picker (#60).
-  const { data: leadStaff } = tab === 'leads'
-    ? await supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).in('role', [...ALL_STAFF_ROLES]).order('full_name')
-    : { data: null }
-
-  // Tags (#33): box-scoped, grouped by athlete, for the members/coaches tabs.
+  // Tab-specific data — all independent (filtered only by `tab`), fetched in parallel.
   const tagFilter = searchParams.tag ?? null
-  const { data: tagRows } = tab !== 'leads'
-    ? await supabase.from('member_tags').select('athlete_id, tag').eq('box_id', profile.box_id)
-    : { data: [] as { athlete_id: string; tag: string }[] }
-  const tagsByAthlete = new Map<string, string[]>()
-  for (const r of tagRows ?? []) {
-    const arr = tagsByAthlete.get(r.athlete_id) ?? []
-    arr.push(r.tag)
-    tagsByAthlete.set(r.athlete_id, arr)
-  }
+  const [{ data: people }, { data: leads }, { data: leadStaff }, { data: tagRows }] = await Promise.all([
+    tab !== 'leads'
+      ? (tab === 'staff' ? peopleBase.in('role', [...ALL_STAFF_ROLES]) : peopleBase.eq('role', 'athlete'))
+      : Promise.resolve({ data: null }),
+    tab === 'leads'
+      ? supabase
+          .from('leads')
+          .select('id, full_name, phone, email, source, status, notes, drop_in_date, created_at')
+          .eq('box_id', profile.box_id)
+          .order('created_at', { ascending: false })
+      : Promise.resolve({ data: null }),
+    // Staff list for the lead-row QuickAdd assignee picker (#60).
+    tab === 'leads'
+      ? supabase.from('profiles').select('id, full_name').eq('box_id', profile.box_id).in('role', [...ALL_STAFF_ROLES]).order('full_name')
+      : Promise.resolve({ data: null }),
+    // Tags (#33): box-scoped, grouped by athlete, for the members/coaches tabs.
+    tab !== 'leads'
+      ? supabase.from('member_tags').select('athlete_id, tag').eq('box_id', profile.box_id)
+      : Promise.resolve({ data: [] as { athlete_id: string; tag: string }[] }),
+  ])
+  const tagsByAthlete = groupByInto(tagRows ?? [], (r) => r.athlete_id, (r) => r.tag)
   const allTags = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
   const shownPeople = (people ?? []).filter((p) => !tagFilter || (tagsByAthlete.get(p.id) ?? []).includes(tagFilter))
 

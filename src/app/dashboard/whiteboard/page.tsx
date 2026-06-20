@@ -8,20 +8,9 @@ import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { loadForPercent } from '@/lib/percentage'
 import type { StrengthSet } from '@/app/dashboard/wod/_lib/validation'
 import { currentStreakWeeks } from '@/lib/consistency'
-import { TIMEZONE_OFFSETS, todayInTimezone } from '@/lib/timezone'
+import { todayInTimezone, todayWindow } from '@/lib/timezone'
 import { formatHijri, inRamadanWindow } from '@/lib/hijri'
-
-function todayWindow(timezone: string): { start: string; end: string } {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  const localMs = Date.now() + offsetHours * 60 * 60 * 1000
-  const localDate = new Date(localMs).toISOString().slice(0, 10)
-  const sign = offsetHours >= 0 ? '+' : '-'
-  const offset = `${sign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`
-  return {
-    start: `${localDate}T00:00:00${offset}`,
-    end:   `${localDate}T23:59:59${offset}`,
-  }
-}
+import { groupByInto } from '@/lib/grouping'
 
 function formatTime(startsAt: string, timezone: string) {
   return new Intl.DateTimeFormat('en-GB', {
@@ -73,12 +62,11 @@ export default async function WhiteboardPage() {
         .eq('box_id', profile.box_id)
     : { data: [] as Array<{ athlete_id: string; payment_status: 'paid' | 'unpaid' | 'overdue'; end_date: string | null; last_paid_date: string | null }> }
 
-  const membershipsByAthlete = new Map<string, Array<MembershipRow & { last_paid_date: string | null }>>()
-  for (const m of membershipRows ?? []) {
-    const arr = membershipsByAthlete.get(m.athlete_id) ?? []
-    arr.push({ payment_status: m.payment_status as 'paid' | 'unpaid', end_date: m.end_date, last_paid_date: m.last_paid_date })
-    membershipsByAthlete.set(m.athlete_id, arr)
-  }
+  const membershipsByAthlete = groupByInto(
+    membershipRows ?? [],
+    (m) => m.athlete_id,
+    (m): MembershipRow & { last_paid_date: string | null } => ({ payment_status: m.payment_status as 'paid' | 'unpaid', end_date: m.end_date, last_paid_date: m.last_paid_date }),
+  )
 
   const today = new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone, weekday: 'long', day: 'numeric', month: 'long',

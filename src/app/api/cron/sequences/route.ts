@@ -7,6 +7,7 @@ import { loadAutoMembers } from '@/lib/auto-members'
 import { nextDueStep, enrollmentStillValid, type SequenceStep } from '@/lib/sequences'
 import { renderEmail, firstNameOf } from '@/lib/broadcast-render'
 import { sendBroadcastEmails, type BroadcastMessage } from '@/lib/email'
+import { groupBy } from '@/lib/grouping'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,12 +25,7 @@ export async function GET(request: NextRequest) {
   const { data: seqData } = await service.from('sequences').select('id, box_id, name, trigger_type, trigger_days, steps').eq('enabled', true)
   const sequences = (seqData ?? []) as SequenceRow[]
 
-  const byBox = new Map<string, SequenceRow[]>()
-  for (const s of sequences) {
-    const arr = byBox.get(s.box_id) ?? []
-    arr.push(s)
-    byBox.set(s.box_id, arr)
-  }
+  const byBox = groupBy(sequences, (s) => s.box_id)
 
   let enrolled = 0, sent = 0, exited = 0
   const errors: string[] = []

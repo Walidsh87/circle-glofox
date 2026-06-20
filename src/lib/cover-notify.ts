@@ -4,8 +4,7 @@ import { sendBroadcastEmails } from '@/lib/email'
 import { emailShell, emailButton } from '@/lib/email-shell'
 import { env } from '@/env'
 import { isCoachOff } from '@/lib/coach-availability'
-
-const esc = (s: string) => s.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] as string))
+import { escapeHtmlNoQuote as esc } from '@/lib/html-escape'
 
 function fmtDayTime(startsAt: string, timeZone: string): string {
   return new Intl.DateTimeFormat('en-GB', { timeZone, weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(startsAt))
@@ -64,7 +63,7 @@ export async function notifyPosterOfClaim(boxId: string, instanceId: string, pos
     const { data: poster } = await svc.from('profiles').select('email').eq('id', posterId).eq('box_id', boxId).single()
     const url = `${env.NEXT_PUBLIC_APP_URL}/dashboard/cover`
     const html = emailShell(`<p>${esc(claimerName)} is covering your class:</p><p><strong>${esc(className)}</strong> · ${esc(dayTime)}</p>${emailButton('View cover board', url)}`, 'en')
-    if (poster?.email) await sendBroadcastEmails([{ to: poster.email as string, subject: `${claimerName} is covering ${className}`, html }])
+    if (poster?.email) await sendBroadcastEmails([{ to: poster.email, subject: `${claimerName} is covering ${className}`, html }])
     await sendPushTo(svc, posterId, boxId, { title: 'Your class is covered', body: `${claimerName} is covering ${className} · ${dayTime}`, url: '/dashboard/cover' })
   } catch (e) {
     console.error('notifyPosterOfClaim failed:', e)

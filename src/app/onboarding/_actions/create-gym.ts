@@ -4,8 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { actionError } from '@/lib/action-error'
 import { redirect } from 'next/navigation'
-
-const RESERVED_SLUGS = ['dashboard', 'onboarding', 'auth', 'api', 'login', 'signup', 'admin', 'settings']
+import { RESERVED_SLUGS } from '../_lib/slug'
 
 type State = { error: string | null }
 

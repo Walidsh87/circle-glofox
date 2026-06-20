@@ -1,7 +1,7 @@
 // Pure month-grid date logic for the programming calendar. Monday-first weeks
 // (matches the app's week-start convention). 'YYYY-MM' month, 'YYYY-MM-DD' dates.
 
-export type GridCell = { date: string | null; inMonth: boolean }
+type GridCell = { date: string | null; inMonth: boolean }
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')

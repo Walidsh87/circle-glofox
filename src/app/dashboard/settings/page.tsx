@@ -8,8 +8,7 @@ import { BookingPolicyCard } from './_components/booking-policy-card'
 import { RamadanCard } from './_components/ramadan-card'
 import { upcomingRamadanWindow } from '@/lib/hijri'
 import { todayInTimezone } from '@/lib/timezone'
-import { LeadWidgetCard } from './_components/lead-widget-card'
-import { ScheduleWidgetCard } from './_components/schedule-widget-card'
+import { EmbedSnippetCard } from './_components/embed-snippet-card'
 import { ChecklistEditor, type EditorItem } from './_components/checklist-editor'
 import { ApiKeysCard, type ApiKeyRow } from './_components/api-keys-card'
 import { WebhooksCard, type WebhookSubRow } from './_components/webhooks-card'
@@ -20,7 +19,7 @@ export default async function SettingsPage() {
 
   // Don't fetch the raw secret key — query a count of rows where it's set instead.
   // The boolean is all the UI needs; the secret never leaves the database.
-  const [{ data: box }, { count: stripeConnectedCount }] = await Promise.all([
+  const [{ data: box }, { count: stripeConnectedCount }, { data: checklistRows }] = await Promise.all([
     supabase
       .from('boxes')
       .select('trn, legal_name, billing_address, tv_token, checkin_token, booking_close_minutes, late_cancel_hours, roster_public, ramadan_start, ramadan_end')
@@ -31,6 +30,7 @@ export default async function SettingsPage() {
       .select('id', { count: 'exact', head: true })
       .eq('id', profile.box_id)
       .not('stripe_secret_key', 'is', null),
+    supabase.from('checklist_items').select('id, label, kind').eq('box_id', profile.box_id).order('position', { ascending: true }),
   ])
   const stripeConnected = (stripeConnectedCount ?? 0) > 0
 
@@ -42,7 +42,6 @@ export default async function SettingsPage() {
     ? `<iframe src="${env.NEXT_PUBLIC_APP_URL}/embed/schedule/${boxes.slug}" width="100%" height="640" style="border:0" title="${boxes.name} — class schedule"></iframe>`
     : null
 
-  const { data: checklistRows } = await supabase.from('checklist_items').select('id, label, kind').eq('box_id', profile.box_id).order('position', { ascending: true })
   const checklistItems = (checklistRows ?? []) as EditorItem[]
 
   const ramadanSuggested = upcomingRamadanWindow(todayInTimezone(boxes?.timezone ?? 'Asia/Dubai'))
@@ -85,8 +84,16 @@ export default async function SettingsPage() {
         <CheckinQrCard link={box?.checkin_token ? `${env.NEXT_PUBLIC_APP_URL}/checkin/${box.checkin_token}` : null} />
         <BookingPolicyCard closeMinutes={box?.booking_close_minutes ?? 0} lateCancelHours={box?.late_cancel_hours ?? 0} rosterPublic={box?.roster_public === true} />
         <RamadanCard ramadanStart={box?.ramadan_start ?? null} ramadanEnd={box?.ramadan_end ?? null} suggested={ramadanSuggested} />
-        <LeadWidgetCard snippet={leadSnippet} />
-        <ScheduleWidgetCard snippet={scheduleSnippet} />
+        <EmbedSnippetCard
+          title="Lead-capture widget"
+          description="Paste this on your website to collect leads straight into your CRM. New submissions appear in your Lifecycle board."
+          snippet={leadSnippet}
+        />
+        <EmbedSnippetCard
+          title="Schedule widget"
+          description="Embed your public class timetable on your website. Read-only; visitors click “Book / Log in” to reserve."
+          snippet={scheduleSnippet}
+        />
         <ChecklistEditor items={checklistItems} />
         <ApiKeysCard keys={(apiKeys ?? []) as ApiKeyRow[]} apiConfigured={!!env.API_KEY_PEPPER} />
         <WebhooksCard subs={(webhookSubs ?? []) as WebhookSubRow[]} />

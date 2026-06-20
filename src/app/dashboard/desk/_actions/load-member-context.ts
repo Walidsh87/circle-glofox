@@ -2,26 +2,13 @@
 
 import { requireStaffAction } from '@/lib/auth/action-guards'
 import { createServiceClient } from '@/lib/supabase/service'
-import { TIMEZONE_OFFSETS } from '@/lib/timezone'
+import { todayWindow } from '@/lib/timezone'
 
 export type MemberContext = {
   membership: { id: string; plan_name: string; monthly_price_aed: number | null; payment_status: string; provider_plan_ref: string | null } | null
   todayBookings: { bookingId: string; instanceId: string; className: string; startsAt: string; checkedIn: boolean }[]
 }
 type State = { error: string | null; ctx?: MemberContext }
-
-/** Returns a UTC window [start, end] covering "today" in the gym's timezone. */
-function todayWindow(timezone: string): { start: string; end: string } {
-  const offsetHours = TIMEZONE_OFFSETS[timezone] ?? 4
-  const localMs = Date.now() + offsetHours * 60 * 60 * 1000
-  const localDate = new Date(localMs).toISOString().slice(0, 10)
-  const sign = offsetHours >= 0 ? '+' : '-'
-  const offset = `${sign}${String(Math.abs(offsetHours)).padStart(2, '0')}:00`
-  return {
-    start: `${localDate}T00:00:00${offset}`,
-    end: `${localDate}T23:59:59${offset}`,
-  }
-}
 
 export async function loadMemberContext(athleteId: string): Promise<State> {
   const auth = await requireStaffAction('Only staff can use the front desk.')

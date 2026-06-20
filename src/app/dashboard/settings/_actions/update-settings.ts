@@ -5,8 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateTrn } from '@/lib/invoices'
-
-const RESERVED_SLUGS = ['dashboard', 'onboarding', 'auth', 'api', 'login', 'signup', 'admin', 'settings']
+import { RESERVED_SLUGS } from '@/app/onboarding/_lib/slug'
 
 type State = { error: string | null; success?: boolean }
 

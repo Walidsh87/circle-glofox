@@ -1,9 +1,7 @@
 // Standalone branded page for /portal/[token] failure states. The success
 // path 302-redirects into the PSP-hosted portal and never renders this.
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
+import { escapeHtml as esc } from './html-escape'
 
 export function portalErrorHtml(title: string, message: string): string {
   return `<!DOCTYPE html>

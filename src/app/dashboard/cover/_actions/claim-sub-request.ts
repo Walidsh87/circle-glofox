@@ -2,20 +2,10 @@
 
 import { requireProgrammingAction } from '@/lib/auth/action-guards'
 import { revalidatePath } from 'next/cache'
-import { TIMEZONE_OFFSETS } from '@/lib/timezone'
+import { dayBoundaries, minuteOfDay } from '@/lib/timezone'
 import { isCoachOff } from '@/lib/coach-availability'
 import { eligibleToClaim } from '@/lib/sub-finder'
 import { notifyPosterOfClaim } from '@/lib/cover-notify'
-
-function offsetStr(h: number): string {
-  const sign = h >= 0 ? '+' : '-'
-  return `${sign}${String(Math.abs(h)).padStart(2, '0')}:00`
-}
-function minuteOfDay(iso: string, tz: string): number {
-  const hhmm = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)).replace(/^24:/, '00:')
-  const [h, m] = hhmm.split(':')
-  return Number(h) * 60 + Number(m)
-}
 
 type Inst = { starts_at: string; duration_minutes: number; status: string }
 
@@ -38,10 +28,8 @@ export async function claimSubRequest(subRequestId: string): Promise<{ error: st
   // Eligibility: not on leave + no overlapping class/PT that day.
   const { data: box } = await supabase.from('boxes').select('timezone').eq('id', profile.box_id).single()
   const tz = box?.timezone ?? 'Asia/Dubai'
-  const off = TIMEZONE_OFFSETS[tz] ?? 4
   const dateISO = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(inst.starts_at))
-  const dayStart = `${dateISO}T00:00:00${offsetStr(off)}`
-  const dayEnd = `${dateISO}T23:59:59${offsetStr(off)}`
+  const { start: dayStart, end: dayEnd } = dayBoundaries(dateISO, tz)
   const startMin = minuteOfDay(inst.starts_at, tz)
   const endMin = startMin + inst.duration_minutes
 

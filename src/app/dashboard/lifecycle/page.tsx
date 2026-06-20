@@ -5,6 +5,7 @@ import { scoreMember } from '@/app/dashboard/retention/_lib/risk'
 import { lastCheckInByAthlete, daysBetween } from '@/app/dashboard/retention/_lib/aggregate'
 import { buildColumns, type LeadRow, type MemberRow } from './_lib/load-lifecycle'
 import { Board } from './_components/board'
+import { groupBy } from '@/lib/grouping'
 
 type MRow = MembershipRow & { athlete_id: string; start_date: string; is_trial: boolean | null }
 
@@ -23,12 +24,7 @@ export default async function LifecyclePage() {
 
   const leads = (leadsData ?? []) as LeadRow[]
 
-  const byAthlete = new Map<string, MRow[]>()
-  for (const m of (memberships ?? []) as MRow[]) {
-    const arr = byAthlete.get(m.athlete_id) ?? []
-    arr.push(m)
-    byAthlete.set(m.athlete_id, arr)
-  }
+  const byAthlete = groupBy((memberships ?? []) as MRow[], (m) => m.athlete_id)
 
   const attendanceRows = ((attendance ?? []) as { athlete_id: string; class_instances: { starts_at: string } | { starts_at: string }[] | null }[]).map((r) => {
     const ci = Array.isArray(r.class_instances) ? r.class_instances[0] : r.class_instances

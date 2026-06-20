@@ -3,12 +3,9 @@ import { env } from '@/env'
 import { emailShell, emailButton } from './email-shell'
 import { getT, type Locale, type TFn } from '@/lib/i18n'
 import type { ReminderStage } from '@/lib/billing-reminders'
+import { escapeHtmlNoQuote as escapeHtml } from './html-escape'
 
 const resend = new Resend(env.RESEND_API_KEY)
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
 
 export type ReminderEmailInput = {
   to: string

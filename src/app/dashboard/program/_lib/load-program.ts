@@ -7,6 +7,7 @@ export type ResolvedView = { id: string; title: string; notes: string | null; ac
 // PR2: member view carries the DB exercise id (the per-set log target) + history.
 export type LoggableExercise = ResolvedExercise & { id: string; logDays: LogDay[] }
 export type MemberProgramView = { id: string; title: string; notes: string | null; startDate: string | null; sessions: { title: string; week: number | null; exercises: LoggableExercise[] }[] }
+export type ProgramSummary = { id: string; title: string; source: 'coach' | 'bought'; startDate: string | null; sessionCount: number }
 
 type ExerciseRow = {
   session_id: string
@@ -34,17 +35,17 @@ function toExercise(e: ExerciseRow): ProgramExercise {
   }
 }
 
-async function loadTree(supabase: SupabaseClient, athleteId: string, boxId: string): Promise<EditableProgram | null> {
-  const { data: prog } = await supabase
+async function loadTree(supabase: SupabaseClient, athleteId: string, boxId: string, programId?: string): Promise<EditableProgram | null> {
+  const base = supabase
     .from('member_programs')
     .select('id, title, notes, active')
     .eq('athlete_id', athleteId)
     .eq('box_id', boxId)
     .eq('active', true)
     .eq('is_template', false)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const { data: prog } = programId
+    ? await base.eq('id', programId).maybeSingle()
+    : await base.order('created_at', { ascending: false }).limit(1).maybeSingle()
   if (!prog) return null
   const p = prog as { id: string; title: string; notes: string | null; active: boolean }
 
@@ -81,13 +82,13 @@ async function loadTree(supabase: SupabaseClient, athleteId: string, boxId: stri
 }
 
 /** Raw editable tree for the coach builder. */
-export async function loadProgramForEdit(supabase: SupabaseClient, athleteId: string, boxId: string): Promise<EditableProgram | null> {
-  return loadTree(supabase, athleteId, boxId)
+export async function loadProgramForEdit(supabase: SupabaseClient, athleteId: string, boxId: string, programId?: string): Promise<EditableProgram | null> {
+  return loadTree(supabase, athleteId, boxId, programId)
 }
 
 /** Resolved view (prescription + per-athlete kg) for the member + profile card. */
-export async function loadResolvedProgram(supabase: SupabaseClient, athleteId: string, boxId: string): Promise<ResolvedView | null> {
-  const tree = await loadTree(supabase, athleteId, boxId)
+export async function loadResolvedProgram(supabase: SupabaseClient, athleteId: string, boxId: string, programId?: string): Promise<ResolvedView | null> {
+  const tree = await loadTree(supabase, athleteId, boxId, programId)
   if (!tree) return null
   const { data: lifts } = await supabase.from('athlete_lifts').select('lift_name, one_rm_grams').eq('athlete_id', athleteId).eq('box_id', boxId)
   const oneRmByLift = new Map(((lifts ?? []) as { lift_name: string; one_rm_grams: number }[]).map((l) => [l.lift_name, l.one_rm_grams]))
@@ -95,17 +96,17 @@ export async function loadResolvedProgram(supabase: SupabaseClient, athleteId: s
 }
 
 /** PR2 member view: resolved exercises carrying their DB id + per-exercise log history. */
-export async function loadMemberProgram(supabase: SupabaseClient, athleteId: string, boxId: string): Promise<MemberProgramView | null> {
-  const { data: prog } = await supabase
+export async function loadMemberProgram(supabase: SupabaseClient, athleteId: string, boxId: string, programId?: string): Promise<MemberProgramView | null> {
+  const base = supabase
     .from('member_programs')
     .select('id, title, notes, start_date')
     .eq('athlete_id', athleteId)
     .eq('box_id', boxId)
     .eq('active', true)
     .eq('is_template', false)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const { data: prog } = programId
+    ? await base.eq('id', programId).maybeSingle()
+    : await base.order('created_at', { ascending: false }).limit(1).maybeSingle()
   if (!prog) return null
   const p = prog as { id: string; title: string; notes: string | null; start_date: string | null }
 
@@ -161,4 +162,35 @@ export async function loadMemberProgram(supabase: SupabaseClient, athleteId: str
         })),
     })),
   }
+}
+
+/** All of a member's active non-template programs (most-recent first), for the picker. */
+export async function listActivePrograms(supabase: SupabaseClient, athleteId: string, boxId: string): Promise<ProgramSummary[]> {
+  const { data: progs } = await supabase
+    .from('member_programs')
+    .select('id, title, source_template_id, start_date')
+    .eq('athlete_id', athleteId)
+    .eq('box_id', boxId)
+    .eq('active', true)
+    .eq('is_template', false)
+    .order('created_at', { ascending: false })
+  const rows = (progs ?? []) as { id: string; title: string; source_template_id: string | null; start_date: string | null }[]
+  if (rows.length === 0) return []
+
+  const ids = rows.map((r) => r.id)
+  const { data: sessRows } = await supabase
+    .from('program_sessions')
+    .select('program_id')
+    .in('program_id', ids)
+    .eq('box_id', boxId)
+  const counts = new Map<string, number>()
+  for (const s of (sessRows ?? []) as { program_id: string }[]) counts.set(s.program_id, (counts.get(s.program_id) ?? 0) + 1)
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    source: r.source_template_id ? 'bought' : 'coach',
+    startDate: r.start_date,
+    sessionCount: counts.get(r.id) ?? 0,
+  }))
 }

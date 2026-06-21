@@ -43,3 +43,17 @@ export function groupByWeek<T extends { week: number | null }>(sessions: T[]): {
     .sort(([a], [b]) => (a == null ? 1 : b == null ? -1 : a - b))
     .map(([week, sessions]) => ({ week, sessions }))
 }
+
+/** For the storefront: per template id → session count + max week (0 = no week structure). */
+export function summarizeTemplateSessions(
+  rows: { program_id: string; week: number | null }[],
+): Map<string, { weeks: number; sessions: number }> {
+  const m = new Map<string, { weeks: number; sessions: number }>()
+  for (const r of rows) {
+    const cur = m.get(r.program_id) ?? { weeks: 0, sessions: 0 }
+    cur.sessions += 1
+    if (r.week != null && r.week > cur.weeks) cur.weeks = r.week
+    m.set(r.program_id, cur)
+  }
+  return m
+}

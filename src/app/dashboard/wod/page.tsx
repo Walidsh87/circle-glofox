@@ -81,7 +81,7 @@ function YourLoads({ liftValue, sets, oneRmGrams, t }: { liftValue: string; sets
   )
 }
 
-export default async function WodPage({ searchParams }: { searchParams: { date?: string } }) {
+export default async function WodPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const { supabase, user, profile, boxName } = await requirePage()
   const t = await getServerT()
 
@@ -100,7 +100,7 @@ export default async function WodPage({ searchParams }: { searchParams: { date?:
   // Athletes can only view the current week
   const wStart = weekStart(today)
   const wEnd = weekEnd(today)
-  const rawDate = searchParams.date ?? today
+  const rawDate = (await searchParams).date ?? today
   const date = !isStaff && (rawDate < wStart || rawDate > wEnd) ? today : rawDate
   const isToday = date === today
 

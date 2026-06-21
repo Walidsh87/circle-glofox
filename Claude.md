@@ -76,7 +76,7 @@ A fresh codebase audit on 2026-05-29 found 9 of 11 features shipped cleanly and 
 - ❌ Athlete personal-phone logging (whiteboard tablet only for v1)
 
 ## Tech stack (locked)
-- Next.js 14 App Router + TypeScript
+- Next.js 16 App Router + TypeScript (⚠️ `searchParams`/`params` are async — `await` them)
 - Supabase (Postgres + Auth + RLS)
 - Tailwind CSS + shadcn/ui
 - Vercel hosting

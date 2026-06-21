@@ -6,7 +6,7 @@ export type EditableProgram = { id: string; title: string; notes: string | null;
 export type ResolvedView = { id: string; title: string; notes: string | null; active: boolean; sessions: { title: string; exercises: ResolvedExercise[] }[] }
 // PR2: member view carries the DB exercise id (the per-set log target) + history.
 export type LoggableExercise = ResolvedExercise & { id: string; logDays: LogDay[] }
-export type MemberProgramView = { id: string; title: string; notes: string | null; sessions: { title: string; exercises: LoggableExercise[] }[] }
+export type MemberProgramView = { id: string; title: string; notes: string | null; startDate: string | null; sessions: { title: string; week: number | null; exercises: LoggableExercise[] }[] }
 
 type ExerciseRow = {
   session_id: string
@@ -98,7 +98,7 @@ export async function loadResolvedProgram(supabase: SupabaseClient, athleteId: s
 export async function loadMemberProgram(supabase: SupabaseClient, athleteId: string, boxId: string): Promise<MemberProgramView | null> {
   const { data: prog } = await supabase
     .from('member_programs')
-    .select('id, title, notes')
+    .select('id, title, notes, start_date')
     .eq('athlete_id', athleteId)
     .eq('box_id', boxId)
     .eq('active', true)
@@ -107,10 +107,10 @@ export async function loadMemberProgram(supabase: SupabaseClient, athleteId: str
     .limit(1)
     .maybeSingle()
   if (!prog) return null
-  const p = prog as { id: string; title: string; notes: string | null }
+  const p = prog as { id: string; title: string; notes: string | null; start_date: string | null }
 
-  const { data: sessionRows } = await supabase.from('program_sessions').select('id, title').eq('program_id', p.id).eq('box_id', boxId).order('position')
-  const sessions = (sessionRows ?? []) as { id: string; title: string }[]
+  const { data: sessionRows } = await supabase.from('program_sessions').select('id, title, week').eq('program_id', p.id).eq('box_id', boxId).order('position')
+  const sessions = (sessionRows ?? []) as { id: string; title: string; week: number | null }[]
   const sessionIds = sessions.map((s) => s.id)
 
   const { data: exerciseRows } = sessionIds.length
@@ -148,8 +148,10 @@ export async function loadMemberProgram(supabase: SupabaseClient, athleteId: str
     id: p.id,
     title: p.title,
     notes: p.notes,
+    startDate: p.start_date,
     sessions: sessions.map((s) => ({
       title: s.title,
+      week: s.week,
       exercises: exercises
         .filter((e) => e.session_id === s.id)
         .map((e) => ({

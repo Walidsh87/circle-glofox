@@ -44,6 +44,22 @@ export function groupByWeek<T extends { week: number | null }>(sessions: T[]): {
     .map(([week, sessions]) => ({ week, sessions }))
 }
 
+export type DripWeek<T> = { week: number | null; locked: boolean; unlockDate: string | null; sessions: T[] }
+
+/** Group sessions by week and decide each week's lock state for a drip schedule. */
+export function buildDrip<T extends { week: number | null }>(
+  startDate: string | null,
+  sessions: T[],
+  today: string,
+): DripWeek<T>[] {
+  return groupByWeek(sessions).map(({ week, sessions }) => ({
+    week,
+    locked: !isWeekUnlocked(startDate, week, today),
+    unlockDate: startDate != null && week != null ? weekUnlockDate(startDate, week) : null,
+    sessions,
+  }))
+}
+
 /** For the storefront: per template id → session count + max week (0 = no week structure). */
 export function summarizeTemplateSessions(
   rows: { program_id: string; week: number | null }[],

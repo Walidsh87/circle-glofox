@@ -9,6 +9,17 @@ Reverse procedures for migrations `008`–`083` (referenced by the DR runbook, `
 
 ---
 
+## 084_program_store.sql
+DROP POLICY IF EXISTS program_exercises_published_read ON program_exercises;
+DROP POLICY IF EXISTS program_sessions_published_read ON program_sessions;
+DROP POLICY IF EXISTS member_programs_published_read ON member_programs;
+DROP INDEX IF EXISTS idx_member_programs_published;
+ALTER TABLE program_sessions DROP COLUMN IF EXISTS week;
+ALTER TABLE member_programs DROP COLUMN IF EXISTS start_date, DROP COLUMN IF EXISTS source_template_id,
+  DROP COLUMN IF EXISTS price_aed, DROP COLUMN IF EXISTS published, DROP COLUMN IF EXISTS is_template;
+
+---
+
 ### 083_program_set_logs
 ```sql
 drop table if exists program_set_logs;   -- ⚠️ member per-set training logs (history)

@@ -12,7 +12,7 @@ function quoteEvent() {
     event: {
       kind: 'checkout_completed', rawId: 'evt_1', sessionId: 'cs_1',
       subscriptionRef: null, customerRef: null, membershipId: null,
-      packageId: null, athleteId: null, quoteId: 'quote-1',
+      packageId: null, athleteId: null, quoteId: 'quote-1', programTemplateId: null,
       paymentRef: 'pi_1', amountAed: 525,
     },
   }
@@ -78,7 +78,7 @@ describe('stripe webhook — quote payment', () => {
       event: {
         kind: 'checkout_completed', rawId: 'evt_2', sessionId: 'cs_2',
         subscriptionRef: 'sub_1', customerRef: 'cus_1', membershipId: 'mem-1',
-        packageId: null, athleteId: null, quoteId: 'quote-1',
+        packageId: null, athleteId: null, quoteId: 'quote-1', programTemplateId: null,
         paymentRef: null, amountAed: null,
       },
     })

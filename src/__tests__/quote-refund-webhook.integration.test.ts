@@ -19,7 +19,7 @@ function quoteEvent() {
     event: {
       kind: 'checkout_completed', rawId: 'evt_q', sessionId: 'cs_q',
       subscriptionRef: null, customerRef: null, membershipId: null,
-      packageId: null, athleteId: null, quoteId: 'quote-1',
+      packageId: null, athleteId: null, quoteId: 'quote-1', programTemplateId: null,
       paymentRef: 'pi_q', amountAed: 525,
     },
   }

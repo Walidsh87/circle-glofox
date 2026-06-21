@@ -60,6 +60,7 @@ describe('StripeProvider.translate', () => {
       packageId: null,
       athleteId: null,
       quoteId: null,
+      programTemplateId: null,
       paymentRef: null,
       amountAed: null,
     })
@@ -81,8 +82,31 @@ describe('StripeProvider.translate', () => {
       packageId: 'pkg_1',
       athleteId: 'ath_1',
       quoteId: null,
+      programTemplateId: null,
       paymentRef: 'pi_55',
       amountAed: 500,
+    })
+  })
+
+  test('checkout.session.completed (program, mode=payment) → checkout_completed with programTemplateId', () => {
+    const event = {
+      id: 'evt_3c',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_3', payment_intent: 'pi_77', amount_total: 30000, metadata: { program_template_id: 'tpl_1', athlete_id: 'ath_1', box_id: 'box_1' } } },
+    }
+    expect(provider().translate(event)).toEqual({
+      kind: 'checkout_completed',
+      rawId: 'evt_3c',
+      sessionId: 'cs_3',
+      subscriptionRef: null,
+      customerRef: null,
+      membershipId: null,
+      packageId: null,
+      athleteId: 'ath_1',
+      quoteId: null,
+      programTemplateId: 'tpl_1',
+      paymentRef: 'pi_77',
+      amountAed: 300,
     })
   })
 

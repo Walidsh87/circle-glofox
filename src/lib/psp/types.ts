@@ -33,6 +33,20 @@ export type CreatePackageCheckoutInput = {
   cancelUrl: string
 }
 
+// One-shot program-template purchase (Program Store #15/#96). Mirrors the package
+// checkout: guest-style (no customerRef) — the webhook instantiates the buyer's copy
+// by program_template_id + athlete_id from metadata, so no Stripe customer link is needed.
+export type CreateProgramCheckoutInput = {
+  programTemplateId: string
+  athleteId: string
+  boxId: string
+  programName: string
+  priceAed: number
+  customerEmail: string | null
+  successUrl: string
+  cancelUrl: string
+}
+
 export type CreateOneOffCheckoutInput = {
   amountAed: number
   description: string
@@ -111,6 +125,7 @@ export type NormalisedEvent =
       packageId: string | null
       athleteId: string | null
       quoteId: string | null
+      programTemplateId: string | null
       paymentRef: string | null
       amountAed: number | null
     }
@@ -123,6 +138,7 @@ export interface PaymentProvider {
   createCustomer(input: CreateCustomerInput): Promise<{ customerRef: string }>
   createCheckoutSession(input: CreateCheckoutInput): Promise<{ url: string; sessionId: string }>
   createPackageCheckout(input: CreatePackageCheckoutInput): Promise<{ url: string; sessionId: string }>
+  createProgramCheckout(input: CreateProgramCheckoutInput): Promise<{ url: string; sessionId: string }>
   createOneOffCheckout(input: CreateOneOffCheckoutInput): Promise<{ url: string; sessionId: string }>
   createPortalSession(customerRef: string, returnUrl: string): Promise<{ url: string }>
   refund(input: RefundInput): Promise<{ refundRef: string }>

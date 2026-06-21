@@ -88,6 +88,10 @@ export const en = {
     aed: 'AED',
     buy: 'Buy',
     starting: 'Starting…',
+    availablePrograms: 'Training programs',
+    weeks: 'weeks',
+    owned: 'Owned',
+    buyProgram: 'Buy program',
   },
   wod: {
     title: 'Daily WOD',

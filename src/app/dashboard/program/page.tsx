@@ -4,6 +4,7 @@ import { todayInTimezone } from '@/lib/timezone'
 import { loadMemberProgram } from './_lib/load-program'
 import { RequestProgramButton } from './_components/request-program-button'
 import { ExerciseLogger } from './_components/exercise-logger'
+import { buildDrip } from '@/lib/program-store'
 
 export default async function MyProgramPage() {
   const { supabase, user, profile, boxName, box } = await requirePage()
@@ -28,17 +29,30 @@ export default async function MyProgramPage() {
               <RequestProgramButton />
             </div>
 
-            {program.sessions.map((s, i) => (
-              <section key={i}>
-                <div className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">{s.title}</div>
-                <div className="rounded-[14px] border border-line bg-surface px-4 py-2 shadow-card">
-                  {s.exercises.length === 0 ? (
-                    <p className="py-2 text-[12.5px] text-ink-3">No exercises.</p>
-                  ) : (
-                    s.exercises.map((ex) => <ExerciseLogger key={ex.id} exercise={ex} today={today} />)
-                  )}
-                </div>
-              </section>
+            {buildDrip(program.startDate, program.sessions, today).map((wk, wi) => (
+              <div key={wi} className="flex flex-col gap-3">
+                {wk.week != null && (
+                  <div className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">Week {wk.week}</div>
+                )}
+                {wk.locked ? (
+                  <div className="rounded-[14px] border border-line bg-surface px-4 py-5 text-center text-[12.5px] text-ink-3 shadow-card">
+                    Unlocks {wk.unlockDate}
+                  </div>
+                ) : (
+                  wk.sessions.map((s, i) => (
+                    <section key={i}>
+                      <div className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">{s.title}</div>
+                      <div className="rounded-[14px] border border-line bg-surface px-4 py-2 shadow-card">
+                        {s.exercises.length === 0 ? (
+                          <p className="py-2 text-[12.5px] text-ink-3">No exercises.</p>
+                        ) : (
+                          s.exercises.map((ex) => <ExerciseLogger key={ex.id} exercise={ex} today={today} />)
+                        )}
+                      </div>
+                    </section>
+                  ))
+                )}
+              </div>
             ))}
           </>
         )}

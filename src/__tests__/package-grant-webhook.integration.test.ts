@@ -16,7 +16,7 @@ function packageEvent() {
     event: {
       kind: 'checkout_completed', rawId: 'evt_pkg_1', sessionId: 'cs_pkg_1',
       subscriptionRef: null, customerRef: null, membershipId: null,
-      packageId: 'pkg-1', athleteId: 'ath-1', quoteId: null,
+      packageId: 'pkg-1', athleteId: 'ath-1', quoteId: null, programTemplateId: null,
       paymentRef: 'pi_pkg_1', amountAed: 525,
     },
   }

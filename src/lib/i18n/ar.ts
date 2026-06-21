@@ -90,6 +90,10 @@ export const ar: typeof en = {
     aed: 'AED',
     buy: 'اشترِ',
     starting: 'جارٍ البدء…',
+    availablePrograms: 'برامج تدريبية',
+    weeks: 'أسابيع',
+    owned: 'مُشترى',
+    buyProgram: 'اشترِ البرنامج',
   },
   wod: {
     title: 'WOD اليومي',

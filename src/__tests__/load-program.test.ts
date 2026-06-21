@@ -46,3 +46,19 @@ test('loadMemberProgram excludes is_template rows', async () => {
   expect(result).toBeNull()
   expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('is_template', false)
 })
+
+test('loadMemberProgram carries start_date and per-session week', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'ath1' },
+    results: {
+      member_programs: { data: { id: 'mp1', title: 'Squat Cycle', notes: null, start_date: '2026-06-01' }, error: null },
+      program_sessions: { data: [{ id: 's1', title: 'Day A', week: 1 }], error: null },
+      program_exercises: { data: [], error: null },
+      athlete_lifts: { data: [], error: null },
+      program_set_logs: { data: [], error: null },
+    },
+  })
+  const view = await loadMemberProgram(rls as unknown as Parameters<typeof loadMemberProgram>[0], 'ath1', 'b1')
+  expect(view?.startDate).toBe('2026-06-01')
+  expect(view?.sessions[0].week).toBe(1)
+})

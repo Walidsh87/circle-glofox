@@ -6,6 +6,7 @@ import { sendCardFailedEmail } from '@/lib/email'
 import { signPortalToken } from '@/lib/portal-token'
 import { findProviderForIncomingWebhook, type NormalisedEvent } from '@/lib/psp'
 import { resolveLocale } from '@/lib/i18n'
+import { todayInTimezone } from '@/lib/timezone'
 import { convertLeadCore } from '@/lib/convert-lead'
 import { env } from '@/env'
 
@@ -213,6 +214,11 @@ async function handleCheckoutCompleted(
     return grantPackageCredits(boxId, event)
   }
 
+  // Program-template one-shot purchase → instantiate the buyer's drip copy + invoice.
+  if (event.programTemplateId && event.athleteId && event.paymentRef) {
+    return instantiateProgram(boxId, event)
+  }
+
   // Membership subscription checkout → backfill refs (unchanged).
   if (event.membershipId && event.subscriptionRef) {
     await service
@@ -314,6 +320,141 @@ async function grantPackageCredits(
   if (creditErr && creditErr.code !== '23505') {
     console.error('package_credits insert failed (will retry):', creditErr)
     return NextResponse.json({ error: 'grant failed' }, { status: 500 })
+  }
+
+  return NextResponse.json({ received: true })
+}
+
+async function instantiateProgram(
+  boxId: string,
+  event: Extract<NormalisedEvent, { kind: 'checkout_completed' }>,
+): Promise<NextResponse> {
+  const templateId = event.programTemplateId as string
+  const athleteId = event.athleteId as string
+  const paymentRef = event.paymentRef as string
+
+  if (!(await claimEvent(boxId, event.rawId, 'program_purchased'))) {
+    return NextResponse.json({ received: true, duplicate: true })
+  }
+
+  // Second idempotency layer: an ACTIVE copy of this template already exists → done.
+  const { data: existing } = await service
+    .from('member_programs')
+    .select('id')
+    .eq('box_id', boxId)
+    .eq('athlete_id', athleteId)
+    .eq('source_template_id', templateId)
+    .eq('is_template', false)
+    .eq('active', true)
+    .maybeSingle()
+  if (existing) return NextResponse.json({ received: true, duplicate: true })
+
+  // Read the template tree (box-scoped — service client bypasses RLS).
+  const { data: tpl } = await service
+    .from('member_programs')
+    .select('title, notes, created_by')
+    .eq('id', templateId)
+    .eq('box_id', boxId)
+    .eq('is_template', true)
+    .single()
+  if (!tpl) return NextResponse.json({ received: true })
+
+  const { data: box } = await service.from('boxes').select('timezone').eq('id', boxId).single()
+  const today = todayInTimezone((box as { timezone?: string } | null)?.timezone ?? 'Asia/Dubai')
+
+  const { data: sessionRows } = await service
+    .from('program_sessions')
+    .select('id, position, title, week')
+    .eq('program_id', templateId)
+    .eq('box_id', boxId)
+    .order('position')
+  const tplSessions = (sessionRows ?? []) as { id: string; position: number; title: string; week: number | null }[]
+  const tplSessionIds = tplSessions.map((s) => s.id)
+
+  const { data: exerciseRows } = tplSessionIds.length
+    ? await service
+        .from('program_exercises')
+        .select('session_id, position, name, lift_name, sets, reps, percentage, target_note, rest_seconds')
+        .in('session_id', tplSessionIds)
+        .eq('box_id', boxId)
+        .order('position')
+    : { data: [] as Record<string, unknown>[] }
+  const tplExercises = (exerciseRows ?? []) as Record<string, unknown>[]
+
+  // Invoice first (a paid member always gets a VAT invoice; deduped on paymentRef).
+  const { data: athlete } = await service
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', athleteId)
+    .eq('box_id', boxId)
+    .single()
+  const invoiceId = await issueInvoice({
+    boxId,
+    membershipId: null,
+    athleteId,
+    customerName: (athlete as { full_name?: string } | null)?.full_name ?? null,
+    customerEmail: (athlete as { email?: string } | null)?.email ?? null,
+    description: (tpl as { title: string }).title,
+    amountAed: event.amountAed ?? 0,
+    chargeRef: paymentRef,
+    paymentRef,
+  })
+  void invoiceId
+
+  // Instance row.
+  const { data: inst, error: instErr } = await service
+    .from('member_programs')
+    .insert({
+      box_id: boxId,
+      athlete_id: athleteId,
+      created_by: (tpl as { created_by: string | null }).created_by,
+      title: (tpl as { title: string }).title,
+      notes: (tpl as { notes: string | null }).notes,
+      is_template: false,
+      source_template_id: templateId,
+      start_date: today,
+      active: true,
+    })
+    .select('id')
+    .single()
+  if (instErr || !inst) {
+    console.error('program instance insert failed (will retry):', instErr)
+    return NextResponse.json({ error: 'instantiate failed' }, { status: 500 })
+  }
+  const newPid = (inst as { id: string }).id
+
+  // Re-insert sessions (carry week, fresh client_uid); remap exercises to new session ids.
+  const newSessionByOldId = new Map<string, string>()
+  for (const s of tplSessions) {
+    const { data: ns, error: nsErr } = await service
+      .from('program_sessions')
+      .insert({ program_id: newPid, box_id: boxId, athlete_id: athleteId, client_uid: crypto.randomUUID(), position: s.position, title: s.title, week: s.week })
+      .select('id')
+      .single()
+    if (nsErr || !ns) {
+      console.error('program session insert failed (will retry):', nsErr)
+      return NextResponse.json({ error: 'instantiate failed' }, { status: 500 })
+    }
+    newSessionByOldId.set(s.id, (ns as { id: string }).id)
+  }
+
+  const exRows = tplExercises
+    .map((e) => {
+      const sid = newSessionByOldId.get(e.session_id as string)
+      if (!sid) return null
+      return {
+        session_id: sid, box_id: boxId, athlete_id: athleteId, client_uid: crypto.randomUUID(),
+        position: e.position, name: e.name, lift_name: e.lift_name, sets: e.sets, reps: e.reps,
+        percentage: e.percentage, target_note: e.target_note, rest_seconds: e.rest_seconds,
+      }
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null)
+  if (exRows.length) {
+    const { error: exErr } = await service.from('program_exercises').insert(exRows)
+    if (exErr) {
+      console.error('program exercise insert failed (will retry):', exErr)
+      return NextResponse.json({ error: 'instantiate failed' }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ received: true })

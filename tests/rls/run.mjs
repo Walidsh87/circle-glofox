@@ -343,6 +343,78 @@ async function main() {
     }
   }
 
+  // ============================================================
+  // PROGRAM STORE: published_read isolation (migration 084).
+  // Mirrors tests/rls/program-store.isolation.test.ts.
+  //
+  // member_programs_published_read  lets ANY in-box authenticated user
+  // SELECT published templates. Drafts stay staff-only (staff_read).
+  // Cross-box athletes must see nothing.
+  // ============================================================
+  console.log('\n=== program store: published_read isolation (mig 084) ===')
+  {
+    const TMPL_PUB_A    = 'eeeeeeee-0000-4000-8000-000000000001'
+    const TMPL_DRAFT_A  = 'eeeeeeee-0000-4000-8000-000000000002'
+    const SESSION_PUB_A = 'eeeeeeee-1111-4000-8000-000000000001'
+
+    // Seed as superuser (bypasses RLS).
+    await client.query(
+      `insert into member_programs(id, box_id, athlete_id, created_by, title, is_template, published, price_aed)
+       values ($1,$2,$3,$3,'12-Week Strength',true,true,299),
+              ($4,$2,$3,$3,'Unfinished Program',true,false,null)`,
+      [TMPL_PUB_A, BOX_A, OWNER_A, TMPL_DRAFT_A]
+    )
+    await client.query(
+      `insert into program_sessions(id, box_id, athlete_id, program_id, client_uid, position, title, week)
+       values ($1,$2,$3,$4,$1,0,'Session 1',1)`,
+      [SESSION_PUB_A, BOX_A, OWNER_A, TMPL_PUB_A]
+    )
+
+    // (a) In-box athlete: published template visible, draft NOT visible.
+    await asUser(ATH_A, async () => {
+      check(
+        'program store: ATH_A can SELECT published template in own box',
+        await countWhere('member_programs', 'id', TMPL_PUB_A) === 1
+      )
+      check(
+        'program store: ATH_A cannot SELECT draft template in own box',
+        await countWhere('member_programs', 'id', TMPL_DRAFT_A) === 0
+      )
+      check(
+        'program store: ATH_A can SELECT sessions of the published template',
+        await countWhere('program_sessions', 'id', SESSION_PUB_A) === 1
+      )
+    })
+
+    // (b) Cross-box athlete: sees nothing regardless of published flag.
+    await asUser(ATH_B, async () => {
+      check(
+        'program store: ATH_B cannot SELECT Box A published template (cross-box)',
+        await countWhere('member_programs', 'id', TMPL_PUB_A) === 0
+      )
+      check(
+        'program store: ATH_B cannot SELECT Box A draft template (cross-box)',
+        await countWhere('member_programs', 'id', TMPL_DRAFT_A) === 0
+      )
+      check(
+        'program store: ATH_B cannot SELECT Box A published sessions (cross-box)',
+        await countWhere('program_sessions', 'id', SESSION_PUB_A) === 0
+      )
+    })
+
+    // (c) In-box owner sees both via the existing staff_read policy.
+    await asUser(OWNER_A, async () => {
+      check(
+        'program store: OWNER_A (staff_read) can SELECT published template',
+        await countWhere('member_programs', 'id', TMPL_PUB_A) === 1
+      )
+      check(
+        'program store: OWNER_A (staff_read) can SELECT draft template',
+        await countWhere('member_programs', 'id', TMPL_DRAFT_A) === 1
+      )
+    })
+  }
+
   const total = pass + fail
   console.log('\n==============================================================')
   if (fail === 0) {

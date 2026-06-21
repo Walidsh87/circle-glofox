@@ -61,6 +61,7 @@ export const en = {
     myProfile: 'My Profile',
     athletesSection: 'Athletes',
     signOut: 'Sign out',
+    programStore: 'Program Store',
   },
   common: { kg: 'kg', saving: 'Saving…', rx: 'RX', dash: '—' },
   timer: {

@@ -63,6 +63,7 @@ export const ar: typeof en = {
     myProfile: 'ملفّي الشخصي',
     athletesSection: 'الرياضيون',
     signOut: 'تسجيل الخروج',
+    programStore: 'متجر البرامج',
   },
   common: { kg: 'kg', saving: 'جارٍ الحفظ…', rx: 'RX', dash: '—' },
   timer: {

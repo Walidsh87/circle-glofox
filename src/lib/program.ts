@@ -13,7 +13,7 @@ export type ProgramExercise = {
   target_note: string | null // "RPE 8", "bodyweight"
   rest_seconds: number | null
 }
-export type ProgramSession = { client_uid: string; title: string; exercises: ProgramExercise[] }
+export type ProgramSession = { client_uid: string; title: string; week?: number | null; exercises: ProgramExercise[] }
 export type ProgramInput = { title: string; notes: string | null; sessions: ProgramSession[] }
 
 export type ResolvedExercise = ProgramExercise & {

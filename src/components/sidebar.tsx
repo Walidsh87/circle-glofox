@@ -68,6 +68,7 @@ function getNavGroups(role: string): NavGroup[] {
     ]
     if (isProgramming) programmingItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
     if (isProgramming) programmingItems.push({ key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' })
+    if (isProgramming) programmingItems.push({ key: 'program-store', label: 'Program Store', labelKey: 'nav.programStore', href: '/dashboard/program-store', icon: 'clipboard' })
     programmingItems.push({ key: 'whiteboard', label: 'Whiteboard', href: '/dashboard/whiteboard', icon: 'monitor', badge: 'live', badgeVariant: 'lime' })
     groups.push({ section: 'Programming', items: programmingItems })
   }

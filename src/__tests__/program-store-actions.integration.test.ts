@@ -6,7 +6,7 @@ const { serverCreate } = vi.hoisted(() => ({ serverCreate: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { saveTemplate } from '@/app/dashboard/program-store/_actions/template'
+import { saveTemplate, deleteTemplate } from '@/app/dashboard/program-store/_actions/template'
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -72,4 +72,24 @@ test('saveTemplate inserts is_template=true with author athlete_id + week on ses
     [expect.objectContaining({ program_id: 'tpl1', week: 1, client_uid: SESS_UID })],
     expect.objectContaining({ onConflict: 'program_id,client_uid' }),
   )
+})
+
+const TPL_ID = '11111111-1111-4111-8111-111111111111'
+
+test('deleteTemplate is box- + template-scoped and programming-gated', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'coach1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'coach', full_name: 'Coach One' }, error: null },
+      member_programs: { data: null, error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await deleteTemplate(TPL_ID)
+  expect(res.error).toBeNull()
+  // assert the delete was filtered by id + box_id + is_template=true
+  expect(rls.builder('member_programs').delete).toHaveBeenCalled()
+  expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('id', TPL_ID)
+  expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('box_id', 'b1')
+  expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('is_template', true)
 })

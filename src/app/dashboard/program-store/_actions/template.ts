@@ -78,3 +78,14 @@ export async function saveTemplate(
   revalidatePath(`/dashboard/program-store/${pid}`)
   return { error: null, templateId: pid }
 }
+
+export async function deleteTemplate(templateId: string): Promise<{ error: string | null }> {
+  const auth = await requireProgrammingAction('Only coaches can delete programs.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
+  const { error } = await supabase.from('member_programs')
+    .delete().eq('id', templateId).eq('box_id', profile.box_id).eq('is_template', true)
+  if (error) return actionError('deleteTemplate', error)
+  revalidatePath('/dashboard/program-store')
+  return { error: null }
+}

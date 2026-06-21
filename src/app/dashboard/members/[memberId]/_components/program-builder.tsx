@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { saveProgram } from '../_actions/program'
-import type { ProgramExercise, ProgramSession } from '@/lib/program'
+import type { ProgramExercise, ProgramInput, ProgramSession } from '@/lib/program'
 import type { EditableProgram } from '@/app/dashboard/program/_lib/load-program'
 
 const input = 'h-8 rounded-lg border border-line-strong bg-surface px-2 text-[12.5px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
@@ -22,7 +22,19 @@ function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
   return next
 }
 
-export function ProgramBuilder({ athleteId, initial }: { athleteId: string; initial: EditableProgram | null }) {
+type SaveFn = (programId: string | null, input: ProgramInput) => Promise<{ error: string | null; programId?: string; templateId?: string }>
+
+export function ProgramBuilder({
+  athleteId,
+  initial,
+  showWeek,
+  onSave,
+}: {
+  athleteId: string
+  initial: EditableProgram | null
+  showWeek?: boolean
+  onSave?: SaveFn
+}) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [programId] = useState<string | null>(initial?.id ?? null)
@@ -37,10 +49,17 @@ export function ProgramBuilder({ athleteId, initial }: { athleteId: string; init
 
   function save() {
     start(async () => {
-      const res = await saveProgram(athleteId, programId, { title, notes: notes || null, sessions })
-      if (res.error) { alert(res.error); return }
-      router.push(`/dashboard/members/${athleteId}`)
-      router.refresh()
+      const input: ProgramInput = { title, notes: notes || null, sessions }
+      if (onSave) {
+        const res = await onSave(programId, input)
+        if (res.error) { alert(res.error); return }
+        router.refresh()
+      } else {
+        const res = await saveProgram(athleteId, programId, input)
+        if (res.error) { alert(res.error); return }
+        router.push(`/dashboard/members/${athleteId}`)
+        router.refresh()
+      }
     })
   }
 
@@ -55,6 +74,16 @@ export function ProgramBuilder({ athleteId, initial }: { athleteId: string; init
         <div key={s.client_uid} className="flex flex-col gap-2 rounded-[14px] border border-line bg-surface px-4 py-3.5">
           <div className="flex items-center gap-2">
             <input className={`${input} flex-1 font-semibold`} placeholder="Session title" value={s.title} maxLength={80} onChange={(e) => patchSession(si, { title: e.target.value })} />
+            {showWeek && (
+              <input
+                className={`${input} w-16`}
+                type="number"
+                min={1}
+                placeholder="Week"
+                value={s.week ?? ''}
+                onChange={(e) => patchSession(si, { week: e.target.value ? Number(e.target.value) : null })}
+              />
+            )}
             <button type="button" className={btn} disabled={si === 0} onClick={() => setSessions((p) => move(p, si, -1))}>↑</button>
             <button type="button" className={btn} disabled={si === sessions.length - 1} onClick={() => setSessions((p) => move(p, si, 1))}>↓</button>
             <button type="button" className={btn} onClick={() => setSessions((p) => p.filter((_, i) => i !== si))}>Remove</button>

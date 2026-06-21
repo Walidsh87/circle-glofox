@@ -1,6 +1,6 @@
 'use server'
 
-import { requireProgrammingAction } from '@/lib/auth/action-guards'
+import { requireProgrammingAction, requireOwnerAction } from '@/lib/auth/action-guards'
 import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateTemplate } from '@/lib/program-store'
@@ -87,5 +87,40 @@ export async function deleteTemplate(templateId: string): Promise<{ error: strin
     .delete().eq('id', templateId).eq('box_id', profile.box_id).eq('is_template', true)
   if (error) return actionError('deleteTemplate', error)
   revalidatePath('/dashboard/program-store')
+  return { error: null }
+}
+
+export async function publishTemplate(templateId: string, priceAed: number): Promise<{ error: string | null }> {
+  if (!Number.isInteger(priceAed) || priceAed <= 0) return { error: 'Set a price above 0.' }
+  const auth = await requireOwnerAction('Only the owner can price programs.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
+  const boxId = profile.box_id
+
+  // Must be a real template in this box with at least one session.
+  const { data: tpl } = await supabase.from('member_programs')
+    .select('id').eq('id', templateId).eq('box_id', boxId).eq('is_template', true).maybeSingle()
+  if (!tpl) return { error: 'Program not found.' }
+  const { count } = await supabase.from('program_sessions')
+    .select('id', { count: 'exact', head: true }).eq('program_id', templateId).eq('box_id', boxId)
+  if (!count || count < 1) return { error: 'Add at least one session before publishing.' }
+
+  const { error } = await supabase.from('member_programs')
+    .update({ published: true, price_aed: priceAed }).eq('id', templateId).eq('box_id', boxId).eq('is_template', true)
+  if (error) return actionError('publishTemplate', error)
+  revalidatePath('/dashboard/program-store')
+  revalidatePath('/dashboard/shop')
+  return { error: null }
+}
+
+export async function unpublishTemplate(templateId: string): Promise<{ error: string | null }> {
+  const auth = await requireOwnerAction('Only the owner can price programs.')
+  if ('error' in auth) return { error: auth.error }
+  const { supabase, profile } = auth
+  const { error } = await supabase.from('member_programs')
+    .update({ published: false }).eq('id', templateId).eq('box_id', profile.box_id).eq('is_template', true)
+  if (error) return actionError('unpublishTemplate', error)
+  revalidatePath('/dashboard/program-store')
+  revalidatePath('/dashboard/shop')
   return { error: null }
 }

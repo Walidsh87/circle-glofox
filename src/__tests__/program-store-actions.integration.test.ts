@@ -6,7 +6,7 @@ const { serverCreate } = vi.hoisted(() => ({ serverCreate: vi.fn() }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: serverCreate }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { saveTemplate, deleteTemplate } from '@/app/dashboard/program-store/_actions/template'
+import { saveTemplate, deleteTemplate, publishTemplate, unpublishTemplate } from '@/app/dashboard/program-store/_actions/template'
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -92,4 +92,84 @@ test('deleteTemplate is box- + template-scoped and programming-gated', async () 
   expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('id', TPL_ID)
   expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('box_id', 'b1')
   expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('is_template', true)
+})
+
+// --- Task 8: publishTemplate / unpublishTemplate (owner-only) ---
+
+const ownerMockWithSessions = () =>
+  makeSupabaseMock({
+    user: { id: 'owner1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'owner', full_name: 'Owner' }, error: null },
+      // first member_programs query: template existence check (maybeSingle returns { id: ... })
+      // second member_programs query: the update
+      member_programs: [
+        { data: { id: TPL_ID }, error: null },
+        { data: null, error: null },
+      ],
+      // program_sessions count query returns count: 1
+      program_sessions: { data: null, error: null, count: 1 },
+    },
+  })
+
+const ownerMockNoSessions = () =>
+  makeSupabaseMock({
+    user: { id: 'owner1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'owner', full_name: 'Owner' }, error: null },
+      member_programs: [
+        { data: { id: TPL_ID }, error: null },
+        { data: null, error: null },
+      ],
+      // program_sessions count query returns count: 0
+      program_sessions: { data: null, error: null, count: 0 },
+    },
+  })
+
+test('publishTemplate rejects a non-positive price', async () => {
+  serverCreate.mockResolvedValue(ownerMockWithSessions())
+  expect((await publishTemplate(TPL_ID, 0)).error).toBe('Set a price above 0.')
+})
+
+test('publishTemplate denies a non-owner (coach)', async () => {
+  serverCreate.mockResolvedValue(
+    makeSupabaseMock({
+      user: { id: 'coach1' },
+      results: { profiles: { data: { box_id: 'b1', role: 'coach', full_name: 'Coach' }, error: null } },
+    }),
+  )
+  expect((await publishTemplate(TPL_ID, 50)).error).toBe('Only the owner can price programs.')
+})
+
+test('publishTemplate refuses a template with no sessions', async () => {
+  serverCreate.mockResolvedValue(ownerMockNoSessions())
+  expect((await publishTemplate(TPL_ID, 50)).error).toBe('Add at least one session before publishing.')
+})
+
+test('publishTemplate sets published + price for an owner with a valid template', async () => {
+  const rls = ownerMockWithSessions()
+  serverCreate.mockResolvedValue(rls)
+  expect((await publishTemplate(TPL_ID, 50)).error).toBeNull()
+  // The update must set published=true and price_aed=50
+  expect(rls.builder('member_programs').update).toHaveBeenCalledWith(
+    expect.objectContaining({ published: true, price_aed: 50 }),
+  )
+  expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('id', TPL_ID)
+  expect(rls.builder('member_programs').eq).toHaveBeenCalledWith('box_id', 'b1')
+})
+
+test('unpublishTemplate is owner-only and sets published=false', async () => {
+  const rls = makeSupabaseMock({
+    user: { id: 'owner1' },
+    results: {
+      profiles: { data: { box_id: 'b1', role: 'owner', full_name: 'Owner' }, error: null },
+      member_programs: { data: null, error: null },
+    },
+  })
+  serverCreate.mockResolvedValue(rls)
+  const res = await unpublishTemplate(TPL_ID)
+  expect(res.error).toBeNull()
+  expect(rls.builder('member_programs').update).toHaveBeenCalledWith(
+    expect.objectContaining({ published: false }),
+  )
 })

@@ -1,14 +1,18 @@
+import Link from 'next/link'
 import { requirePage } from '@/lib/auth/page-guards'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { todayInTimezone } from '@/lib/timezone'
-import { loadMemberProgram } from './_lib/load-program'
+import { listActivePrograms, loadMemberProgram } from './_lib/load-program'
 import { RequestProgramButton } from './_components/request-program-button'
 import { ExerciseLogger } from './_components/exercise-logger'
 import { buildDrip } from '@/lib/program-store'
 
-export default async function MyProgramPage() {
+export default async function MyProgramPage({ searchParams }: { searchParams: Promise<{ program?: string }> }) {
+  const sp = await searchParams
   const { supabase, user, profile, boxName, box } = await requirePage()
-  const program = await loadMemberProgram(supabase, user.id, profile.box_id)
+  const programs = await listActivePrograms(supabase, user.id, profile.box_id)
+  const selectedId = programs.find((p) => p.id === sp.program)?.id ?? programs[0]?.id
+  const program = selectedId ? await loadMemberProgram(supabase, user.id, profile.box_id, selectedId) : null
   const today = todayInTimezone(box?.timezone ?? 'Asia/Dubai')
 
   return (
@@ -21,6 +25,22 @@ export default async function MyProgramPage() {
           </div>
         ) : (
           <>
+            {programs.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                {programs.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/dashboard/program?program=${p.id}`}
+                    className={`rounded-lg border px-3 py-1.5 text-[12.5px] transition-colors ${
+                      p.id === selectedId ? 'border-accent font-semibold text-ink' : 'border-line text-ink-3 hover:border-line-strong'
+                    }`}
+                  >
+                    {p.title}
+                    {p.source === 'bought' ? ' · bought' : ''}
+                  </Link>
+                ))}
+              </div>
+            )}
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold text-ink">{program.title}</h2>

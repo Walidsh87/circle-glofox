@@ -29,11 +29,13 @@ export function ProgramBuilder({
   initial,
   showWeek,
   onSave,
+  onCancel,
 }: {
   athleteId: string
   initial: EditableProgram | null
   showWeek?: boolean
   onSave?: SaveFn
+  onCancel?: () => void
 }) {
   const router = useRouter()
   const [pending, start] = useTransition()
@@ -122,7 +124,9 @@ export function ProgramBuilder({
       <div className="flex items-center gap-2">
         <button type="button" className={btn} onClick={() => setSessions((p) => [...p, newSession(p.length + 1)])}>+ Add session</button>
         <div className="flex-1" />
-        <button type="button" className={btn} disabled={pending} onClick={() => router.push(`/dashboard/members/${athleteId}`)}>Cancel</button>
+        {(onCancel || athleteId) && (
+          <button type="button" className={btn} disabled={pending} onClick={() => onCancel ? onCancel() : router.push(`/dashboard/members/${athleteId}`)}>Cancel</button>
+        )}
         <button type="button" className={limeBtn} disabled={pending} onClick={save}>{pending ? 'Saving…' : 'Save program'}</button>
       </div>
     </div>

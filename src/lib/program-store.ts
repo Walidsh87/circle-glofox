@@ -13,3 +13,21 @@ export function validateTemplate(input: ProgramInput): string | null {
   }
   return null
 }
+
+// Date math on YYYY-MM-DD strings (gym-TZ dates, matching todayInTimezone). Parse as UTC
+// midday to dodge DST/offset edge cases, add days, reformat.
+function addDays(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+  dt.setUTCDate(dt.getUTCDate() + days)
+  return dt.toISOString().slice(0, 10)
+}
+
+export function weekUnlockDate(startDate: string, week: number): string {
+  return addDays(startDate, 7 * (week - 1))
+}
+
+export function isWeekUnlocked(startDate: string | null, week: number | null, today: string): boolean {
+  if (startDate == null || week == null) return true
+  return today >= weekUnlockDate(startDate, week) // YYYY-MM-DD compares lexically
+}

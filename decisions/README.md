@@ -14,6 +14,7 @@ hooks and CI enforce around). When a decision sets a build rule, update both —
 | #   | Decision                                                          | Status   | Date       |
 |-----|-------------------------------------------------------------------|----------|------------|
 | [001](001_service_role_key_is_server_only.md) | Supabase service-role key is server-only — never client-exposed | Accepted | 2026-06-17 |
+| [002](002_modular_monolith_no_microservices.md) | Modular monolith on Vercel + Supabase — no custom microservices | Accepted | 2026-06-21 |
 
 ## How to add one
 

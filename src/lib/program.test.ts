@@ -94,3 +94,11 @@ describe('resolveProgram', () => {
     expect(out[0].exercises[1].needsOneRm).toBe(true) // no bench 1RM
   })
 })
+
+test('validateProgram accepts a session carrying a week (member programs leave it null)', () => {
+  const input = {
+    title: 'P', notes: null,
+    sessions: [{ client_uid: '11111111-1111-4111-8111-111111111111', title: 'S', week: 1, exercises: [] }],
+  }
+  expect(validateProgram(input)).toBeNull()
+})

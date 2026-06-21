@@ -33,3 +33,15 @@ test('isWeekUnlocked: true on/after the unlock day, false before; null week/star
   expect(isWeekUnlocked(null, 3, '2026-06-08')).toBe(true)          // no start
   expect(isWeekUnlocked('2026-06-01', null, '2026-06-01')).toBe(true) // no week structure
 })
+
+import { groupByWeek } from '@/lib/program-store'
+
+test('groupByWeek groups + sorts ascending, null week last', () => {
+  const s = (week: number | null, title: string) => ({ week, title })
+  const out = groupByWeek([s(2, 'b'), s(1, 'a'), s(2, 'c'), s(null, 'z')])
+  expect(out).toEqual([
+    { week: 1, sessions: [s(1, 'a')] },
+    { week: 2, sessions: [s(2, 'b'), s(2, 'c')] },
+    { week: null, sessions: [s(null, 'z')] },
+  ])
+})

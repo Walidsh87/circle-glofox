@@ -31,3 +31,15 @@ export function isWeekUnlocked(startDate: string | null, week: number | null, to
   if (startDate == null || week == null) return true
   return today >= weekUnlockDate(startDate, week) // YYYY-MM-DD compares lexically
 }
+
+export function groupByWeek<T extends { week: number | null }>(sessions: T[]): { week: number | null; sessions: T[] }[] {
+  const byWeek = new Map<number | null, T[]>()
+  for (const s of sessions) {
+    const k = s.week ?? null
+    if (!byWeek.has(k)) byWeek.set(k, [])
+    byWeek.get(k)!.push(s)
+  }
+  return [...byWeek.entries()]
+    .sort(([a], [b]) => (a == null ? 1 : b == null ? -1 : a - b))
+    .map(([week, sessions]) => ({ week, sessions }))
+}

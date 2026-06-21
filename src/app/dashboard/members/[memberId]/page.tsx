@@ -46,7 +46,7 @@ import { GoalsCard } from './_components/goals-card'
 import { TrainingPlanCard } from './_components/training-plan-card'
 import { loadGoalsData } from '@/app/dashboard/goals/_lib/load-goals'
 import { ProgramCard } from './_components/program-card'
-import { loadResolvedProgram } from '@/app/dashboard/program/_lib/load-program'
+import { listActivePrograms } from '@/app/dashboard/program/_lib/load-program'
 
 function ageFromDob(dob: string, today: string): number | null {
   const b = Date.parse(dob + 'T00:00:00Z'), t = Date.parse(today + 'T00:00:00Z')
@@ -154,7 +154,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   // Kick off without awaiting so it overlaps with the queries below; awaited at render.
   const goalsDataPromise = isStaff || isSelf ? loadGoalsData(supabase, params.memberId, viewer.box_id) : null
   // #87 follow-on: structured program (resolved view) + box athletes for "duplicate to".
-  const programPromise = isStaff || isSelf ? loadResolvedProgram(supabase, params.memberId, viewer.box_id) : null
+  const programsPromise = isStaff || isSelf ? listActivePrograms(supabase, params.memberId, viewer.box_id) : null
   const programMembersPromise = isProgramming
     ? supabase.from('profiles').select('id, full_name').eq('box_id', viewer.box_id).eq('role', 'athlete').neq('id', params.memberId).order('full_name')
     : null
@@ -369,7 +369,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const consistencyBadge = currentMilestone(consistencyTotal)
   const consistencyNext = nextMilestone(consistencyTotal)
   const goalsData = goalsDataPromise ? await goalsDataPromise : null
-  const program = programPromise ? await programPromise : null
+  const programs = programsPromise ? await programsPromise : []
   const programMembers = programMembersPromise
     ? ((await programMembersPromise).data ?? []).map((m: { id: string; full_name: string | null }) => ({ id: m.id, name: m.full_name ?? 'Member' }))
     : []
@@ -477,9 +477,7 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
           <Section label="Program">
             <ProgramCard
               athleteId={member.id}
-              programId={program?.id ?? null}
-              title={program?.title ?? null}
-              sessionCount={program?.sessions.length ?? 0}
+              programs={programs}
               canManage={isProgramming}
               members={programMembers}
             />

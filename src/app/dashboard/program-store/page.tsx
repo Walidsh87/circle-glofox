@@ -28,12 +28,20 @@ export default async function ProgramStorePage() {
       boxName={boxName}
       title="Program Store"
       actions={
-        <Link
-          href="/dashboard/program-store/new"
-          className="rounded-lg bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-ink transition-opacity hover:opacity-90"
-        >
-          + New program
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/program-store/import"
+            className="rounded-lg border border-line bg-surface px-3.5 py-2 text-[13px] font-semibold text-ink-2 transition-colors hover:border-line-strong"
+          >
+            Import from text
+          </Link>
+          <Link
+            href="/dashboard/program-store/new"
+            className="rounded-lg bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-ink transition-opacity hover:opacity-90"
+          >
+            + New program
+          </Link>
+        </div>
       }
     >
       <div className="flex flex-col gap-3 p-5 md:p-8">

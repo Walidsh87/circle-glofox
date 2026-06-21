@@ -27,12 +27,14 @@ type SaveFn = (programId: string | null, input: ProgramInput) => Promise<{ error
 export function ProgramBuilder({
   athleteId,
   initial,
+  seed,
   showWeek,
   onSave,
   onCancel,
 }: {
   athleteId: string
   initial: EditableProgram | null
+  seed?: ProgramInput
   showWeek?: boolean
   onSave?: SaveFn
   onCancel?: () => void
@@ -40,9 +42,11 @@ export function ProgramBuilder({
   const router = useRouter()
   const [pending, start] = useTransition()
   const [programId] = useState<string | null>(initial?.id ?? null)
-  const [title, setTitle] = useState(initial?.title ?? '')
-  const [notes, setNotes] = useState(initial?.notes ?? '')
-  const [sessions, setSessions] = useState<ProgramSession[]>(initial?.sessions?.length ? initial.sessions : [newSession(1)])
+  const [title, setTitle] = useState(initial?.title ?? seed?.title ?? '')
+  const [notes, setNotes] = useState(initial?.notes ?? seed?.notes ?? '')
+  const [sessions, setSessions] = useState<ProgramSession[]>(
+    initial?.sessions?.length ? initial.sessions : seed?.sessions?.length ? seed.sessions : [newSession(1)],
+  )
 
   const patchSession = (si: number, patch: Partial<ProgramSession>) =>
     setSessions((prev) => prev.map((s, i) => (i === si ? { ...s, ...patch } : s)))

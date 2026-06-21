@@ -4,6 +4,8 @@ import { requireUserAction } from '@/lib/auth/action-guards'
 import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateSetEntries, isValidPerformedOn, kgToGrams, type SetEntry } from '@/lib/program-log'
+import { isWeekUnlocked, weekUnlockDate } from '@/lib/program-store'
+import { todayInTimezone } from '@/lib/timezone'
 
 // The member logs their OWN sets. RLS (set_logs_athlete_own = athlete_id = auth.uid())
 // is the real guard; we additionally confirm the exercise is theirs (athlete_read RLS
@@ -17,9 +19,29 @@ export async function logSets(exerciseId: string, performedOn: string, entries: 
   if ('error' in auth) return { error: auth.error }
   const { supabase, user } = auth
 
-  const { data: ex } = await supabase.from('program_exercises').select('id, box_id, athlete_id').eq('id', exerciseId).maybeSingle()
+  const { data: ex } = await supabase.from('program_exercises').select('id, box_id, athlete_id, session_id').eq('id', exerciseId).maybeSingle()
   if (!ex || (ex as { athlete_id: string }).athlete_id !== user.id) return { error: 'Exercise not found.' }
   const boxId = (ex as { box_id: string }).box_id
+  const sessionId = (ex as { session_id: string }).session_id
+
+  // Drip gate: a bought program's week unlocks on a schedule. Reject logging against a
+  // not-yet-unlocked week (week IS NULL → coach-assigned program → always allowed).
+  const { data: boxRow } = await supabase.from('boxes').select('timezone').eq('id', boxId).single()
+  const todayTz = todayInTimezone((boxRow as { timezone?: string } | null)?.timezone ?? 'Asia/Dubai')
+  const { data: sess } = await supabase
+    .from('program_sessions')
+    .select('week, member_programs:program_id(start_date)')
+    .eq('id', sessionId)
+    .eq('box_id', boxId)
+    .maybeSingle()
+  if (sess) {
+    const week = (sess as { week: number | null }).week
+    const mp = (sess as { member_programs?: { start_date: string | null } | { start_date: string | null }[] | null }).member_programs
+    const startDate = (Array.isArray(mp) ? mp[0]?.start_date : mp?.start_date) ?? null
+    if (!isWeekUnlocked(startDate, week, todayTz)) {
+      return { error: `This week unlocks on ${weekUnlockDate(startDate as string, week as number)}.` }
+    }
+  }
 
   const rows = entries.map((e) => ({
     box_id: boxId,

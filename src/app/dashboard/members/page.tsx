@@ -21,13 +21,14 @@ type Tab = 'members' | 'staff' | 'leads'
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: { tab?: string; tag?: string }
+  searchParams: Promise<{ tab?: string; tag?: string }>
 }) {
+  const sp = await searchParams
   const { supabase, user, profile, boxName } = await requireStaffPage()
   const isOwner = profile.role === 'owner'
 
   const allowedTabs: Tab[] = isOwner ? ['members', 'staff', 'leads'] : ['members', 'leads']
-  const tab: Tab = (allowedTabs.includes(searchParams.tab as Tab) ? searchParams.tab : 'members') as Tab
+  const tab: Tab = (allowedTabs.includes(sp.tab as Tab) ? sp.tab : 'members') as Tab
 
   // Counts for all tabs
   const [{ count: memberCount }, { count: staffCount }, { count: leadCount }] = await Promise.all([
@@ -43,7 +44,7 @@ export default async function MembersPage({
     .eq('box_id', profile.box_id)
     .order('created_at', { ascending: true })
   // Tab-specific data — all independent (filtered only by `tab`), fetched in parallel.
-  const tagFilter = searchParams.tag ?? null
+  const tagFilter = sp.tag ?? null
   const [{ data: people }, { data: leads }, { data: leadStaff }, { data: tagRows }] = await Promise.all([
     tab !== 'leads'
       ? (tab === 'staff' ? peopleBase.in('role', [...ALL_STAFF_ROLES]) : peopleBase.eq('role', 'athlete'))

@@ -548,3 +548,9 @@ DROP FUNCTION IF EXISTS create_default_waiver();
 DROP TABLE IF EXISTS waiver_signatures;     -- ⚠️ signed liability waivers
 DROP TABLE IF EXISTS gym_waivers;
 ```
+
+### 085_movement_videos
+```sql
+-- 085_movement_videos.sql
+DROP TABLE IF EXISTS movement_videos;
+```

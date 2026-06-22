@@ -126,7 +126,7 @@ export default async function DashboardPage() {
     ] = await Promise.all([
       supabase.from('class_templates').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id),
       supabase.from('workouts').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id).neq('role', 'owner'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id).in('role', ['admin', 'coach', 'receptionist']),
       supabase.from('membership_plans').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id),
       supabase.from('boxes').select('id', { count: 'exact', head: true }).eq('id', profile.box_id).not('stripe_secret_key', 'is', null),
       supabase.from('boxes').select('logo_url').eq('id', profile.box_id).single(),

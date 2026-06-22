@@ -67,10 +67,9 @@ export async function logScoreForAthlete(
     .filter((p) => p.workout_id !== workoutId)
     .map((p) => p.score_value)
 
-  // First-time score on a benchmark counts as a PR (athlete's own record).
-  const isFirstTime = priorScores.length === 0
-  const { isPr: isBetter, prevBest } = decideWodPr(w.scoring_type, scoreValue, priorScores)
-  const isPr = isFirstTime || isBetter
+  // PR detection identical to the athlete-self logScore path: a first-ever score on a
+  // benchmark is the baseline, NOT a PR (decideWodPr returns false on empty priors).
+  const { isPr, prevBest } = decideWodPr(w.scoring_type, scoreValue, priorScores)
 
   const { error } = await service.from('workout_scores').upsert(
     { box_id: boxId, workout_id: workoutId, athlete_id: athleteId, score_value: scoreValue, rx, notes: notes?.trim() || null, is_pr: isPr },

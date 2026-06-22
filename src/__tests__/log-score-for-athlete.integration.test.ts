@@ -48,12 +48,13 @@ describe('logScoreForAthlete', () => {
     expect(svc.builder('workout_scores')?.upsert).toBeUndefined()
   })
 
-  it('upserts the target athlete score with is_pr from decideWodPr', async () => {
+  it('upserts the target athlete score, flagging is_pr when it beats a prior (via decideWodPr)', async () => {
     requireStaff.mockResolvedValue({ supabase: makeSupabaseMock({}), ...STAFF })
     const svc = makeSupabaseMock({ results: {
       workouts: { data: { title: 'Fran', scoring_type: 'time' }, error: null },
       profiles: { data: { id: 'a1' }, error: null },
-      workout_scores: [ { data: [], error: null }, { data: null, error: null } ], // [priors → none], [upsert]
+      // [priors → a prior Fran of 200s], [upsert]. New 180s time beats 200 → PR.
+      workout_scores: [ { data: [{ score_value: 200, workout_id: 'w0' }], error: null }, { data: null, error: null } ],
     } })
     serviceCreate.mockReturnValue(svc)
     const { logScoreForAthlete } = await load()
@@ -62,6 +63,22 @@ describe('logScoreForAthlete', () => {
     expect(svc.builder('workout_scores').upsert).toHaveBeenCalledWith(
       expect.objectContaining({ box_id: 'b1', workout_id: 'w1', athlete_id: 'a1', score_value: 180, rx: true, is_pr: true }),
       expect.objectContaining({ onConflict: 'workout_id,athlete_id' }),
+    )
+  })
+
+  it('does NOT flag a first-ever benchmark score as a PR (matches athlete-self logScore)', async () => {
+    requireStaff.mockResolvedValue({ supabase: makeSupabaseMock({}), ...STAFF })
+    const svc = makeSupabaseMock({ results: {
+      workouts: { data: { title: 'Fran', scoring_type: 'time' }, error: null },
+      profiles: { data: { id: 'a1' }, error: null },
+      workout_scores: [ { data: [], error: null }, { data: null, error: null } ], // no priors → baseline, not a PR
+    } })
+    serviceCreate.mockReturnValue(svc)
+    const { logScoreForAthlete } = await load()
+    await logScoreForAthlete('w1', 'a1', 180, true, null)
+    expect(svc.builder('workout_scores').upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ is_pr: false }),
+      expect.anything(),
     )
   })
 })

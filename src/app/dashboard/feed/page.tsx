@@ -109,7 +109,9 @@ export default async function FeedPage() {
             ? <AchievementCard key={`ach-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
             : item.kind === 'pr'
               ? <PrCard key={`pr-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
-              : <ScoreCard key={`score-${item.id}`} item={item} isSelf={item.athleteId === user.id} reaction={reactionsByScore[item.id] ?? { count: 0, reacted: false }} />
+              : item.kind === 'score'
+                ? <ScoreCard key={`score-${item.id}`} item={item} isSelf={item.athleteId === user.id} reaction={reactionsByScore[item.id] ?? { count: 0, reacted: false }} />
+                : null
         )) : (
           <div className="rounded-[14px] border border-line bg-surface px-6 py-12 text-center text-[13px] text-ink-3">
             No activity yet. Log a WOD result or hit a lift PR to get started.

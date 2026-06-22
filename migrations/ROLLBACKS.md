@@ -549,6 +549,12 @@ DROP TABLE IF EXISTS waiver_signatures;     -- ⚠️ signed liability waivers
 DROP TABLE IF EXISTS gym_waivers;
 ```
 
+### 086_class_debriefs
+```sql
+-- 086_class_debriefs.sql
+DROP TABLE IF EXISTS class_debriefs;
+```
+
 ### 085_movement_videos
 ```sql
 -- 085_movement_videos.sql

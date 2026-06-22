@@ -22,6 +22,7 @@ describe('mergeTimeline', () => {
       [score('s1', '2026-06-01T00:00:00Z'), score('s2', '2026-06-02T00:00:00Z')],
       [pr('p1', '2026-06-03T00:00:00Z')],
       [],
+      [],
       2,
     )
     expect(items.map((i) => i.id)).toEqual(['p1', 's2'])
@@ -37,6 +38,19 @@ describe('mergeTimeline', () => {
       [ach('a1', '2026-06-07T10:00:00Z')],
     )
     expect(items.map((i) => i.id)).toEqual(['a1', 'p1', 's1'])
+  })
+
+  test('merges debriefs by timestamp too', () => {
+    const deb = (id: string, at: string): FeedItem => ({
+      kind: 'debrief', id, at, coachName: 'Coach', wodTitle: 'Fran', body: 'Solid work today.',
+    })
+    const items = mergeTimeline(
+      [score('s1', '2026-06-05T10:00:00Z')],
+      [pr('p1', '2026-06-06T10:00:00Z')],
+      [],
+      [deb('d1', '2026-06-07T10:00:00Z')],
+    )
+    expect(items.map((i) => i.id)).toEqual(['d1', 'p1', 's1'])
   })
 
   test('handles empty inputs', () => {

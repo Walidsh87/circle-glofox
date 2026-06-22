@@ -56,6 +56,7 @@ function getNavGroups(role: string): NavGroup[] {
   if (isOwner) runTheGym.push({ key: 'attribution', label: 'Attribution', href: '/dashboard/attribution', icon: 'chart' })
   if (isOwner) runTheGym.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
   if (isOwner) runTheGym.push({ key: 'audit', label: 'Audit log', href: '/dashboard/audit', icon: 'book' })
+  if (isStaff) runTheGym.push({ key: 'help', label: 'Help', href: '/dashboard/help', icon: 'help' })
   groups.push({ section: 'Run the gym', items: runTheGym })
 
   if (isStaff) {
@@ -131,6 +132,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   gift: <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M5 12v9h14v-9M12 8v13" /><path d="M12 8S10 3 7.5 4.5 9.5 8 12 8zM12 8s2-5 4.5-3.5S14.5 8 12 8z" /></>,
   swap: <><path d="M7 4 3 8l4 4" /><path d="M3 8h14" /><path d="M17 20l4-4-4-4" /><path d="M21 16H7" /></>,
   play: <path d="M8 5v14l11-7z" />,
+  help: <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM9.6 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1.1.9-1.1 1.7M12 17h.01" />,
 }
 
 function CIcon({ name, size = 15 }: { name: string; size?: number }) {

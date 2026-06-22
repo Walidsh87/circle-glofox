@@ -81,7 +81,7 @@ export const guide: HelpGuide = {
     },
     {
       type: 'p',
-      text: 'Members with a Stripe subscription can update their saved card without contacting you. They receive a secure link in dunning emails; you can also copy the link manually from the Payments page. The link opens a Stripe-hosted billing portal where they update payment details. Each link is valid for 7 days and is single-use.',
+      text: 'Members with a Stripe subscription can update their saved card without contacting you. They receive a secure link in dunning emails; you can also copy the link manually from the Payments page. The link opens a Stripe-hosted billing portal where they update payment details. Each link is a signed token valid for 7 days and can be reused within that window.',
     },
     {
       type: 'h',

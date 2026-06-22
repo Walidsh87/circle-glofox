@@ -20,7 +20,7 @@ export const guide: HelpGuide = {
         'Owner — full access: payments, payroll, KPI dashboard, attribution, settings, staff management, and all staff features.',
         'Admin — same as Owner except no access to payments, payroll, KPI dashboard, attribution, or settings. Cannot manage staff.',
         'Coach — access to programming (WOD planner, class prep, whiteboard), member directory, tasks, inbox, and retention. No financial access.',
-        'Receptionist — front desk, member directory, tasks, inbox, and whiteboard. No programming, reports, or campaigns.',
+        'Receptionist — front desk, member directory, tasks, inbox, whiteboard, class prep, and retention. No programming, reports, or campaigns.',
       ],
     },
     {
@@ -35,9 +35,9 @@ export const guide: HelpGuide = {
       type: 'steps',
       items: [
         'Go to People and click the Staff tab (only visible to Owners).',
-        'Click "Add staff" to open the invite form.',
+        'Use the always-visible add form at the top of the tab (no button opens it).',
         'Enter the person\'s name and email, then pick their role: Coach, Admin, or Receptionist.',
-        'Submit. They will receive a magic-link email to sign in — no password needed.',
+        'Click "Add member". This creates the account but sends no email — share your gym login link, and they sign in by requesting their own email code / magic-link (no password needed).',
       ],
     },
     {
@@ -63,10 +63,10 @@ export const guide: HelpGuide = {
     {
       type: 'bullets',
       items: [
-        'All staff: member directory (People), tasks, inbox, whiteboard, class prep, and the front desk.',
+        'All staff: member directory (People), tasks, inbox, whiteboard, class prep, retention, and the front desk.',
         'Programming tier (Owner + Admin + Coach): WOD planner, batch import, scaling, class templates.',
-        'Manager tier (Owner + Admin): member profiles (edit), retention, lifecycle board, all reports except payroll.',
-        'Owner only: payments, payroll, KPI dashboard, attribution, packages catalog, settings, staff tab, audit log, WhatsApp/SMS/email campaigns.',
+        'Manager tier (Owner + Admin): member profiles (edit), lifecycle board, all reports except payroll, packages catalog, broadcasts, and WhatsApp/SMS/email campaigns.',
+        'Owner only: payments, payroll, KPI dashboard, attribution, settings, staff tab, and audit log.',
       ],
     },
     {

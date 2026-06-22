@@ -31,7 +31,7 @@ export const guide: HelpGuide = {
       type: 'bullets',
       items: [
         'TV display — generates a public /tv/<token> URL showing today\'s WOD, live leaderboard, and PRs. Share with the gym-floor TV; regenerate to revoke.',
-        'Door check-in QR — generates a /checkin/<token> QR members scan to self-check-in to booked classes (window: 60 min before class). Print the poster from the link next to the token card.',
+        'Door check-in QR — generates a /checkin/<token> QR members scan to self-check-in to booked classes (window: -60/+30 min around class start). Print the poster from the link next to the token card.',
       ],
     },
     {

@@ -21,8 +21,8 @@ export const guide: HelpGuide = {
     {
       type: 'steps',
       items: [
-        'Go to Payments → scroll to the Membership Plans section.',
-        'Click "New plan", enter a name and monthly price in AED, then save.',
+        'Go to Payments → scroll to the Membership plans section.',
+        'Use the inline "Add plan" form: enter a name and monthly price in AED, then save.',
         'To connect Stripe recurring billing, paste the Stripe Price ID into the plan (create the price in your Stripe dashboard first).',
         'Toggle a plan inactive when you stop selling it — you cannot delete a plan that has active memberships; deactivate it instead.',
       ],
@@ -37,7 +37,7 @@ export const guide: HelpGuide = {
     },
     {
       type: 'link',
-      label: 'Package catalog (owner)',
+      label: 'Package catalog (Owner + Admin)',
       href: '/dashboard/packages',
     },
     {
@@ -52,10 +52,10 @@ export const guide: HelpGuide = {
     {
       type: 'steps',
       items: [
-        'Open the member\'s profile from People → Members.',
-        'Click "Add membership" and choose a plan from the dropdown — the name and price pre-fill from the plan catalog but stay editable.',
+        'Go to the Payments page and find the "Add membership" form.',
+        'Pick the athlete, then choose a plan from the dropdown — the name and price pre-fill from the plan catalog but stay editable.',
         'Set a start date and save. The membership is created with status "unpaid" until payment is recorded.',
-        'Record a cash payment or generate a Stripe checkout link from the member\'s Payments section.',
+        'In the memberships table on the same Payments page, use the row\'s payment actions to record a cash payment or generate a Stripe checkout link.',
       ],
     },
     {

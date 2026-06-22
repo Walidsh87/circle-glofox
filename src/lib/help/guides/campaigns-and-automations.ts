@@ -8,7 +8,7 @@ export const guide: HelpGuide = {
   blocks: [
     {
       type: 'p',
-      text: 'The platform has five outbound comms tools: Broadcasts (one-off email to a segment), Email Campaigns (block-based emails with open/click tracking), SMS Campaigns (text to UAE numbers), WhatsApp Campaigns (Meta-approved templates via Twilio), and Automations + Sequences (trigger-based drips). All respect the member marketing opt-out flag.',
+      text: 'The platform has four outbound comms tools: Broadcasts (block-based email campaigns to a segment, with open/click tracking), SMS Campaigns (text to UAE numbers), WhatsApp Campaigns (Meta-approved templates via Twilio), and Automations + Sequences (trigger-based drips). All respect the member marketing opt-out flag.',
     },
     {
       type: 'note',
@@ -16,37 +16,20 @@ export const guide: HelpGuide = {
     },
     {
       type: 'h',
-      text: 'Broadcasts (one-off email)',
+      text: 'Broadcasts (email campaigns)',
     },
     {
       type: 'p',
-      text: 'Broadcasts send a plain-text email to a member segment in one click. They are the simplest way to reach your gym quickly — no template needed.',
+      text: 'Broadcasts is the single email tool. It has one always-visible block-based composer — build a branded email, optionally save and reuse templates, and send to a member segment. There is no separate "broadcast" vs "campaign"; the send button reads "Send campaign".',
     },
     {
       type: 'steps',
       items: [
-        'Go to Broadcasts (owner only).',
-        'Click "New broadcast" and write a subject and message body. Use {{first_name}} to personalise.',
+        'Go to Broadcasts (Owner + Admin). The composer is shown at the top of the page — no button opens it.',
+        'Build the email with blocks: Heading, Text, Image (by URL), Button, or Divider. Use the up/down arrows to reorder; maximum 50 blocks. Use {{first_name}} to personalise. Save as a template if you want to reuse the layout.',
         'Pick a segment: All members, Paid, Unpaid, Trial, or Frozen. Optionally filter by member tag.',
-        'Preview the recipient count, then click Send.',
-        'The detail page shows per-recipient delivery status. Use "Retry failed" for any that bounced.',
-      ],
-    },
-    {
-      type: 'h',
-      text: 'Email Campaigns (block composer)',
-    },
-    {
-      type: 'p',
-      text: 'Email Campaigns add a branded block-based composer on top of the broadcast engine. You can build reusable templates and track opens and clicks.',
-    },
-    {
-      type: 'steps',
-      items: [
-        'Go to Broadcasts and click "New campaign" (or start from a saved template).',
-        'Build the email with blocks: Heading, Text, Image (by URL), Button, or Divider. Use the up/down arrows to reorder; maximum 50 blocks.',
-        'Save as a template if you want to reuse the layout.',
-        'Pick a segment and send. Open and click rates appear on the campaign detail page once Resend webhook tracking is configured.',
+        'Preview the recipient count, then click "Send campaign".',
+        'The detail page shows per-recipient delivery status plus open and click rates (once Resend webhook tracking is configured). Use "Retry failed" for any that bounced.',
       ],
     },
     {
@@ -137,12 +120,12 @@ export const guide: HelpGuide = {
     },
     {
       type: 'p',
-      text: 'Every marketing email includes an unsubscribe footer with a unique per-member link. Clicking it sets the member\'s marketing opt-out flag, and they are skipped by all broadcasts, campaigns, automations, and sequences going forward. Transactional messages (billing reminders, waitlist notifications) are not affected.',
+      text: 'Every marketing email includes an unsubscribe footer with a unique per-member link. Clicking it opens the public /unsubscribe/[token] page, which sets the member\'s marketing opt-out flag, and they are skipped by all campaigns, automations, and sequences going forward. Transactional messages (billing reminders, waitlist notifications) are not affected.',
     },
     {
       type: 'bullets',
       items: [
-        'To manually toggle opt-out: open the member\'s profile, find the marketing preferences field, and change the setting.',
+        'Opt-out is set only via the member\'s own unsubscribe link — there is no marketing-preferences field on the member profile to toggle.',
         'Bounced or complained addresses are auto-opted-out via the Resend webhook.',
         'Members without a phone number are skipped by SMS and WhatsApp campaigns without counting as opt-outs.',
       ],

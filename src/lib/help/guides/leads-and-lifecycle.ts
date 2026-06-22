@@ -21,9 +21,9 @@ export const guide: HelpGuide = {
     {
       type: 'bullets',
       items: [
-        'Statuses: new → contacted → scheduled → converted → lost.',
-        'Click the status badge on a lead row to cycle it forward.',
-        'Click "Convert" to turn a lead into a full member account — their source is carried over to attribution.',
+        'Statuses: new, contacted, scheduled, converted, lost.',
+        'The status badge on a lead row is read-only — to change a status, click the matching status pill button (new / contacted / scheduled / converted / lost) on that row to select it directly.',
+        'Click "→ Member" to turn a lead into a full member account — their source is carried over to attribution.',
         'Add a follow-up task directly from the lead row with "+ Follow-up".',
       ],
     },

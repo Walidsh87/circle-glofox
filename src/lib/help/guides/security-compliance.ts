@@ -43,10 +43,10 @@ export const guide: HelpGuide = {
     ] },
 
     { type: 'h', text: 'Audit log' },
-    { type: 'p', text: 'The audit log records high-sensitivity actions: refunds, staff role changes, member removals, and MFA resets. It is append-only — entries cannot be edited or deleted from the app.' },
+    { type: 'p', text: 'The audit log records high-sensitivity actions: refunds, staff role changes, member removals, MFA resets, desk cash recorded, desk payment links, packages sold, API keys issued/revoked, and webhooks added/removed. It is append-only — entries cannot be edited or deleted from the app.' },
     { type: 'steps', items: [
       'Go to Dashboard → Audit log (owner only).',
-      'Use the filter pills to narrow by action type (Refund, Role change, Member removed, MFA reset).',
+      'Use the filter pills to narrow by action type (e.g. Refund, Role change, Member removed, MFA reset, Cash recorded, Payment link, Package sold, API key issued/revoked, Webhook added/removed).',
       'Click "Download CSV" to export the filtered view for record-keeping.',
     ] },
     { type: 'note', text: 'The audit log shows the last 200 events. Each entry shows who did it, what they did, who it affected, and key details (e.g. refund amount, old → new role).' },

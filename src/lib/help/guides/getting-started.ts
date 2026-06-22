@@ -29,14 +29,14 @@ export const guide: HelpGuide = {
     },
     {
       type: 'p',
-      text: 'Staff are added from the Members page on the Staff tab (owner-only). Each staff member receives a magic-link login email — no password required.',
+      text: 'Staff are added from the Members page on the Staff tab (owner-only). Adding a person creates their account but does not send any email — the app is passwordless, but sign-in is user-initiated.',
     },
     {
       type: 'steps',
       items: [
         'Go to Members → Staff tab (/dashboard/members?tab=staff).',
         'Use the "Add member" form: enter full name, email, and select a role (Coach, Receptionist, or Admin).',
-        'The new staff member receives a login email. They click the link to access the dashboard.',
+        'Share your gym login link with the new staff member. At login they request their own email code / magic-link to sign in — no password required.',
         'You can change a staff role at any time using the role picker on their row.',
       ],
     },
@@ -53,8 +53,8 @@ export const guide: HelpGuide = {
       items: [
         'Go to Members → Members tab (/dashboard/members?tab=members).',
         'Fill in full name, email, and optionally phone and Emirates ID, then click "Add member".',
-        'The member receives a magic-link login email so they can book classes and log scores.',
-        'Open the member profile to assign a membership plan and record payment status.',
+        'Share your gym login link with the member. They sign in by requesting their own email code / magic-link at login — adding them does not send any email automatically.',
+        'Assign a membership plan and record payment from the Payments page.',
       ],
     },
     {

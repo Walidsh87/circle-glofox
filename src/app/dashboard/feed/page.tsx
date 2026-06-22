@@ -3,7 +3,10 @@ import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { cn } from '@/lib/utils'
 import { FistBumpButton } from './_components/fist-bump-button'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
-import { mergeTimeline, type FeedItem, type ScoreItem, type PrItem, type AchievementItem } from './_lib/merge-feed'
+import { PROGRAMMING_ROLES } from '@/lib/auth/roles'
+import { mergeTimeline, type FeedItem, type ScoreItem, type PrItem, type AchievementItem, type DebriefItem } from './_lib/merge-feed'
+import { DebriefComposer } from './_components/debrief-composer'
+import { DeleteDebriefButton } from './_components/delete-debrief-button'
 
 function formatScore(value: number, scoringType: string): string {
   if (scoringType === 'time') {
@@ -52,6 +55,13 @@ export default async function FeedPage() {
     .order('earned_at', { ascending: false })
     .limit(30)
 
+  const { data: debriefs } = await supabase
+    .from('class_debriefs')
+    .select('id, body, wod_title, created_at, coach_id, profiles:coach_id(full_name)')
+    .eq('box_id', profile.box_id)
+    .order('created_at', { ascending: false })
+    .limit(30)
+
   const { data: reactions } = await supabase
     .from('score_reactions')
     .select('score_id, athlete_id')
@@ -93,7 +103,17 @@ export default async function FeedPage() {
     }
   })
 
-  const items = mergeTimeline(scoreItems, prItems, achievementItems)
+  const debriefItems: FeedItem[] = (debriefs ?? []).map((d): DebriefItem => {
+    const coach = Array.isArray(d.profiles) ? d.profiles[0] : d.profiles
+    return {
+      kind: 'debrief', id: d.id, at: d.created_at,
+      coachName: coach?.full_name ?? 'Coach', wodTitle: d.wod_title ?? null, body: d.body,
+    }
+  })
+
+  const canManage = (PROGRAMMING_ROLES as readonly string[]).includes(profile.role)
+
+  const items = mergeTimeline(scoreItems, prItems, achievementItems, debriefItems)
 
   return (
     <DashboardShell
@@ -104,14 +124,15 @@ export default async function FeedPage() {
       title="Activity Feed"
     >
       <div className="flex max-w-[560px] flex-col gap-2.5">
+        {canManage && <DebriefComposer />}
         {items.length > 0 ? items.map((item) => (
-          item.kind === 'achievement'
-            ? <AchievementCard key={`ach-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
-            : item.kind === 'pr'
-              ? <PrCard key={`pr-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
-              : item.kind === 'score'
-                ? <ScoreCard key={`score-${item.id}`} item={item} isSelf={item.athleteId === user.id} reaction={reactionsByScore[item.id] ?? { count: 0, reacted: false }} />
-                : null
+          item.kind === 'debrief'
+            ? <DebriefCard key={`deb-${item.id}`} item={item} canManage={canManage} />
+            : item.kind === 'achievement'
+              ? <AchievementCard key={`ach-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
+              : item.kind === 'pr'
+                ? <PrCard key={`pr-${item.id}`} item={item} isSelf={item.athleteId === user.id} />
+                : <ScoreCard key={`score-${item.id}`} item={item} isSelf={item.athleteId === user.id} reaction={reactionsByScore[item.id] ?? { count: 0, reacted: false }} />
         )) : (
           <div className="rounded-[14px] border border-line bg-surface px-6 py-12 text-center text-[13px] text-ink-3">
             No activity yet. Log a WOD result or hit a lift PR to get started.
@@ -119,6 +140,20 @@ export default async function FeedPage() {
         )}
       </div>
     </DashboardShell>
+  )
+}
+
+function DebriefCard({ item, canManage }: { item: DebriefItem; canManage: boolean }) {
+  return (
+    <div className="rounded-[14px] border border-line bg-surface px-4 py-4 shadow-card">
+      <div className="flex flex-wrap items-baseline gap-1.5">
+        <span className="text-[13.5px] font-semibold text-ink">{item.coachName}</span>
+        <span className="text-[12.5px] text-ink-3">Class recap{item.wodTitle ? ` · ${item.wodTitle}` : ''}</span>
+        <span className="font-mono text-[11px] text-ink-faint">{formatDate(item.at)}</span>
+        {canManage && <DeleteDebriefButton id={item.id} />}
+      </div>
+      <p className="mt-1.5 whitespace-pre-wrap text-[13px] text-ink-2">{item.body}</p>
+    </div>
   )
 }
 

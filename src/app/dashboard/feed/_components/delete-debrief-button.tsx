@@ -12,7 +12,11 @@ export function DeleteDebriefButton({ id }: { id: string }) {
     <button
       type="button"
       disabled={pending}
-      onClick={() => start(async () => { await deleteDebrief(id); router.refresh() })}
+      onClick={() => start(async () => {
+        const res = await deleteDebrief(id)
+        if (res.error) { alert(res.error); return }
+        router.refresh()
+      })}
       className="ml-auto text-[11px] text-ink-faint underline hover:text-ink-3 disabled:opacity-50"
     >
       delete

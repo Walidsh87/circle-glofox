@@ -1,6 +1,7 @@
 import { requirePage } from '@/lib/auth/page-guards'
 import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { Card, StatCard } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +9,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { PasswordNudge } from './_components/password-nudge'
 import { ClockCard } from './_components/clock-card'
+import { OnboardingChecklist } from './_components/onboarding-checklist'
+import { buildOnboardingSteps, onboardingComplete } from '@/lib/onboarding'
 import { countIncompleteOnboarding } from '@/lib/checklists'
 import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
 import { todayInTimezone } from '@/lib/timezone'
@@ -109,6 +112,37 @@ export default async function DashboardPage() {
     }
   }
 
+  const dismissed = (await cookies()).get('cf_onboarding_dismissed')?.value === '1'
+
+  let onboardingSteps: ReturnType<typeof buildOnboardingSteps> | null = null
+  if (isOwner && !dismissed) {
+    const [
+      { count: classTemplateCount },
+      { count: wodCount },
+      { count: staffCount },
+      { count: planCount },
+      { count: stripeCount },
+      { data: brandingBox },
+    ] = await Promise.all([
+      supabase.from('class_templates').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id),
+      supabase.from('workouts').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id).in('role', ['admin', 'coach', 'receptionist']),
+      supabase.from('membership_plans').select('id', { count: 'exact', head: true }).eq('box_id', profile.box_id),
+      supabase.from('boxes').select('id', { count: 'exact', head: true }).eq('id', profile.box_id).not('stripe_secret_key', 'is', null),
+      supabase.from('boxes').select('logo_url').eq('id', profile.box_id).single(),
+    ])
+    const steps = buildOnboardingSteps({
+      hasBranding: !!(brandingBox as { logo_url?: string | null } | null)?.logo_url,
+      hasStripe: (stripeCount ?? 0) > 0,
+      hasPlan: (planCount ?? 0) > 0,
+      hasClassTemplate: (classTemplateCount ?? 0) > 0,
+      hasWod: (wodCount ?? 0) > 0,
+      hasStaff: (staffCount ?? 0) > 0,
+      hasMember: (memberCount ?? 0) > 0,
+    })
+    if (!onboardingComplete(steps)) onboardingSteps = steps
+  }
+
   return (
     <DashboardShell
       active="dashboard"
@@ -129,6 +163,8 @@ export default async function DashboardPage() {
     >
       <div className="flex flex-col gap-5">
         <PasswordNudge show={!hasPassword} />
+
+        {onboardingSteps && <OnboardingChecklist steps={onboardingSteps} />}
 
         {isStaff && (
           <ClockCard openSince={(openCard as { clock_in: string } | null)?.clock_in ?? null} timeZone={timezone} />

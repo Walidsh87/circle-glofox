@@ -54,6 +54,7 @@ export const en = {
     skills: 'Skills',
     goals: 'My goals',
     program: 'My program',
+    movements: 'Movements',
     activityFeed: 'Activity Feed',
     committedClub: 'Committed Club',
     achievements: 'Achievements',

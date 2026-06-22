@@ -31,9 +31,18 @@ export type AchievementItem = {
   threshold: number
 }
 
-export type FeedItem = ScoreItem | PrItem | AchievementItem
+export type DebriefItem = {
+  kind: 'debrief'
+  id: string
+  at: string // ISO timestamp (created_at)
+  coachName: string
+  wodTitle: string | null
+  body: string
+}
+
+export type FeedItem = ScoreItem | PrItem | AchievementItem | DebriefItem
 
 // ISO timestamps sort correctly as strings. Newest first.
-export function mergeTimeline(scores: FeedItem[], prs: FeedItem[], achievements: FeedItem[] = [], limit = 30): FeedItem[] {
-  return [...scores, ...prs, ...achievements].sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit)
+export function mergeTimeline(scores: FeedItem[], prs: FeedItem[], achievements: FeedItem[] = [], debriefs: FeedItem[] = [], limit = 30): FeedItem[] {
+  return [...scores, ...prs, ...achievements, ...debriefs].sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit)
 }

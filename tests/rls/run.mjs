@@ -462,6 +462,36 @@ async function main() {
     })
   }
 
+  // ============================================================
+  // CLASS DEBRIEFS: box-read isolation (migration 086).
+  // Mirrors tests/rls/class-debriefs.isolation.test.ts.
+  // ============================================================
+  console.log('\n=== class debriefs: box-read isolation (mig 086) ===')
+  {
+    const DBR_A = 'dddddddd-0000-4000-8000-000000000001'
+    await client.query(
+      `insert into class_debriefs(id, box_id, coach_id, wod_title, body)
+       values ($1,$2,$3,'Fran','Solid work today.')`,
+      [DBR_A, BOX_A, OWNER_A]
+    )
+    await asUser(ATH_A, async () => {
+      check('class debriefs: ATH_A can SELECT own-box recap', await countWhere('class_debriefs', 'id', DBR_A) === 1)
+    })
+    await asUser(ATH_B, async () => {
+      check('class debriefs: ATH_B cannot SELECT Box A recap (cross-box)', await countWhere('class_debriefs', 'id', DBR_A) === 0)
+    })
+    await asUser(ATH_A, async () => {
+      let code = null
+      try { await client.query("insert into class_debriefs(box_id,body) values($1,'x')", [BOX_A]) }
+      catch (e) { code = e.code }
+      check('class debriefs: ATH_A INSERT raises 42501 (not programming tier)', code === '42501', `got ${code}`)
+    })
+    await asUser(OWNER_B, async () => {
+      const u = await client.query("update class_debriefs set body='hacked' where id=$1", [DBR_A])
+      check('class debriefs: OWNER_B UPDATE of Box A recap affects 0 rows', u.rowCount === 0, `rowCount=${u.rowCount}`)
+    })
+  }
+
   const total = pass + fail
   console.log('\n==============================================================')
   if (fail === 0) {

@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`083` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`086` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -547,6 +547,12 @@ DROP TRIGGER IF EXISTS boxes_create_waiver ON boxes;
 DROP FUNCTION IF EXISTS create_default_waiver();
 DROP TABLE IF EXISTS waiver_signatures;     -- ⚠️ signed liability waivers
 DROP TABLE IF EXISTS gym_waivers;
+```
+
+### 086_class_debriefs
+```sql
+-- 086_class_debriefs.sql
+DROP TABLE IF EXISTS class_debriefs;
 ```
 
 ### 085_movement_videos

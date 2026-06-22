@@ -70,6 +70,7 @@ function getNavGroups(role: string): NavGroup[] {
     if (isProgramming) programmingItems.push({ key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' })
     if (isProgramming) programmingItems.push({ key: 'program-store', label: 'Program Store', labelKey: 'nav.programStore', href: '/dashboard/program-store', icon: 'clipboard' })
     programmingItems.push({ key: 'whiteboard', label: 'Whiteboard', href: '/dashboard/whiteboard', icon: 'monitor', badge: 'live', badgeVariant: 'lime' })
+    programmingItems.push({ key: 'floor', label: 'Floor', href: '/dashboard/floor', icon: 'activity' })
     groups.push({ section: 'Programming', items: programmingItems })
   }
 

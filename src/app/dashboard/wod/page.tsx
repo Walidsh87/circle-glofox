@@ -129,6 +129,11 @@ export default async function WodPage({ searchParams }: { searchParams: Promise<
         .maybeSingle()
     : { data: null }
 
+  const { data: wodVids } = wod?.strength_lift
+    ? await supabase.from('movement_videos').select('slug').eq('box_id', profile.box_id).eq('slug', wod.strength_lift).maybeSingle()
+    : { data: null }
+  const hasLiftVideo = !!wodVids
+
   const pagerClass = cn(buttonVariants({ variant: 'outline', size: 'sm' }))
   const pagerDisabledClass =
     'cursor-not-allowed rounded-lg border border-line px-3 py-1.5 text-sm text-ink-faint'
@@ -172,6 +177,9 @@ export default async function WodPage({ searchParams }: { searchParams: Promise<
             </div>
             <div className={cn('font-display text-xl font-bold tracking-[-0.02em] text-ink', wod.strength_description && 'mb-2.5')}>
               {wod.strength_title}
+              {hasLiftVideo && (
+                <Link href={`/dashboard/movements#${wod.strength_lift}`} className="ml-2 align-middle text-[12px] text-accent-ink underline">▶ demo</Link>
+              )}
             </div>
             {wod.strength_description && (
               <pre className="m-0 whitespace-pre-wrap font-mono text-[13.5px] leading-relaxed text-ink-2">

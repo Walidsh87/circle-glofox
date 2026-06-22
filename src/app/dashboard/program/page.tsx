@@ -15,6 +15,9 @@ export default async function MyProgramPage({ searchParams }: { searchParams: Pr
   const program = selectedId ? await loadMemberProgram(supabase, user.id, profile.box_id, selectedId) : null
   const today = todayInTimezone(box?.timezone ?? 'Asia/Dubai')
 
+  const { data: vids } = await supabase.from('movement_videos').select('slug').eq('box_id', profile.box_id)
+  const videoSlugs = new Set(((vids ?? []) as { slug: string }[]).map((v) => v.slug))
+
   return (
     <DashboardShell active="program" userName={profile.full_name!} userRole={profile.role} boxName={boxName} title="My program">
       <div className="flex max-w-2xl flex-col gap-5">
@@ -66,7 +69,14 @@ export default async function MyProgramPage({ searchParams }: { searchParams: Pr
                         {s.exercises.length === 0 ? (
                           <p className="py-2 text-[12.5px] text-ink-3">No exercises.</p>
                         ) : (
-                          s.exercises.map((ex) => <ExerciseLogger key={ex.id} exercise={ex} today={today} />)
+                          s.exercises.map((ex) => (
+                            <ExerciseLogger
+                              key={ex.id}
+                              exercise={ex}
+                              today={today}
+                              videoSlug={ex.lift_name && videoSlugs.has(ex.lift_name) ? ex.lift_name : null}
+                            />
+                          ))
                         )}
                       </div>
                     </section>

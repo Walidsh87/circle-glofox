@@ -16,7 +16,7 @@ const daySummary = (sets: SetLog[]) => sets.map((s) => `${kg(s.weight_grams)}×$
 
 type Row = { weight: string; reps: string }
 
-export function ExerciseLogger({ exercise, today }: { exercise: LoggableExercise; today: string }) {
+export function ExerciseLogger({ exercise, today, videoSlug }: { exercise: LoggableExercise; today: string; videoSlug?: string | null }) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [open, setOpen] = useState(false)
@@ -63,7 +63,12 @@ export function ExerciseLogger({ exercise, today }: { exercise: LoggableExercise
     <div className="border-b border-line py-2.5 last:border-0">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[13.5px] font-semibold text-ink">{exercise.name}</div>
+          <div className="text-[13.5px] font-semibold text-ink">
+            {exercise.name}
+            {videoSlug && (
+              <Link href={`/dashboard/movements#${videoSlug}`} className="ml-1.5 text-[11px] text-accent-ink underline" title="Watch demo">▶ demo</Link>
+            )}
+          </div>
           <div className="text-[12px] text-ink-3">
             {prescription}
             {exercise.target_note ? ` · ${exercise.target_note}` : ''}

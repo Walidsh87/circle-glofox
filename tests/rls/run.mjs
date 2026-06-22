@@ -415,6 +415,53 @@ async function main() {
     })
   }
 
+  // ============================================================
+  // MOVEMENT VIDEO LIBRARY: box-read isolation (migration 085).
+  // Mirrors tests/rls/movement-videos.isolation.test.ts.
+  //
+  // movement_videos_box_read lets ANY in-box authenticated user SELECT
+  // their gym's videos; the programming tier curates (programming_manage).
+  // Cross-box users must see nothing and cannot write.
+  // ============================================================
+  console.log('\n=== movement videos: box-read isolation (mig 085) ===')
+  {
+    const MV_A = 'eeeeeeee-2222-4000-8000-000000000001'
+
+    // Seed as superuser (bypasses RLS).
+    await client.query(
+      `insert into movement_videos(id, box_id, slug, label, video_url, created_by)
+       values ($1,$2,'back_squat','Back Squat','https://youtu.be/dQw4w9WgXcQ',$3)`,
+      [MV_A, BOX_A, OWNER_A]
+    )
+
+    // (a) In-box athlete + (b) in-box owner can read.
+    await asUser(ATH_A, async () => {
+      check('movement videos: ATH_A can SELECT own-box video', await countWhere('movement_videos', 'id', MV_A) === 1)
+    })
+    await asUser(OWNER_A, async () => {
+      check('movement videos: OWNER_A can SELECT own-box video', await countWhere('movement_videos', 'id', MV_A) === 1)
+    })
+
+    // (c) Cross-box athlete sees nothing.
+    await asUser(ATH_B, async () => {
+      check('movement videos: ATH_B cannot SELECT Box A video (cross-box)', await countWhere('movement_videos', 'id', MV_A) === 0)
+    })
+
+    // (d) Athlete cannot write (programming tier only) → INSERT raises 42501.
+    await asUser(ATH_A, async () => {
+      let code = null
+      try { await client.query("insert into movement_videos(box_id,slug,label,video_url) values($1,'x','X','https://youtu.be/dQw4w9WgXcQ')", [BOX_A]) }
+      catch (e) { code = e.code }
+      check('movement videos: ATH_A INSERT raises 42501 (not programming tier)', code === '42501', `got ${code}`)
+    })
+
+    // (e) Cross-box owner cannot UPDATE Box A's row.
+    await asUser(OWNER_B, async () => {
+      const u = await client.query("update movement_videos set label='hacked' where id=$1", [MV_A])
+      check('movement videos: OWNER_B UPDATE of Box A video affects 0 rows', u.rowCount === 0, `rowCount=${u.rowCount}`)
+    })
+  }
+
   const total = pass + fail
   console.log('\n==============================================================')
   if (fail === 0) {

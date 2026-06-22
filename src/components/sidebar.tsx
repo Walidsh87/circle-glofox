@@ -79,6 +79,7 @@ function getNavGroups(role: string): NavGroup[] {
   athleteItems.push({ key: 'timer', label: 'Timer', labelKey: 'nav.timer', href: '/dashboard/timer', icon: 'clock' })
   if (!isStaff) athleteItems.push({ key: 'shop', label: 'Buy a pack', labelKey: 'nav.buyPack', href: '/dashboard/shop', icon: 'tag' })
   athleteItems.push({ key: 'lifts', label: 'My 1RMs', labelKey: 'nav.my1rms', href: '/dashboard/lifts', icon: 'barbell' })
+  athleteItems.push({ key: 'movements', label: 'Movements', labelKey: 'nav.movements', href: '/dashboard/movements', icon: 'play' })
   athleteItems.push({ key: 'skills', label: 'Skills', labelKey: 'nav.skills', href: '/dashboard/skills', icon: 'medal' })
   athleteItems.push({ key: 'goals', label: 'My goals', labelKey: 'nav.goals', href: '/dashboard/goals', icon: 'target' })
   athleteItems.push({ key: 'program', label: 'My program', labelKey: 'nav.program', href: '/dashboard/program', icon: 'clipboard' })
@@ -128,6 +129,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   checklist: <><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17" /></>,
   gift: <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M5 12v9h14v-9M12 8v13" /><path d="M12 8S10 3 7.5 4.5 9.5 8 12 8zM12 8s2-5 4.5-3.5S14.5 8 12 8z" /></>,
   swap: <><path d="M7 4 3 8l4 4" /><path d="M3 8h14" /><path d="M17 20l4-4-4-4" /><path d="M21 16H7" /></>,
+  play: <path d="M8 5v14l11-7z" />,
 }
 
 function CIcon({ name, size = 15 }: { name: string; size?: number }) {

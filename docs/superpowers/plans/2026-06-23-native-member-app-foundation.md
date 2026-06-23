@@ -71,11 +71,18 @@ Old `App.tsx` / `index.ts` (the WebView shell) are **retired as the entry point*
 
 Run (in `circle-mobile/`):
 ```bash
-npx expo install expo-router expo-secure-store @react-native-async-storage/async-storage @supabase/supabase-js expo-web-browser react-native-safe-area-context react-native-screens
+npx expo install expo-router expo-secure-store @react-native-async-storage/async-storage \
+  @supabase/supabase-js expo-web-browser react-native-safe-area-context react-native-screens \
+  react-native-reanimated react-native-worklets react-native-gesture-handler
 npm install @tanstack/react-query
-npm install -D nativewind tailwindcss
+npm install -D nativewind tailwindcss@^3
 ```
 Expected: all resolve as "SDK 56 compatible"; `package.json` updates.
+
+**Version footguns (do NOT skip):**
+- **`tailwindcss@^3` is mandatory.** Plain `tailwindcss` installs v4 (a CSS-first rewrite with no `tailwind.config.js` / no `@tailwind` directives) — NativeWind v4 only works against Tailwind **v3**, and the mismatch crashes the Metro bundler on `global.css` with no clear error.
+- **Install `react-native-reanimated` + `react-native-worklets` together now.** SDK 56 pins Reanimated **4** (`bundledNativeModules.json`), which has a **hard peer dependency on `react-native-worklets`**; installing Reanimated alone later crashes at runtime with a missing-native-module error. `npx expo install` pins the SDK-correct versions. Reanimated 4 dropped its Babel plugin — **no** babel entry for it is needed (Task 2's babel config is complete as written).
+- Use `npx expo install` (not bare `npm install`) for `expo-router` so it pins the SDK-aligned `~56.x` (Expo realigned router major versions to the SDK number; bare `npm install expo-router` would wrongly pull an old `4.x`/`latest`).
 
 - [ ] **Step 2: Point the entry at Expo Router**
 
@@ -209,6 +216,14 @@ const ChunkedSecureStore = {
     return parts.join('')
   },
   async setItem(key: string, value: string): Promise<void> {
+    // Clean up any existing chunks first, so shrinking a multi-chunk value to a
+    // single chunk doesn't orphan the old .0/.1/... keys in SecureStore.
+    const existingHead = await SecureStore.getItemAsync(safe(key))
+    const existingM = existingHead ? /^__n:(\d+)$/.exec(existingHead) : null
+    if (existingM) {
+      const oldCount = parseInt(existingM[1], 10)
+      for (let i = 0; i < oldCount; i++) await SecureStore.deleteItemAsync(safe(`${key}.${i}`))
+    }
     if (value.length <= CHUNK) {
       await SecureStore.setItemAsync(safe(key), value)
       return
@@ -391,7 +406,7 @@ The wedge — per-athlete kg from a stored 1RM — is the app's hero. Copy the *
 
 - [ ] **Step 1: Install the test runner**
 
-Run: `npx expo install jest-expo` then `npm install -D jest @types/jest`. Add to `package.json` scripts: `"test": "jest"`. Add a `jest` key: `{ "preset": "jest-expo" }`.
+Run: `npx expo install jest-expo` then `npm install -D @types/jest`. **Do NOT install `jest` explicitly** — `jest-expo@56` brings the matching `jest`/`babel-jest@29` transitively; a bare `npm install -D jest` pulls jest 30 and skews against jest-expo's `babel-jest@29` (tests can pass locally but break in CI). Add to `package.json` scripts: `"test": "jest"`. Add a `jest` key: `{ "preset": "jest-expo" }`.
 
 - [ ] **Step 2: Read the source of truth + write the failing test**
 
@@ -454,15 +469,19 @@ function Gate() {
   const { session, initializing } = useAuth()
   const segments = useSegments()
   const router = useRouter()
+  const inAuthGroup = segments[0] === '(auth)'
 
   useEffect(() => {
     if (initializing) return // cold-start gate: do nothing until auth resolved
-    const inAuthGroup = segments[0] === '(auth)'
     if (!session && !inAuthGroup) router.replace('/(auth)/login')
     else if (session && inAuthGroup) router.replace('/(tabs)')
   }, [session, initializing, segments])
 
-  if (initializing) {
+  // Show the spinner — not <Slot/> — while initializing OR while a redirect is
+  // pending, so a cold start with no session never flashes the tabs for a frame
+  // before bouncing to login. No infinite loop: once router.replace resolves,
+  // `segments` changes, inAuthGroup flips, and the spinner yields to <Slot/>.
+  if (initializing || (!session && !inAuthGroup)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator size="large" />

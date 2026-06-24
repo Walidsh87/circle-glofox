@@ -26,7 +26,11 @@ create schema if not exists auth;
 
 create table if not exists auth.users (
   id    uuid primary key default gen_random_uuid(),
-  email text
+  email text,
+  -- Supabase stores signup metadata here; migration 087's self-signup trigger
+  -- reads raw_user_meta_data->>'self_signup'. Present so that trigger replays
+  -- (and stays inert) when the harness inserts plain test users.
+  raw_user_meta_data jsonb
 );
 
 -- PostgREST sets request.jwt.claims per request; these read it as Supabase does.

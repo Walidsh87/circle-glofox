@@ -492,6 +492,47 @@ async function main() {
     })
   }
 
+  // ============================================================
+  // SELF-SIGNUP PROVISIONING TRIGGER (migration 087).
+  // handle_self_signup() provisions a profile ONLY for app self-signups
+  // (raw_user_meta_data->>'self_signup' = 'true'), into the SERVER-flagged box
+  // (boxes.self_signup_default) — NEVER a box_id read from client metadata. Runs
+  // SECURITY DEFINER. Probed as the connecting superuser (the AFTER INSERT
+  // trigger fires on the auth.users insert regardless of role). Locks the core
+  // guarantee the tenant review flagged as untested.
+  // ============================================================
+  console.log('\n=== self-signup provisioning trigger (mig 087) ===')
+  {
+    const SS1 = 'ffffffff-0000-4000-8000-000000000001'
+    const SS2 = 'ffffffff-0000-4000-8000-000000000002'
+    const SS3 = 'ffffffff-0000-4000-8000-000000000003'
+
+    // Flag BOX_A as the self-signup gym (prod flags 'functional-fitness', absent here).
+    await client.query('update boxes set self_signup_default = true where id = $1', [BOX_A])
+
+    // (a) at most one flagged box — flagging BOX_B too violates the partial-unique index.
+    let dupCode = null
+    try { await client.query('update boxes set self_signup_default = true where id = $1', [BOX_B]) }
+    catch (e) { dupCode = e.code }
+    check('self-signup: partial-unique index allows only one flagged box (23505)', dupCode === '23505', `got ${dupCode}`)
+
+    // (b) self_signup:true → profile provisioned into the FLAGGED box, role athlete, name from metadata.
+    await client.query('insert into auth.users(id,email,raw_user_meta_data) values ($1,$2,$3)',
+      [SS1, 'newbie@x.test', JSON.stringify({ self_signup: true, full_name: 'New Member' })])
+    check('self-signup: provisions a profile in the flagged box', await scalar('select box_id from profiles where id=$1', [SS1]) === BOX_A)
+    check('self-signup: provisioned role is athlete', await scalar('select role from profiles where id=$1', [SS1]) === 'athlete')
+    check('self-signup: full_name taken from metadata', await scalar('select full_name from profiles where id=$1', [SS1]) === 'New Member')
+
+    // (c) a box_id injected in metadata is IGNORED — profile still lands in the flagged box.
+    await client.query('insert into auth.users(id,email,raw_user_meta_data) values ($1,$2,$3)',
+      [SS2, 'sneaky@x.test', JSON.stringify({ self_signup: true, full_name: 'Sneaky', box_id: BOX_B })])
+    check('self-signup: client metadata box_id is ignored (box is server-chosen)', await scalar('select box_id from profiles where id=$1', [SS2]) === BOX_A)
+
+    // (d) NO flag → NOT provisioned (the gate that keeps every existing create path inert).
+    await client.query('insert into auth.users(id,email) values ($1,$2)', [SS3, 'plain@x.test'])
+    check('self-signup: an auth user without the flag is NOT provisioned', await countWhere('profiles', 'id', SS3) === 0)
+  }
+
   const total = pass + fail
   console.log('\n==============================================================')
   if (fail === 0) {

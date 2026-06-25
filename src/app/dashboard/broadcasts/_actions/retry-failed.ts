@@ -19,8 +19,10 @@ export async function retryFailedBroadcast(broadcastId: string): Promise<Result>
 
   const service = createServiceClient()
 
-  const { data: bc } = await service.from('broadcasts').select('id, box_id, subject, body, body_blocks').eq('id', broadcastId).single()
-  if (!bc || bc.box_id !== caller.box_id) return { error: 'Broadcast not found.' }
+  // Box-scope the lookup in the query (service client bypasses RLS) — the guard must be
+  // the query filter, not a post-fetch comparison that a refactor could drop.
+  const { data: bc } = await service.from('broadcasts').select('id, box_id, subject, body, body_blocks').eq('id', broadcastId).eq('box_id', caller.box_id).single()
+  if (!bc) return { error: 'Broadcast not found.' }
 
   const { data: failedRows } = await service
     .from('broadcast_recipients')

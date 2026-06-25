@@ -75,22 +75,27 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
   }
 
   // A spot just freed → email the next person in line. Best-effort; never fails the cancel.
+  // policyInstance is read via the RLS client, so its box_id is the caller's box — scope the
+  // service-client waitlist reads by it so a foreign instanceId can't notify another box's member.
+  const notifyBoxId = policyInstance?.box_id
   try {
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && notifyBoxId) {
       const svc = createServiceClient()
       const { data: next } = await svc
         .from('class_waitlist')
         .select('athlete_id')
         .eq('class_instance_id', instanceId)
+        .eq('box_id', notifyBoxId)
         .order('created_at')
         .limit(1)
         .maybeSingle()
       if (next) {
-        const { data: athlete } = await svc.from('profiles').select('email, full_name, language').eq('id', next.athlete_id).single()
+        const { data: athlete } = await svc.from('profiles').select('email, full_name, language').eq('id', next.athlete_id).eq('box_id', notifyBoxId).single()
         const { data: inst } = await svc
           .from('class_instances')
           .select('starts_at, class_templates(name), boxes(id, name, timezone)')
           .eq('id', instanceId)
+          .eq('box_id', notifyBoxId)
           .single()
         if (athlete?.email && inst) {
           const tmpl = Array.isArray(inst.class_templates) ? inst.class_templates[0] : inst.class_templates

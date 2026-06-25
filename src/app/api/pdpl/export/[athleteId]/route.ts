@@ -45,6 +45,7 @@ export async function GET(
     .from('memberships')
     .select('id, plan_name, monthly_price_aed, start_date, end_date, payment_status, last_paid_date, provider_plan_ref')
     .eq('athlete_id', params.athleteId)
+    .eq('box_id', viewer.box_id)
 
   const membershipIds = (memberships ?? []).map((m) => m.id)
 
@@ -58,25 +59,31 @@ export async function GET(
   ] = await Promise.all([
     service.from('bookings')
       .select('class_instance_id, checked_in, checked_in_at, overridden_at, overridden_reason')
-      .eq('athlete_id', params.athleteId),
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
     service.from('athlete_lifts')
       .select('lift_name, one_rm_grams, recorded_at')
-      .eq('athlete_id', params.athleteId),
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
     service.from('workout_scores')
       .select('workout_id, score, scoring_type, recorded_at')
-      .eq('athlete_id', params.athleteId),
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
     service.from('waiver_signatures')
       .select('full_name, signed_at, ip_address, user_agent')
       .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
       .maybeSingle(),
     membershipIds.length > 0
       ? service.from('billing_reminders')
           .select('stage, due_date, sent_at, email')
+          .eq('box_id', viewer.box_id)
           .in('membership_id', membershipIds)
       : Promise.resolve({ data: [] as Array<{ stage: 'pre' | 'due' | 'overdue'; due_date: string; sent_at: string; email: string }> }),
     service.from('parq_responses')
       .select('parq_version, answers, has_yes, signed_at, reviewed_at')
       .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
       .order('parq_version', { ascending: true }),
   ])
 

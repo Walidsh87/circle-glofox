@@ -47,7 +47,10 @@ test('membership-covered booking (no credit_id) → deletes, no refund', async (
 test('a freed spot emails the next waitlister', async () => {
   serverCreate.mockResolvedValue(makeSupabaseMock({
     user: { id: 'u1' },
-    results: { bookings: { data: { credit_id: null }, error: null } },
+    results: {
+      bookings: { data: { credit_id: null }, error: null },
+      class_instances: { data: { box_id: 'b1', starts_at: '2026-07-01T06:00:00Z', boxes: { late_cancel_hours: 0 } }, error: null },
+    },
   }))
   serviceCreate.mockReturnValue(makeSupabaseMock({
     results: {
@@ -61,12 +64,50 @@ test('a freed spot emails the next waitlister', async () => {
   expect(emailMock).toHaveBeenCalledWith(expect.objectContaining({ to: 'mike@x.com', className: 'Fran', gymName: 'Iron Box' }))
 })
 
-test('a failing notify never fails the cancel', async () => {
+test('the waitlist-notify reads are box-scoped to the caller box', async () => {
+  serverCreate.mockResolvedValue(makeSupabaseMock({
+    user: { id: 'u1' },
+    results: {
+      bookings: { data: { credit_id: null }, error: null },
+      class_instances: { data: { box_id: 'b1', starts_at: '2026-07-01T06:00:00Z', boxes: { late_cancel_hours: 0 } }, error: null },
+    },
+  }))
+  const svc = makeSupabaseMock({
+    results: {
+      class_waitlist: { data: { athlete_id: 'a2' }, error: null },
+      profiles: { data: { email: 'mike@x.com', full_name: 'Mike' }, error: null },
+      class_instances: { data: { starts_at: '2026-07-01T06:00:00Z', class_templates: { name: 'Fran' }, boxes: { name: 'Iron Box', timezone: 'Asia/Dubai' } }, error: null },
+    },
+  })
+  serviceCreate.mockReturnValue(svc)
+  await cancelBooking('class-1')
+  expect(svc.builder('class_waitlist').eq).toHaveBeenCalledWith('box_id', 'b1')
+  expect(svc.builder('profiles').eq).toHaveBeenCalledWith('box_id', 'b1')
+})
+
+test('a foreign instance (not in the caller box) skips waitlist notify', async () => {
+  // policyInstance comes back null via RLS → no box → the notify block must not run.
   serverCreate.mockResolvedValue(makeSupabaseMock({
     user: { id: 'u1' },
     results: { bookings: { data: { credit_id: null }, error: null } },
   }))
+  serviceCreate.mockReturnValue(makeSupabaseMock({
+    results: { class_waitlist: { data: { athlete_id: 'a2' }, error: null } },
+  }))
+  const res = await cancelBooking('class-1')
+  expect(res.error).toBeNull()
+  expect(emailMock).not.toHaveBeenCalled()
+})
+
+test('a failing notify never fails the cancel', async () => {
   emailMock.mockRejectedValueOnce(new Error('resend down'))
+  serverCreate.mockResolvedValue(makeSupabaseMock({
+    user: { id: 'u1' },
+    results: {
+      bookings: { data: { credit_id: null }, error: null },
+      class_instances: { data: { box_id: 'b1', starts_at: '2026-07-01T06:00:00Z', boxes: { late_cancel_hours: 0 } }, error: null },
+    },
+  }))
   serviceCreate.mockReturnValue(makeSupabaseMock({
     results: {
       class_waitlist: { data: { athlete_id: 'a2' }, error: null },

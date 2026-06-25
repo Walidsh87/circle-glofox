@@ -1,13 +1,14 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { safeNextPath } from '@/lib/safe-redirect'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
   const type       = searchParams.get('type') as EmailOtpType | null
   const code       = searchParams.get('code')
-  const next       = searchParams.get('next') ?? '/dashboard'
+  const next       = safeNextPath(searchParams.get('next'))
 
   const redirectResponse = NextResponse.redirect(new URL(next, request.url))
 

@@ -45,9 +45,24 @@ test('re-sends failed recipients and updates the broadcast', async () => {
   expect(svc.builder('broadcasts').update).toHaveBeenCalled()
 })
 
+test('scopes the broadcast lookup by box at the query level', async () => {
+  serverCreate.mockResolvedValue(ownerRls())
+  const svc = makeSupabaseMock({
+    results: {
+      broadcasts: { data: { id: 'bc1', box_id: 'b1', subject: 'Hi', body: 'x' }, error: null },
+      broadcast_recipients: { data: [], error: null, count: 0 },
+    },
+  })
+  serviceCreate.mockReturnValue(svc)
+  await retryFailedBroadcast('bc1')
+  expect(svc.builder('broadcasts').eq).toHaveBeenCalledWith('id', 'bc1')
+  expect(svc.builder('broadcasts').eq).toHaveBeenCalledWith('box_id', 'b1')
+})
+
 test('a broadcast from another box is not found', async () => {
   serverCreate.mockResolvedValue(ownerRls())
-  const svc = makeSupabaseMock({ results: { broadcasts: { data: { id: 'bc1', box_id: 'OTHER', subject: 'Hi', body: 'x' }, error: null } } })
+  // The box-scoped query returns nothing for a broadcast outside the caller's box.
+  const svc = makeSupabaseMock({ results: { broadcasts: { data: null, error: null } } })
   serviceCreate.mockReturnValue(svc)
   const res = await retryFailedBroadcast('bc1')
   expect(res.error).toMatch(/not found/i)

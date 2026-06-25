@@ -38,6 +38,16 @@ test('addToHousehold sets household_id box-scoped', async () => {
   expect(svc.builder('profiles').eq).toHaveBeenCalledWith('box_id', 'b1')
 })
 
+test('addToHousehold rejects a household from another box and writes no profile link', async () => {
+  serverCreate.mockResolvedValue(owner())
+  // The box-scoped household lookup finds nothing → the household is not in the caller's gym.
+  const svc = makeSupabaseMock({ results: { households: { data: null, error: null }, profiles: { data: null, error: null } } })
+  serviceCreate.mockReturnValue(svc)
+  const res = await addToHousehold('hh-from-box-2', 'a2')
+  expect(res.error).toBeTruthy()
+  expect(svc.from).not.toHaveBeenCalledWith('profiles')
+})
+
 test('removeFromHousehold clears household_id', async () => {
   serverCreate.mockResolvedValue(owner())
   const svc = svcMock(); serviceCreate.mockReturnValue(svc)

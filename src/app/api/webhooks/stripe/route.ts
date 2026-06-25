@@ -101,6 +101,7 @@ async function handlePaymentSucceeded(
         .from('memberships')
         .update({ provider_subscription_ref: event.subscriptionRef })
         .eq('id', membership.id)
+        .eq('box_id', boxId)
     }
   }
 
@@ -111,6 +112,7 @@ async function handlePaymentSucceeded(
     .from('memberships')
     .update({ payment_status: 'paid', last_paid_date: today, ...resetAfterSuccess() })
     .eq('id', membership.id)
+    .eq('box_id', boxId)
 
   // Backfill membership_id + amount onto the dedup row we created above
   await service
@@ -167,7 +169,7 @@ async function handlePaymentFailed(
     last_failed_at: new Date().toISOString(),
   }
   if (decision.markOverdue) update.payment_status = 'overdue'
-  await service.from('memberships').update(update).eq('id', membership.id)
+  await service.from('memberships').update(update).eq('id', membership.id).eq('box_id', boxId)
 
   await service
     .from('payment_events')
@@ -193,6 +195,7 @@ async function handlePaymentFailed(
         .from('memberships')
         .update({ last_dunning_email_at: new Date().toISOString() })
         .eq('id', membership.id)
+        .eq('box_id', boxId)
     }
   }
 
@@ -563,7 +566,7 @@ async function handleSubscriptionCancelled(
     .eq('box_id', boxId)
     .single()
   if (membership) {
-    await service.from('memberships').update({ end_date: today }).eq('id', membership.id)
+    await service.from('memberships').update({ end_date: today }).eq('id', membership.id).eq('box_id', boxId)
   }
   return NextResponse.json({ received: true })
 }
@@ -657,6 +660,7 @@ async function handleRefunded(
       .from('memberships')
       .update({ payment_status: 'unpaid' })
       .eq('id', invoice.membership_id)
+      .eq('box_id', boxId)
   }
 
   return NextResponse.json({ received: true })
@@ -680,6 +684,7 @@ async function issueInvoice(args: IssueInvoiceArgs): Promise<string | null> {
       .from('invoices')
       .select('id')
       .eq('provider_charge_ref', args.chargeRef)
+      .eq('box_id', args.boxId)
       .maybeSingle()
     if (existing) return existing.id as string
   }

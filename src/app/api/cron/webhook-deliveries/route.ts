@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { webhookSignatureHeader } from '@/lib/webhooks/sign'
 import { backoffSeconds, MAX_WEBHOOK_ATTEMPTS } from '@/lib/webhooks/delivery-backoff'
 import { isSafeWebhookUrl } from '@/lib/webhooks/validate-url'
+import { isResolvedHostSafe } from '@/lib/webhooks/resolve-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -32,6 +33,13 @@ export async function GET(request: Request) {
 
     if (!sub || !sub.active || !isSafeWebhookUrl(sub.url).ok) {
       await service.from('webhook_deliveries').update({ status: 'dead', last_error: 'subscription inactive or unsafe url' }).eq('id', d.id)
+      continue
+    }
+
+    // DNS-rebind guard: re-validate the RESOLVED IPs at send time, not just the hostname string.
+    const resolved = await isResolvedHostSafe(new URL(sub.url).hostname)
+    if (!resolved.ok) {
+      await service.from('webhook_deliveries').update({ status: 'dead', last_error: `unsafe resolved host: ${resolved.reason}` }).eq('id', d.id)
       continue
     }
 

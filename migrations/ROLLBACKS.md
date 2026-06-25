@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`086` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`087` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -547,6 +547,15 @@ DROP TRIGGER IF EXISTS boxes_create_waiver ON boxes;
 DROP FUNCTION IF EXISTS create_default_waiver();
 DROP TABLE IF EXISTS waiver_signatures;     -- ⚠️ signed liability waivers
 DROP TABLE IF EXISTS gym_waivers;
+```
+
+### 087_self_signup_provisioning
+```sql
+-- 087_self_signup_provisioning.sql  (reverse order: trigger → function → index → column)
+DROP TRIGGER IF EXISTS on_auth_user_self_signup ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_self_signup();
+DROP INDEX IF EXISTS idx_one_self_signup_box;
+ALTER TABLE public.boxes DROP COLUMN IF EXISTS self_signup_default;  -- ⚠️ drops the self-signup-gym flag
 ```
 
 ### 086_class_debriefs

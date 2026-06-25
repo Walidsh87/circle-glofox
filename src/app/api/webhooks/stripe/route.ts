@@ -14,7 +14,13 @@ import { grantPackageCredits, instantiateProgram, handleQuotePayment } from '@/l
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30 // cap a hung handler (webhooks finish in <5s); bounds runaway cost
 
-const service = createServiceClient()
+type ServiceClient = ReturnType<typeof createServiceClient>
+type PaidMembership = {
+  id: string
+  athlete_id: string
+  plan_name: string
+  profiles: { full_name: string | null; email: string | null } | null
+}
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
@@ -23,14 +29,17 @@ export async function POST(req: NextRequest) {
   if (!match) return NextResponse.json({ error: 'Invalid or unrouteable webhook' }, { status: 400 })
 
   const { boxId, event } = match
+  // Service-role client constructed per request (not a module singleton) and threaded
+  // into each handler. It bypasses RLS, so every query stays box-scoped via boxId.
+  const service = createServiceClient()
 
   switch (event.kind) {
-    case 'payment_succeeded': return handlePaymentSucceeded(boxId, event)
-    case 'payment_failed':    return handlePaymentFailed(boxId, event)
-    case 'checkout_completed': return handleCheckoutCompleted(boxId, event)
-    case 'subscription_cancelled': return handleSubscriptionCancelled(boxId, event)
-    case 'refunded': return handleRefunded(boxId, event)
-    case 'charge_succeeded': return handleChargeSucceeded(boxId, event)
+    case 'payment_succeeded': return handlePaymentSucceeded(service, boxId, event)
+    case 'payment_failed':    return handlePaymentFailed(service, boxId, event)
+    case 'checkout_completed': return handleCheckoutCompleted(service, boxId, event)
+    case 'subscription_cancelled': return handleSubscriptionCancelled(service, boxId, event)
+    case 'refunded': return handleRefunded(service, boxId, event)
+    case 'charge_succeeded': return handleChargeSucceeded(service, boxId, event)
     default: return NextResponse.json({ received: true })
   }
 }
@@ -38,6 +47,7 @@ export async function POST(req: NextRequest) {
 // claimEvent (idempotency gate) extracted to @/lib/webhooks/idempotency.
 
 async function handlePaymentSucceeded(
+  service: ServiceClient,
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'payment_succeeded' }>,
 ): Promise<NextResponse> {
@@ -49,8 +59,7 @@ async function handlePaymentSucceeded(
   // so fall back to customer ref (set when we create the Stripe customer in
   // create-checkout, before checkout even starts) and grab the most recent active
   // membership for that customer.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let membership: any = null
+  let membership: PaidMembership | null = null
 
   if (event.subscriptionRef) {
     const { data } = await service
@@ -59,7 +68,7 @@ async function handlePaymentSucceeded(
       .eq('provider_subscription_ref', event.subscriptionRef)
       .eq('box_id', boxId)
       .maybeSingle()
-    membership = data ?? null
+    membership = (data as PaidMembership | null) ?? null
   }
 
   if (!membership && event.customerRef) {
@@ -72,7 +81,7 @@ async function handlePaymentSucceeded(
       .order('start_date', { ascending: false })
       .limit(1)
       .maybeSingle()
-    membership = data ?? null
+    membership = (data as PaidMembership | null) ?? null
 
     // Backfill the subscription ref so future events skip the fallback path
     if (membership && event.subscriptionRef) {
@@ -102,10 +111,10 @@ async function handlePaymentSucceeded(
   await issueInvoice(service, {
     boxId,
     membershipId: membership.id,
-    athleteId: (membership as { athlete_id: string }).athlete_id,
-    customerName: (membership as { profiles?: { full_name?: string } | null }).profiles?.full_name ?? null,
-    customerEmail: (membership as { profiles?: { email?: string } | null }).profiles?.email ?? null,
-    description: (membership as { plan_name: string }).plan_name,
+    athleteId: membership.athlete_id,
+    customerName: membership.profiles?.full_name ?? null,
+    customerEmail: membership.profiles?.email ?? null,
+    description: membership.plan_name,
     amountAed: event.amountAed,
     chargeRef: event.chargeRef,
     paymentRef: event.paymentRef,
@@ -115,6 +124,7 @@ async function handlePaymentSucceeded(
 }
 
 async function handlePaymentFailed(
+  service: ServiceClient,
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'payment_failed' }>,
 ): Promise<NextResponse> {
@@ -182,6 +192,7 @@ async function handlePaymentFailed(
 }
 
 async function handleCheckoutCompleted(
+  service: ServiceClient,
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'checkout_completed' }>,
 ): Promise<NextResponse> {
@@ -231,6 +242,7 @@ async function handleCheckoutCompleted(
 // extracted to @/lib/webhooks/checkout-provisioning (service threaded in).
 
 async function handleSubscriptionCancelled(
+  service: ServiceClient,
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'subscription_cancelled' }>,
 ): Promise<NextResponse> {
@@ -248,6 +260,7 @@ async function handleSubscriptionCancelled(
 }
 
 async function handleChargeSucceeded(
+  service: ServiceClient,
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'charge_succeeded' }>,
 ): Promise<NextResponse> {
@@ -268,6 +281,7 @@ async function handleChargeSucceeded(
 }
 
 async function handleRefunded(
+  service: ServiceClient,
   boxId: string,
   event: Extract<NormalisedEvent, { kind: 'refunded' }>,
 ): Promise<NextResponse> {

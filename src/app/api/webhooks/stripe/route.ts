@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { deriveVatFromInclusive, formatCreditNoteNumber, formatInvoiceNumber } from '@/lib/invoices'
+import { deriveVatFromInclusive, formatCreditNoteNumber } from '@/lib/invoices'
+import { issueInvoice } from '@/lib/webhooks/issue-invoice'
 import { decideAfterFailedCharge, resetAfterSuccess } from '@/lib/dunning'
 import { sendCardFailedEmail } from '@/lib/email'
 import { signPortalToken } from '@/lib/portal-token'
@@ -120,7 +121,7 @@ async function handlePaymentSucceeded(
     .update({ membership_id: membership.id, amount_aed: event.amountAed })
     .eq('stripe_event_id', event.rawId)
 
-  await issueInvoice({
+  await issueInvoice(service, {
     boxId,
     membershipId: membership.id,
     athleteId: (membership as { athlete_id: string }).athlete_id,
@@ -289,7 +290,7 @@ async function grantPackageCredits(
     : null
   const amountAed = event.amountAed ?? Number(pkg.price_aed)
 
-  const invoiceId = await issueInvoice({
+  const invoiceId = await issueInvoice(service, {
     boxId,
     membershipId: null,
     athleteId,
@@ -391,7 +392,7 @@ async function instantiateProgram(
     .eq('id', athleteId)
     .eq('box_id', boxId)
     .single()
-  const invoiceId = await issueInvoice({
+  const invoiceId = await issueInvoice(service, {
     boxId,
     membershipId: null,
     athleteId,
@@ -502,7 +503,7 @@ async function handleQuotePayment(
   }
 
   // One invoice for the whole quote (dedup on paymentRef inside issueInvoice).
-  const invoiceId = await issueInvoice({
+  const invoiceId = await issueInvoice(service, {
     boxId, membershipId: null, athleteId,
     customerName: quote.buyer_name as string,
     customerEmail: quote.buyer_email as string,
@@ -666,63 +667,4 @@ async function handleRefunded(
   return NextResponse.json({ received: true })
 }
 
-type IssueInvoiceArgs = {
-  boxId: string
-  membershipId: string | null
-  athleteId: string | null
-  customerName: string | null
-  customerEmail: string | null
-  description: string
-  amountAed: number
-  chargeRef: string | null
-  paymentRef: string | null
-}
-
-async function issueInvoice(args: IssueInvoiceArgs): Promise<string | null> {
-  if (args.chargeRef) {
-    const { data: existing } = await service
-      .from('invoices')
-      .select('id')
-      .eq('provider_charge_ref', args.chargeRef)
-      .eq('box_id', args.boxId)
-      .maybeSingle()
-    if (existing) return existing.id as string
-  }
-
-  const { data: box } = await service
-    .from('boxes')
-    .select('slug, trn, vat_rate, legal_name, billing_address, name')
-    .eq('id', args.boxId)
-    .single()
-  if (!box) return null
-
-  const vatRate = Number(box.vat_rate ?? 5)
-  const { subtotalAed, vatAed, totalAed } = deriveVatFromInclusive(args.amountAed, vatRate)
-
-  const { data: seqData, error: seqErr } = await service.rpc('next_invoice_sequence', { p_box_id: args.boxId })
-  if (seqErr || typeof seqData !== 'number') return null
-  const year = new Date().getFullYear()
-  const invoiceNumber = formatInvoiceNumber(box.slug ?? box.name ?? '', year, seqData)
-
-  const { data: inserted } = await service.from('invoices').insert({
-    box_id: args.boxId,
-    athlete_id: args.athleteId,
-    membership_id: args.membershipId,
-    sequence: seqData,
-    invoice_number: invoiceNumber,
-    subtotal_aed: subtotalAed,
-    vat_rate: vatRate,
-    vat_aed: vatAed,
-    total_aed: totalAed,
-    trn_snapshot: box.trn ?? null,
-    legal_name_snapshot: box.legal_name ?? box.name ?? null,
-    billing_address_snapshot: box.billing_address ?? null,
-    customer_name_snapshot: args.customerName,
-    customer_email_snapshot: args.customerEmail,
-    description: args.description,
-    provider_charge_ref: args.chargeRef,
-    provider_payment_ref: args.paymentRef,
-  }).select('id').single()
-
-  return (inserted?.id as string) ?? null
-}
+// issueInvoice + IssueInvoiceArgs extracted to @/lib/webhooks/issue-invoice (service threaded in).

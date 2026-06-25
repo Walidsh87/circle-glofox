@@ -9,7 +9,7 @@ function reject(reason: string): UrlCheck {
   return { ok: false, reason }
 }
 
-function isPrivateIpv4(host: string): boolean {
+export function isPrivateIpv4(host: string): boolean {
   const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host)
   if (!m) return false
   const octets = m.slice(1).map(Number)
@@ -25,7 +25,7 @@ function isPrivateIpv4(host: string): boolean {
   return false
 }
 
-function isPrivateIpv6(host: string): boolean {
+export function isPrivateIpv6(host: string): boolean {
   // URL keeps IPv6 hostnames bracketed (e.g. "[::1]") — strip them.
   const h = host.toLowerCase().replace(/^\[/, '').replace(/\]$/, '')
   if (h === '::1' || h === '::' || h === '::0' || h === '0::0') return true // loopback + unspecified

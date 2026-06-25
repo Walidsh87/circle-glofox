@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { ratelimit, shouldRateLimit } from '@/lib/rate-limit'
+import { resolveClientIp } from '@/lib/client-ip'
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
@@ -9,10 +10,7 @@ export async function middleware(request: NextRequest) {
   // configured. Fail-open: a limiter/Redis outage must never take the site down.
   if (ratelimit && shouldRateLimit(pathname)) {
     try {
-      const ip =
-        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-        request.headers.get('x-real-ip') ||
-        '127.0.0.1'
+      const ip = resolveClientIp(request.headers)
       const { success } = await ratelimit.limit(ip)
       if (!success) {
         return new NextResponse('Too many requests. Please slow down and try again shortly.', {

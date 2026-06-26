@@ -8,7 +8,10 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**', 'tests/rls/**'],
+    // '.claude/**' keeps git-worktree copies (.claude/worktrees/*) out of the run —
+    // otherwise their files duplicate every test and their constants-only RLS files
+    // (tests/rls/**, run via run.mjs not vitest) fail as empty suites.
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/rls/**', '.claude/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

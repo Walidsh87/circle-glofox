@@ -15,6 +15,7 @@ hooks and CI enforce around). When a decision sets a build rule, update both —
 |-----|-------------------------------------------------------------------|----------|------------|
 | [001](001_service_role_key_is_server_only.md) | Supabase service-role key is server-only — never client-exposed | Accepted | 2026-06-17 |
 | [002](002_modular_monolith_no_microservices.md) | Modular monolith on Vercel + Supabase — no custom microservices | Accepted | 2026-06-21 |
+| [003](003_consolidated_audit_docs.md) | Consolidated all audit docs into one on-demand checklist (`docs/audit/CHECKLIST.md`) | Accepted | 2026-06-28 |
 
 ## How to add one
 

@@ -259,6 +259,18 @@ async function main() {
   check('W3: profiles.blood_type SELECT denied for authenticated', piiBlood === false, `got ${piiBlood}`)
   check('W3: profiles.full_name SELECT allowed for authenticated (positive control)', okName === true, `got ${okName}`)
 
+  // boxes column allowlist (mig 089): member-facing booking-policy columns MUST be
+  // readable by authenticated — else bookClass's boxes(booking_close_minutes) embed
+  // 42501s and self-serve booking breaks (regression found by E2E 2026-06-28). The
+  // gap was a column added after the allowlist (mig 019) without a matching GRANT.
+  // Secrets stay revoked.
+  for (const col of ['booking_close_minutes', 'late_cancel_hours', 'roster_public', 'ramadan_start', 'ramadan_end']) {
+    const ok = await scalar(`select has_column_privilege('authenticated','public.boxes','${col}','SELECT')`)
+    check(`boxes.${col} SELECT allowed for authenticated (mig 089 — booking/roster/Ramadan reads)`, ok === true, `got ${ok}`)
+  }
+  const boxSecret = await scalar(`select has_column_privilege('authenticated','public.boxes','stripe_secret_key','SELECT')`)
+  check('boxes.stripe_secret_key SELECT denied for authenticated (secret stays revoked)', boxSecret === false, `got ${boxSecret}`)
+
   // ============================================================
   // FINANCIAL INVARIANTS — the credit-ledger money guards (migration 023).
   // These live ONLY in PL/pgSQL + DB CHECKs and are mocked away by every JS

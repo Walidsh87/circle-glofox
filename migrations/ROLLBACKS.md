@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`088` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`089` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,13 @@ Reverse procedures for migrations `008`–`088` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 089_boxes_member_columns_grant
+**Avoid reverting — re-breaks self-serve booking** (bookClass's `boxes(booking_close_minutes)` embed 42501s). Reverse:
+```sql
+REVOKE SELECT (booking_close_minutes, late_cancel_hours, roster_public, ramadan_start, ramadan_end)
+  ON public.boxes FROM authenticated;
+```
 
 ### 088_member_removal_fk_cleanup
 **Effectively forward-only — do not revert.** It only changes FK `ON DELETE` rules

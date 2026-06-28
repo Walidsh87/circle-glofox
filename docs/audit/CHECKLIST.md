@@ -118,9 +118,10 @@ These have no standing gate and **can drift between runs**. Run each command / o
 - **Pass:** no keyboard traps, labelled interactive controls, motion optional. *(No automated a11y gate today — judgment item.)*
 
 ### 2.13 — Architecture docs & ADRs 🟠 🟢
-- **Run:** `ls decisions/`
-- **Check:** durable rulings have immutable ADRs (currently `001` service-role-server-only, `002` modular-monolith) — use `log-decision` for new ones; a system diagram exists (DB/Auth/Payments/Email/Errors data-flow).
-- **🟢 KNOWN GAP (2026-06-28):** no architecture diagram. ADRs are current but thin — add one whenever a real trade-off is settled.
+- **Run:** `ls decisions/` + open [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md)
+- **Check:** durable rulings have immutable ADRs (`001` service-role-server-only, `002` modular-monolith, `003` audit-consolidation) — use `log-decision` for new ones; `docs/ARCHITECTURE.md` (6 Mermaid views + exported `architecture.png`) reflects the current system.
+- **Pass:** ADRs current; `ARCHITECTURE.md` matches reality — refresh it when you add a service, top-level route group, cron/webhook, or data domain (see its Maintenance table).
+- ✅ **Gap closed 2026-06-28** — architecture doc + diagram now exist.
 
 ---
 

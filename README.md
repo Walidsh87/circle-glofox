@@ -10,6 +10,11 @@ Multi-tenant gym-management SaaS — classes & scheduling, memberships & payment
 - **Sentry** — error monitoring · **Upstash** — optional per-IP rate limiting
 - **Vitest** — unit tests · **ESLint 9** (flat config) · **Husky** + lint-staged
 
+## Architecture
+System context below; the full picture — request lifecycle (the server-action house shape), multi-tenant RLS model, module map, the 78-table data domains, and background crons/webhooks — is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) as Mermaid diagrams.
+
+![Circle Fitness — system context](docs/architecture.png)
+
 ## Getting started
 ```bash
 npm install

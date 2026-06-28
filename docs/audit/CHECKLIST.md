@@ -104,9 +104,10 @@ These have no standing gate and **can drift between runs**. Run each command / o
   ```
 - **Pass:** no member-specific data served from cache.
 
-### 2.10 — End-to-end critical-path tests 🟠 🟡
-- **Check:** Playwright happy-paths in CI against a seeded DB — login→book→check-in; owner takes payment→invoice issued; buy pack→credit granted→book with it.
-- **🟡 KNOWN GAP (2026-06-28):** **no E2E tooling exists** (261 unit/integration tests ≠ "the app works for a real user"). Biggest confidence gain after financial integrity. Add 3–5 specs.
+### 2.10 — End-to-end critical-path tests 🟢 🟡
+- **Run:** `npm run e2e:db` (once — boots a local Supabase stack + applies schema) then `npm run test:e2e` (see [`e2e/README.md`](../../e2e/README.md)).
+- **Check:** the named happy-paths exist + pass — login→book→check-in, buy pack→credit→book, and membership payment→invoice (shown on the member page). Magic-link auth bypassed via admin `generateLink` → the real `/auth/confirm`.
+- ✅ **Mostly closed 2026-06-28** — Playwright suite + a local Supabase stack + the 3 critical paths shipped (local-first; surfaced the prod booking-grant bug, mig 089). **Remaining:** wire `test:e2e` into CI (needs a CI Supabase stack / dedicated test project).
 
 ### 2.11 — Code-review process & standards 🟢 🟡
 - **Run:** `ls .husky/ .github/pull_request_template.md` + the §1 glance command.

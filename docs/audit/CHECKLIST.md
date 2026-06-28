@@ -70,10 +70,10 @@ These have no standing gate and **can drift between runs**. Run each command / o
 - **Check:** the structured tiers are gated by `verify-policy-roles`/`access-control-table`; the spot-check is the **literal-role-list** policies that gate can't reason about — `invoices` + `credit_notes` admit `{owner, coach}` (mig 019/058), so a financial page must be `requireOwnerPage`, never `requireManagerPage` (admin → silent-empty).
 - **Pass:** every touched table has guard-roles ⊆ policy-roles; any `G ∖ P` is a 🔴 silent-empty bug.
 
-### 2.4 — PII, retention & deletion (PDPL) 🟠 🔴
-- **Check:** (a) per-member **PDPL export** runs and includes medical (PAR-Q, blood type, allergies) + national-ID fields; (b) **erasure path** works — member removal hits the auth-delete (`member.remove`); (c) a **data inventory** (what PII, where, retention, deletion trigger) exists.
-- **Pass:** export + delete both work.
-- **🔴 KNOWN GAP (2026-06-28):** no `docs/compliance/` data-inventory + retention/erasure policy — **PDPL obligation regardless of size.** Create it.
+### 2.4 — PII, retention & deletion (PDPL) 🟠 🟡
+- **Check:** (a) per-member **PDPL export** runs and includes medical (PAR-Q, blood type, allergies) + national-ID fields; (b) **erasure path** works — member removal hits the auth-delete (`member.remove`) + FK cascade (mig 088); (c) the **data inventory** [`docs/compliance/data-inventory.md`](../compliance/data-inventory.md) is current.
+- **Pass:** export + delete both work; the inventory matches the schema.
+- ✅ **Inventory created 2026-06-28** — `docs/compliance/data-inventory.md` (inventory · sub-processors · retention · DSAR rights · breach link). **Remaining (owner-to-ratify, in that doc §7):** set real retention periods, sign sub-processor DPAs, confirm Supabase region, and **extend the PDPL export** to cover invoices/messages/leads (today's export omits them → not yet a complete DSAR response).
 
 ### 2.5 — Audit trail & tamper-evidence 🟢 🟡
 - **Check:** `audit_log` (mig 062) is append-only — owner-only `SELECT`, **no write policy** → service-role insert only (can't be forged/erased from the app). Sensitive actions logged via `src/lib/audit.ts`: refunds, staff role change, member remove, MFA reset. `portal_access_log` + `pdpl_exports` present.

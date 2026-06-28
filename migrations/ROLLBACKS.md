@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`087` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`088` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -8,6 +8,14 @@ Reverse procedures for migrations `008`–`087` (referenced by the DR runbook, `
 > - `⚠️` marks steps that **destroy records** (some are FTA/PDPL-retained — export first).
 
 ---
+
+### 088_member_removal_fk_cleanup
+**Effectively forward-only — do not revert.** It only changes FK `ON DELETE` rules
+(NO ACTION → CASCADE/SET NULL) so members/staff can be removed; reverting reintroduces
+the removal bug. Restoring the two `NOT NULL`s also fails if a delete has since
+SET NULL'd a row (`pt_sessions.coach_id`, `pdpl_exports.exported_by`). If you must
+revert, re-`ALTER` each constraint back to `ON DELETE NO ACTION` (see the migration
+for the full list) and only re-add the `NOT NULL`s after backfilling any nulls.
 
 ## 084_program_store.sql
 DROP POLICY IF EXISTS program_exercises_published_read ON program_exercises;

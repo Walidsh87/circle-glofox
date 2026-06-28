@@ -533,6 +533,80 @@ async function main() {
     check('self-signup: an auth user without the flag is NOT provisioned', await countWhere('profiles', 'id', SS3) === 0)
   }
 
+  // ============================================================
+  // MEMBER/STAFF REMOVAL: no FK to profiles may block the delete (bug 2026-06-28).
+  // removeMember deletes the profiles row relying on cascades, but 24 FKs to
+  // profiles were left ON DELETE NO ACTION — so any coach/member with a child row
+  // (a coach assigned to a class, a member with a PT session) could not be removed
+  // (23503 -> "Something went wrong"). Migration 088 sets every FK referencing
+  // profiles to CASCADE (the person's own data) or SET NULL (authorship/actor),
+  // and profiles.household_id -> SET NULL so the households CASCADE isn't re-blocked.
+  // ============================================================
+  console.log('\n=== member/staff removal: no FK to profiles blocks delete (mig 088) ===')
+  {
+    // (a) CATALOG INVARIANT — covers all 24 + any FK added later.
+    const blocking = await scalar(`select count(*)::int from pg_constraint
+      where contype='f' and confrelid='public.profiles'::regclass and confdeltype in ('a','r')`)
+    check('removal: zero FKs to profiles are NO ACTION/RESTRICT', blocking === 0, `blocking=${blocking}`)
+
+    // (b) downstream: dependents must orphan (not re-block) when a household dissolves.
+    const hhFk = await scalar(`select confdeltype from pg_constraint
+      where contype='f' and conrelid='public.profiles'::regclass and confrelid='public.households'::regclass`)
+    check('removal: profiles.household_id is SET NULL', hhFk === 'n', `got ${hhFk}`)
+
+    // (c) BEHAVIORAL — a coach with authored/assigned rows + an athlete who heads a
+    // household and has a PT session both delete cleanly (the path removeMember's
+    // service client takes: RLS bypassed, only constraints apply).
+    const COACH = 'cccccccc-9999-4000-8000-000000000001'
+    const PRIMARY = 'cccccccc-9999-4000-8000-000000000002'
+    const HH = 'cccccccc-9999-4000-8000-000000000003'
+    const TMPL = 'cccccccc-9999-4000-8000-000000000010'
+    await client.query('insert into auth.users(id,email) values ($1,$2),($3,$4)',
+      [COACH, 'coachz@a.test', PRIMARY, 'primary@a.test'])
+    await client.query(`insert into profiles(id,box_id,role,full_name,email) values
+        ($1,$2,'coach','Coach Z','coachz@a.test'),($3,$2,'athlete','Primary P','primary@a.test')`,
+      [COACH, BOX_A, PRIMARY])
+    // SET NULL refs (authored / assigned): workout, class template, PDPL export (was NOT NULL).
+    await client.query(`insert into workouts(box_id,date,title,description,scoring_type,created_by)
+        values ($1, current_date + 5, 'Helen','3 RFT','time',$2)`, [BOX_A, COACH])
+    await client.query(`insert into class_templates(id,box_id,name,weekday,start_time,coach_id)
+        values ($1,$2,'WOD',1,'18:00',$3)`, [TMPL, BOX_A, COACH])
+    await client.query('insert into pdpl_exports(box_id,athlete_id,exported_by) values ($1,$2,$3)',
+      [BOX_A, ATH_A, COACH])
+    // CASCADE refs: athlete heads a household (ATH_A is a dependent) + has a PT session.
+    await client.query('insert into households(id,box_id,name,primary_athlete_id) values ($1,$2,$3,$4)',
+      [HH, BOX_A, 'Test Family', PRIMARY])
+    await client.query('update profiles set household_id=$1 where id=$2', [HH, ATH_A])
+    await client.query(`insert into pt_sessions(box_id,athlete_id,coach_id,scheduled_at)
+        values ($1,$2,$3, now())`, [BOX_A, PRIMARY, COACH])
+
+    // Delete the COACH — must succeed; SET NULL refs preserved with a null actor.
+    let coachOk = false, coachErr = null
+    try { coachOk = (await client.query('delete from profiles where id=$1', [COACH])).rowCount === 1 }
+    catch (e) { coachErr = e.code }
+    check('removal: deleting a coach with authored/assigned rows succeeds', coachOk, coachErr ? `error ${coachErr}` : 'rowCount!=1')
+    check('removal: workouts.created_by SET NULL (workout preserved)',
+      await scalar(`select created_by is null from workouts where box_id=$1 and title='Helen'`, [BOX_A]) === true)
+    check('removal: class_templates.coach_id SET NULL (class preserved)',
+      await scalar('select coach_id is null from class_templates where id=$1', [TMPL]) === true)
+    check('removal: pt_sessions.coach_id SET NULL (session preserved, was NOT NULL)',
+      await scalar('select coach_id is null from pt_sessions where athlete_id=$1', [PRIMARY]) === true)
+    check('removal: pdpl_exports.exported_by SET NULL (audit record preserved, was NOT NULL)',
+      await scalar('select exported_by is null from pdpl_exports where athlete_id=$1', [ATH_A]) === true)
+
+    // Delete the PRIMARY — household CASCADE-dissolves, dependent orphaned, PT session cascades.
+    let primaryOk = false, primaryErr = null
+    try { primaryOk = (await client.query('delete from profiles where id=$1', [PRIMARY])).rowCount === 1 }
+    catch (e) { primaryErr = e.code }
+    check('removal: deleting a household primary + PT-session athlete succeeds', primaryOk, primaryErr ? `error ${primaryErr}` : 'rowCount!=1')
+    check('removal: households.primary_athlete_id CASCADE (household dissolved)',
+      await countWhere('households', 'id', HH) === 0)
+    check('removal: dependent profiles.household_id SET NULL (orphaned, not deleted)',
+      await scalar('select household_id is null from profiles where id=$1', [ATH_A]) === true)
+    check('removal: pt_sessions.athlete_id CASCADE (own session removed)',
+      await countWhere('pt_sessions', 'athlete_id', PRIMARY) === 0)
+  }
+
   const total = pass + fail
   console.log('\n==============================================================')
   if (fail === 0) {

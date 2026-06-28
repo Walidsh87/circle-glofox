@@ -34,7 +34,9 @@ export async function removeMember(memberId: string): Promise<{ error: string | 
     return { error: 'Member not found.' }
   }
 
-  // Delete profile first (cascades memberships, bookings, scores, lifts)
+  // Delete profile first. Every FK referencing profiles has a deliberate ON DELETE
+  // rule (migration 088): CASCADE for the member's own data, SET NULL for authorship/
+  // actor refs — so this delete is never blocked by a child row (was bug 2026-06-28).
   const { error: profileDeleteError } = await service.from('profiles').delete().eq('id', memberId)
   if (profileDeleteError) return actionError('removeMember', profileDeleteError)
 

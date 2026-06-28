@@ -11,7 +11,9 @@ export default defineConfig({
     // '.claude/**' keeps git-worktree copies (.claude/worktrees/*) out of the run —
     // otherwise their files duplicate every test and their constants-only RLS files
     // (tests/rls/**, run via run.mjs not vitest) fail as empty suites.
-    exclude: ['**/node_modules/**', '**/dist/**', 'tests/rls/**', '.claude/**'],
+    // 'e2e/**' keeps Playwright specs out of the Vitest run (separate runner +
+    // they import @playwright/test, which would error under Vitest).
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/rls/**', '.claude/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

@@ -15,6 +15,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:rls": "node tests/rls/run.mjs",
+    "test:e2e": "playwright test",
+    "e2e:db": "node scripts/e2e-db-up.mjs",
     "prepare": "husky",
     "loop:bless": "node -e \"const c=require('crypto'),f=require('fs');const fs=['scripts/loop-guard.mjs','.claude/settings.json'];const o={};for(const x of fs)o[x]=c.createHash('sha256').update(f.readFileSync(x)).digest('hex');f.writeFileSync('scripts/.loop-guard.hashes.json',JSON.stringify(o,null,2)+'\\n')\""
   },
@@ -49,6 +51,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26",

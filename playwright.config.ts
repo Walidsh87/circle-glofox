@@ -30,14 +30,18 @@ const appEnv: Record<string, string> = {
   PORTAL_SIGN_SECRET: process.env.PORTAL_SIGN_SECRET ?? 'e2e_portal_sign_secret_0123456789_abcdef',
 }
 
+const isCI = !!process.env.CI
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
-  timeout: 30_000,
-  expect: { timeout: 10_000 },
+  retries: isCI ? 1 : 0,
+  reporter: isCI ? 'github' : 'list',
+  // CI runners are slower and `next dev` lazily compiles each route on first hit —
+  // give first navigations room so they don't trip the default timeouts.
+  timeout: isCI ? 90_000 : 30_000,
+  expect: { timeout: isCI ? 20_000 : 10_000 },
   use: {
     baseURL,
     trace: 'on-first-retry',
@@ -51,7 +55,7 @@ export default defineConfig({
     command: `npm run dev -- -p ${PORT}`,
     env: appEnv,
     url: baseURL,
-    timeout: 120_000,
-    reuseExistingServer: !process.env.CI,
+    timeout: isCI ? 180_000 : 120_000,
+    reuseExistingServer: !isCI,
   },
 })

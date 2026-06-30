@@ -3,14 +3,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
-import { sendWaitlistEmail } from '@/lib/email'
-import { sendPushTo } from '@/lib/push'
-import { env } from '@/env'
 import { isLateCancel } from '@/lib/booking-policy'
 import { resolveBookingTarget } from '@/lib/family'
-import { getT, resolveLocale } from '@/lib/i18n'
 import { actionError } from '@/lib/action-error'
 import { emitWebhook } from '@/lib/webhooks/emit'
+import { notifyNextInWaitlist } from '@/lib/waitlist-notify'
 
 export async function cancelBooking(instanceId: string, forAthleteId?: string): Promise<{ error: string | null; forfeited?: boolean }> {
   const supabase = await createClient()
@@ -74,60 +71,12 @@ export async function cancelBooking(instanceId: string, forAthleteId?: string): 
     }
   }
 
-  // A spot just freed → email the next person in line. Best-effort; never fails the cancel.
-  // policyInstance is read via the RLS client, so its box_id is the caller's box — scope the
-  // service-client waitlist reads by it so a foreign instanceId can't notify another box's member.
+  // A spot just freed → notify the next person in line (shared best-effort helper, never throws).
+  // policyInstance is read via the RLS client, so its box_id is the caller's box — pass it so the
+  // service-client waitlist reads are scoped to it (a foreign instanceId can't notify another box).
   const notifyBoxId = policyInstance?.box_id
-  try {
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY && notifyBoxId) {
-      const svc = createServiceClient()
-      const { data: next } = await svc
-        .from('class_waitlist')
-        .select('athlete_id')
-        .eq('class_instance_id', instanceId)
-        .eq('box_id', notifyBoxId)
-        .order('created_at')
-        .limit(1)
-        .maybeSingle()
-      if (next) {
-        const { data: athlete } = await svc.from('profiles').select('email, full_name, language').eq('id', next.athlete_id).eq('box_id', notifyBoxId).single()
-        const { data: inst } = await svc
-          .from('class_instances')
-          .select('starts_at, class_templates(name), boxes(id, name, timezone)')
-          .eq('id', instanceId)
-          .eq('box_id', notifyBoxId)
-          .single()
-        if (athlete?.email && inst) {
-          const tmpl = Array.isArray(inst.class_templates) ? inst.class_templates[0] : inst.class_templates
-          const box = Array.isArray(inst.boxes) ? inst.boxes[0] : inst.boxes
-          const classTime = new Intl.DateTimeFormat('en-GB', {
-            timeZone: box?.timezone ?? 'Asia/Dubai',
-            weekday: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          }).format(new Date(inst.starts_at))
-          const locale = resolveLocale(athlete.language)
-          await sendWaitlistEmail({
-            to: athlete.email,
-            athleteName: athlete.full_name ?? 'there',
-            className: tmpl?.name ?? 'your class',
-            classTime,
-            gymName: box?.name ?? 'your gym',
-            bookUrl: `${env.NEXT_PUBLIC_APP_URL}/dashboard/schedule`,
-            locale,
-          })
-          const t = getT(locale)
-          await sendPushTo(svc, next.athlete_id, box?.id ?? '', {
-            title: t('comms.waitlistPush.title'),
-            body: t('comms.waitlistPush.body', { className: tmpl?.name ?? 'Your class', classTime }),
-            url: '/dashboard/schedule',
-          })
-        }
-      }
-    }
-  } catch (e) {
-    console.error('waitlist notify failed (cancel still succeeded):', e)
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY && notifyBoxId) {
+    await notifyNextInWaitlist(createServiceClient(), notifyBoxId as string, instanceId)
   }
 
   if (process.env.SUPABASE_SERVICE_ROLE_KEY && policyInstance?.box_id) {

@@ -18,12 +18,14 @@ const IN_WINDOW = () => new Date(Date.now() + 10 * 60_000).toISOString()   // st
 const TOO_EARLY = () => new Date(Date.now() + 2 * 3_600_000).toISOString() // starts in 2 h
 const TOO_LATE  = () => new Date(Date.now() - 2 * 3_600_000).toISOString() // started 2 h ago
 
+// RLS client for athlete ath1. Memberships are read via the SERVICE client (mig 090), so the
+// paid membership is configured on svc in the test that reaches the entitlement gate; the other
+// rlsPaid users return earlier (no booking / already checked in / outside the window).
 function rlsPaid() {
   return makeSupabaseMock({
     user: { id: 'ath1' },
     results: {
       profiles: { data: { box_id: 'b1', household_id: null }, error: null },
-      memberships: { data: [{ payment_status: 'paid', end_date: null }], error: null },
     },
   })
 }
@@ -110,7 +112,9 @@ test('lets a credit-backed booking through without a paid membership', async () 
 
 test('checks a paid member into an in-window booked class', async () => {
   serverCreate.mockResolvedValue(rlsPaid())
-  const svc = makeSupabaseMock({ results: { bookings: [
+  const svc = makeSupabaseMock({ results: {
+    memberships: { data: [{ payment_status: 'paid', end_date: null }], error: null }, // entitlement reads via service
+    bookings: [
     { data: { checked_in: false, class_instances: { starts_at: IN_WINDOW() } }, error: null }, // lookup
     { data: null, error: null },                                                                // update
     { data: [], error: null },                                                                  // award history

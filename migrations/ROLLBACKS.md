@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`089` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`090` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -583,4 +583,17 @@ DROP TABLE IF EXISTS class_debriefs;
 ```sql
 -- 085_movement_videos.sql
 DROP TABLE IF EXISTS movement_videos;
+```
+
+### 090_direct_read_hardening
+```sql
+-- 090_direct_read_hardening.sql — restore the prior (looser) policies.
+-- #3 memberships: back to box-wide read.
+DROP POLICY IF EXISTS memberships_self_or_staff ON memberships;
+CREATE POLICY box_isolation_select ON memberships FOR SELECT USING (box_id = auth_box_id());
+-- #6a conversations_member_update: back to member_id only.
+DROP POLICY IF EXISTS conversations_member_update ON conversations;
+CREATE POLICY conversations_member_update ON conversations FOR UPDATE
+  USING (member_id = auth.uid()) WITH CHECK (member_id = auth.uid());
+-- ⚠️ Reverting #3 re-exposes every member's payment_status / monthly_price_aed to any box member.
 ```

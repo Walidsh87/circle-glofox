@@ -21,7 +21,11 @@ export async function assessCheckInEntitlement(
     if (hh?.primary_athlete_id) billingAthleteId = hh.primary_athlete_id
   }
 
-  const { data: memberships } = await rls
+  // Read the (possibly household-primary) membership via the SERVICE client, not the member's RLS
+  // client: mig 090 tightened memberships to self-or-staff, so a member's RLS client can no longer
+  // read their household primary's membership — which would silently block dependents at check-in.
+  // billingAthleteId is resolved from the member's own household above; box-scoped here.
+  const { data: memberships } = await service
     .from('memberships')
     .select('payment_status, end_date, last_paid_date, frozen_from, frozen_until')
     .eq('athlete_id', billingAthleteId)

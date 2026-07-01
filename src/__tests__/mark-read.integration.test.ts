@@ -24,6 +24,15 @@ test('staff markRead clears staff_unread, box-scoped', async () => {
   expect(rls.builder('conversations').eq).toHaveBeenCalledWith('box_id', 'b1')
 })
 
+test.each(['admin', 'receptionist'])('%s markRead clears the staff side (not member), box-scoped', async (role) => {
+  const rls = caller(role, 's2')
+  serverCreate.mockResolvedValue(rls)
+  const res = await markRead('cv1')
+  expect(res.error).toBeNull()
+  expect(rls.builder('conversations').update).toHaveBeenCalledWith({ staff_unread: false })
+  expect(rls.builder('conversations').eq).toHaveBeenCalledWith('box_id', 'b1')
+})
+
 test('member markRead clears member_unread, scoped to own id', async () => {
   const rls = caller('athlete', 'a9')
   serverCreate.mockResolvedValue(rls)

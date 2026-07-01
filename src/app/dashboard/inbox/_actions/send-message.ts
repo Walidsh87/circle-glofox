@@ -9,6 +9,7 @@ import { sendWhatsAppText } from '@/lib/twilio'
 import { sendPushTo } from '@/lib/push'
 import { getT, resolveLocale } from '@/lib/i18n'
 import { actionError } from '@/lib/action-error'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 
 export async function sendMessage(memberId: string, body: string): Promise<{ error: string | null; conversationId?: string }> {
   const supabase = await createClient()
@@ -20,7 +21,10 @@ export async function sendMessage(memberId: string, body: string): Promise<{ err
   const vErr = validateMessage(body)
   if (vErr) return { error: vErr }
 
-  const isStaff = caller.role === 'owner' || caller.role === 'coach'
+  // Every staff tier (owner/admin/coach/receptionist) replies AS staff — sets sender_role='staff'
+  // so the message renders as the gym, targets the member's thread (not self), and satisfies the
+  // messages_staff_all WITH CHECK sender_role='staff' pin (mig 092). Members send as 'member'.
+  const isStaff = (ALL_STAFF_ROLES as readonly string[]).includes(caller.role)
   const side: 'staff' | 'member' = isStaff ? 'staff' : 'member'
   const targetMemberId = isStaff ? memberId : user.id
   if (!targetMemberId) return { error: 'Choose a member to message.' }

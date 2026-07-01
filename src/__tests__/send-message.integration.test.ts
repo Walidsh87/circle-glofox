@@ -45,6 +45,17 @@ test('staff message sets member_unread and sender_role staff', async () => {
   expect(msg).toEqual(expect.objectContaining({ conversation_id: 'cv1', sender_id: 's1', sender_role: 'staff', body: 'See you at 6am' }))
 })
 
+test.each(['admin', 'receptionist'])('%s reply is treated as staff: sender_role staff, targets the member', async (role) => {
+  const rls = caller(role, 's2')
+  serverCreate.mockResolvedValue(rls)
+  const res = await sendMessage('a1', 'front desk here')
+  expect(res.error).toBeNull()
+  const up = rls.builder('conversations').upsert.mock.calls[0][0]
+  expect(up).toEqual(expect.objectContaining({ member_id: 'a1', last_sender_role: 'staff', member_unread: true, staff_unread: false }))
+  const msg = rls.builder('messages').insert.mock.calls[0][0]
+  expect(msg).toEqual(expect.objectContaining({ sender_id: 's2', sender_role: 'staff', body: 'front desk here' }))
+})
+
 test('member message sets staff_unread, forced to own member_id', async () => {
   const rls = caller('athlete', 'a9')
   serverCreate.mockResolvedValue(rls)

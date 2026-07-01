@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { actionError } from '@/lib/action-error'
+import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 
 export async function markRead(conversationId: string): Promise<{ error: string | null }> {
   const supabase = await createClient()
@@ -10,7 +11,8 @@ export async function markRead(conversationId: string): Promise<{ error: string 
   const { data: caller } = await supabase.from('profiles').select('box_id, role').eq('id', user.id).single()
   if (!caller) return { error: 'Not authenticated.' }
 
-  const isStaff = caller.role === 'owner' || caller.role === 'coach'
+  // All staff tiers clear the staff-side unread; a member clears their own side (mirrors sendMessage).
+  const isStaff = (ALL_STAFF_ROLES as readonly string[]).includes(caller.role)
   if (isStaff) {
     const { error } = await supabase.from('conversations').update({ staff_unread: false }).eq('id', conversationId).eq('box_id', caller.box_id)
     if (error) return actionError('markRead', error)

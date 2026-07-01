@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`091` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`092` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -606,4 +606,14 @@ CREATE POLICY conversations_member_update ON conversations FOR UPDATE
 DROP FUNCTION IF EXISTS waitlist_my_positions();
 DROP POLICY IF EXISTS waitlist_select_own ON class_waitlist;
 CREATE POLICY box_read_waitlist ON class_waitlist FOR SELECT USING (box_id = auth_box_id());
+```
+
+### 092_messages_sender_role_check
+```sql
+-- 092_messages_sender_role_check.sql — restore the mig 058 staff policy (no sender_role pin).
+-- ⚠️ Reverting re-opens the forgery gap: a staff user can INSERT sender_role='member' messages.
+DROP POLICY IF EXISTS messages_staff_all ON messages;
+CREATE POLICY messages_staff_all ON messages FOR ALL
+  USING (box_id = auth_box_id() AND auth_is_staff())
+  WITH CHECK (box_id = auth_box_id() AND auth_is_staff());
 ```

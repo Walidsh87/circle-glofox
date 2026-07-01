@@ -50,3 +50,66 @@ export async function checkoutPackageViaApi(
     return { ok: false, code: 'internal', message: 'Could not start checkout. Please try again later.' }
   }
 }
+
+// The public API's program-checkout path. Service-role only; box-scoped reads. Mirrors the web
+// buyProgram action: read the PUBLISHED template in the buyer's box → re-buy guard → create a PSP
+// program-checkout session → return its hosted URL. The bought program is provisioned by the
+// EXISTING Stripe webhook (checkout-provisioning) on payment (not here). The service client is
+// RLS-exempt, so the published/box/re-buy guards are replicated in code (they mirror
+// member_programs_published_read RLS). athleteId is forced by the caller (the route) from the JWT —
+// a member can only buy for themselves, and the price is the server-read template price (untamperable).
+export async function checkoutProgramViaApi(
+  service: SupabaseClient,
+  args: { boxId: string; athleteId: string; templateId: string; baseUrl: string },
+): Promise<CheckoutCoreResult> {
+  const { boxId, athleteId, templateId, baseUrl } = args
+
+  const { data: tpl } = await service
+    .from('member_programs')
+    .select('id, title, price_aed')
+    .eq('id', templateId)
+    .eq('box_id', boxId)
+    .eq('is_template', true)
+    .eq('published', true)
+    .maybeSingle()
+  if (!tpl || tpl.price_aed == null || Number(tpl.price_aed) <= 0) {
+    return { ok: false, code: 'not_found', message: 'Program not available.' }
+  }
+
+  // Re-buy guard: block while an ACTIVE copy of this template already exists.
+  const { data: owned } = await service
+    .from('member_programs')
+    .select('id')
+    .eq('athlete_id', athleteId)
+    .eq('box_id', boxId)
+    .eq('is_template', false)
+    .eq('source_template_id', templateId)
+    .eq('active', true)
+    .maybeSingle()
+  if (owned) return { ok: false, code: 'not_found', message: 'You already own this program.' }
+
+  const { data: profile } = await service
+    .from('profiles')
+    .select('email')
+    .eq('id', athleteId)
+    .eq('box_id', boxId)
+    .maybeSingle()
+
+  try {
+    const provider = await getProviderForBox(boxId)
+    const session = await provider.createProgramCheckout({
+      programTemplateId: tpl.id as string,
+      athleteId,
+      boxId,
+      programName: tpl.title as string,
+      priceAed: Number(tpl.price_aed),
+      customerEmail: (profile?.email as string | null) ?? null,
+      successUrl: `${baseUrl}/dashboard/shop?purchase=success`,
+      cancelUrl: `${baseUrl}/dashboard/shop`,
+    })
+    return { ok: true, url: session.url }
+  } catch (e) {
+    console.error('[checkoutProgramViaApi] provider error:', e)
+    return { ok: false, code: 'internal', message: 'Could not start checkout. Please try again later.' }
+  }
+}

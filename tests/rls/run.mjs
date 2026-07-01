@@ -271,6 +271,19 @@ async function main() {
   const boxSecret = await scalar(`select has_column_privilege('authenticated','public.boxes','stripe_secret_key','SELECT')`)
   check('boxes.stripe_secret_key SELECT denied for authenticated (secret stays revoked)', boxSecret === false, `got ${boxSecret}`)
 
+  // bookings column allowlist (mig 093): the override-audit note (why an unpaid member was let in)
+  // MUST stay revoked from authenticated — it leaks another member's payment trouble. The roster
+  // columns (credit_id / checked_in / athlete_id) MUST remain readable — the whiteboard/schedule
+  // read bookings box-wide. Mirrors the boxes allowlist guard above; a future column re-grant regresses here.
+  for (const col of ['overridden_by', 'overridden_reason', 'overridden_at']) {
+    const denied = await scalar(`select has_column_privilege('authenticated','public.bookings','${col}','SELECT')`)
+    check(`bookings.${col} SELECT denied for authenticated (mig 093 — override note hidden)`, denied === false, `got ${denied}`)
+  }
+  for (const col of ['credit_id', 'checked_in', 'checked_in_at', 'athlete_id', 'class_instance_id']) {
+    const ok = await scalar(`select has_column_privilege('authenticated','public.bookings','${col}','SELECT')`)
+    check(`bookings.${col} SELECT allowed for authenticated (roster/entitlement reads still work)`, ok === true, `got ${ok}`)
+  }
+
   // ============================================================
   // FINANCIAL INVARIANTS — the credit-ledger money guards (migration 023).
   // These live ONLY in PL/pgSQL + DB CHECKs and are mocked away by every JS

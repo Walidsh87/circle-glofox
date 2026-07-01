@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`092` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`093` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -616,4 +616,15 @@ DROP POLICY IF EXISTS messages_staff_all ON messages;
 CREATE POLICY messages_staff_all ON messages FOR ALL
   USING (box_id = auth_box_id() AND auth_is_staff())
   WITH CHECK (box_id = auth_box_id() AND auth_is_staff());
+```
+
+### 093_bookings_hide_overrides
+```sql
+-- 093_bookings_hide_overrides.sql — restore the full table-level SELECT grant on bookings.
+-- ⚠️ Reverting re-exposes overridden_by/overridden_reason/overridden_at to any box member.
+-- (Re-granting anon is safe ONLY because no RLS policy permits anon any bookings rows; if a public
+--  bookings policy is ever added, drop anon from this restore.)
+GRANT SELECT ON bookings TO authenticated, anon;
+-- (Optional: the column-level grants added by 093 become redundant under the table grant and
+--  can be left in place; a fresh table-level SELECT supersedes them for read purposes.)
 ```

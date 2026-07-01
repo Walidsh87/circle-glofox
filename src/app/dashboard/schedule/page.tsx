@@ -5,13 +5,11 @@ import { todayInTimezone } from '@/lib/timezone'
 import { cn } from '@/lib/utils'
 import { BookingButton } from './_components/booking-button'
 import { FamilyBookingRow } from './_components/family-booking-row'
-import { waitlistPosition } from './_lib/waitlist'
 import { env } from '@/env'
 import { rosterFirstNames } from '@/lib/roster'
 import { CalendarSyncCard } from './_components/calendar-sync-card'
 import { PushCard } from './_components/push-card'
 import { getServerT, getLocale } from '@/lib/i18n/server'
-import { groupByInto } from '@/lib/grouping'
 
 function formatDateTime(startsAt: string, timezone: string, locale: 'en' | 'ar') {
   const date = new Date(startsAt)
@@ -30,7 +28,7 @@ export default async function SchedulePage() {
 
   const now = new Date().toISOString()
 
-  const [{ data: instances }, { data: box }, { data: myBookings }, { data: waitlist }, { data: me }] = await Promise.all([
+  const [{ data: instances }, { data: box }, { data: myBookings }, { data: myWaitlist }, { data: me }] = await Promise.all([
     supabase
       .from('class_instances')
       .select(`id, starts_at, duration_minutes, capacity, status, class_templates(name), profiles(full_name), bookings(athlete_id, profiles!bookings_athlete_id_fkey(full_name))`)
@@ -41,7 +39,9 @@ export default async function SchedulePage() {
       .limit(30),
     supabase.from('boxes').select('timezone, roster_public, ramadan_start, ramadan_end').eq('id', profile.box_id).single(),
     supabase.from('bookings').select('class_instance_id').eq('athlete_id', user.id),
-    supabase.from('class_waitlist').select('class_instance_id, athlete_id, created_at').eq('box_id', profile.box_id),
+    // Own waitlist standing only — the RPC returns the caller's {instance, position} rows without
+    // exposing other members' entries (class_waitlist SELECT is now own-rows-only, mig 091).
+    supabase.rpc('waitlist_my_positions'),
     supabase.from('profiles').select('calendar_token').eq('id', user.id).single(),
   ])
 
@@ -67,10 +67,8 @@ export default async function SchedulePage() {
   const feedUrl = me?.calendar_token ? `${env.NEXT_PUBLIC_APP_URL}/api/calendar/${me.calendar_token}` : null
   const bookedInstanceIds = new Set((myBookings ?? []).map((b) => b.class_instance_id))
 
-  const waitlistByInstance = groupByInto(
-    (waitlist ?? []) as { class_instance_id: string; athlete_id: string; created_at: string }[],
-    (w) => w.class_instance_id,
-    (w) => ({ athlete_id: w.athlete_id, created_at: w.created_at }),
+  const waitlistPosByInstance = new Map<string, number>(
+    ((myWaitlist ?? []) as { class_instance_id: string; pos: number }[]).map((w) => [w.class_instance_id, w.pos]),
   )
 
   const grouped = new Map<string, typeof instances>()
@@ -160,8 +158,7 @@ export default async function SchedulePage() {
                       </div>
                       <div className="flex shrink-0 flex-col items-end">
                         {(() => {
-                          const entries = waitlistByInstance.get(instance.id) ?? []
-                          const pos = waitlistPosition(entries, user.id)
+                          const pos = waitlistPosByInstance.get(instance.id) ?? null
                           return <BookingButton instanceId={instance.id} isBooked={isBooked} isFull={isFull} isWaitlisted={pos !== null} waitlistPosition={pos} />
                         })()}
                         {coMembers.length > 0 && !isFull && (

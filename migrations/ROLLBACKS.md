@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`090` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`091` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -596,4 +596,14 @@ DROP POLICY IF EXISTS conversations_member_update ON conversations;
 CREATE POLICY conversations_member_update ON conversations FOR UPDATE
   USING (member_id = auth.uid()) WITH CHECK (member_id = auth.uid());
 -- ⚠️ Reverting #3 re-exposes every member's payment_status / monthly_price_aed to any box member.
+```
+
+### 091_waitlist_position_rpc
+```sql
+-- 091_waitlist_position_rpc.sql — restore the box-wide waitlist read + drop the RPC.
+-- ⚠️ Reverting re-exposes every member's athlete_id + waitlist ordering to any box member,
+--    AND breaks the schedule "#N" standing on any client already switched to the RPC.
+DROP FUNCTION IF EXISTS waitlist_my_positions();
+DROP POLICY IF EXISTS waitlist_select_own ON class_waitlist;
+CREATE POLICY box_read_waitlist ON class_waitlist FOR SELECT USING (box_id = auth_box_id());
 ```

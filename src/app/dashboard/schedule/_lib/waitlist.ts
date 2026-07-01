@@ -8,14 +8,3 @@ export function nextInLine(entries: WaitlistEntry[]): WaitlistEntry | null {
   }
   return earliest
 }
-
-// 1-based rank of `athleteId` among `entries` (by created_at asc); null if absent.
-export function waitlistPosition(entries: WaitlistEntry[], athleteId: string): number | null {
-  const mine = entries.find((e) => e.athlete_id === athleteId)
-  if (!mine) return null
-  let rank = 1
-  for (const e of entries) {
-    if (e.athlete_id !== athleteId && e.created_at < mine.created_at) rank++
-  }
-  return rank
-}

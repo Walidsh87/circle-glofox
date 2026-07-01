@@ -51,7 +51,9 @@ export default async function PaymentsPage() {
       .select('stripe_secret_key, reminders_enabled')
       .eq('id', profile.box_id)
       .single(),
-    supabase
+    // Override-audit columns (overridden_*) are revoked from the RLS client by mig 093 (they leak
+    // another member's payment trouble); read them via the service client, box-scoped by session.
+    service
       .from('bookings')
       .select(`
         overridden_at,

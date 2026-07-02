@@ -289,9 +289,13 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   if (isSelf && viewer.role === 'athlete' && boxSlug) {
     const { code } = await ensureReferralCode()
     if (code) referLink = referralLink(env.NEXT_PUBLIC_APP_URL, boxSlug, code)
+    // Service client for the counts: leads SELECT is staff-only RLS, so the athlete's own
+    // RLS read always counted 0 "referred". Scope stays the viewer's own attribution
+    // (box + referred_by = self), gated by the isSelf check above.
+    const counts = createServiceClient()
     const [{ count: rc }, { count: jc }] = await Promise.all([
-      supabase.from('leads').select('id', { count: 'exact', head: true }).eq('box_id', viewer.box_id).eq('referred_by', user.id),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', viewer.box_id).eq('referred_by', user.id),
+      counts.from('leads').select('id', { count: 'exact', head: true }).eq('box_id', viewer.box_id).eq('referred_by', user.id),
+      counts.from('profiles').select('id', { count: 'exact', head: true }).eq('box_id', viewer.box_id).eq('referred_by', user.id),
     ])
     referredCount = rc ?? 0
     joinedCount = jc ?? 0

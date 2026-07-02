@@ -26,7 +26,7 @@ export const POST = withMemberAuth(async (req, { userId, boxId }) => {
   const service = createServiceClient()
   const res = await setCalendarTokenViaApi(service, userId, boxId, action)
   if (!res.ok) {
-    return NextResponse.json({ error: { code: res.code, message: res.message } }, { status: 500 })
+    return jsonError(res.code, res.message, 500)
   }
   return NextResponse.json({ data: { token: res.token } }, { status: 200 })
 })

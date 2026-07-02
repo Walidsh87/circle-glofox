@@ -55,6 +55,7 @@ export async function ensureReferralViaApi(
         .from('profiles')
         .select('referral_code')
         .eq('id', athleteId)
+        .eq('box_id', boxId)
         .maybeSingle()
       code = (again?.referral_code as string | null) ?? null
       break

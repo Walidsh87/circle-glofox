@@ -95,3 +95,44 @@ test('provider failure → internal (not thrown)', async () => {
   const res = await checkoutProgramViaApi(progSvc() as never, progArgs)
   expect(res).toEqual({ ok: false, code: 'internal', message: expect.any(String) })
 })
+
+// --- return-to-app redirect URLs ---
+// These endpoints are the mobile app's checkout surface: Stripe must bounce back through the
+// app-return trampoline (which deep-links circlefitness://), never the web dashboard.
+
+test('package checkout points Stripe at the app bounce page (success + cancel)', async () => {
+  createPackageCheckout.mockResolvedValue({ url: 'https://checkout.stripe/x', sessionId: 's1' })
+  await checkoutPackageViaApi(svc() as never, args)
+  expect(createPackageCheckout).toHaveBeenCalledWith(expect.objectContaining({
+    successUrl: 'https://app.test/app/checkout-return?status=success',
+    cancelUrl: 'https://app.test/app/checkout-return?status=cancel',
+  }))
+})
+
+test('program checkout points Stripe at the app bounce page (success + cancel)', async () => {
+  createProgramCheckout.mockResolvedValue({ url: 'https://checkout.stripe/p', sessionId: 's2' })
+  await checkoutProgramViaApi(progSvc() as never, progArgs)
+  expect(createProgramCheckout).toHaveBeenCalledWith(expect.objectContaining({
+    successUrl: 'https://app.test/app/checkout-return?status=success',
+    cancelUrl: 'https://app.test/app/checkout-return?status=cancel',
+  }))
+})
+
+test('a provided return_url (Expo Go dev scheme) rides the bounce URLs, encoded + validated', async () => {
+  createPackageCheckout.mockResolvedValue({ url: 'https://checkout.stripe/x', sessionId: 's1' })
+  await checkoutPackageViaApi(svc() as never, { ...args, returnTo: 'exp://192.168.1.5:8081/--/checkout-return' })
+  const to = encodeURIComponent('exp://192.168.1.5:8081/--/checkout-return')
+  expect(createPackageCheckout).toHaveBeenCalledWith(expect.objectContaining({
+    successUrl: `https://app.test/app/checkout-return?status=success&to=${to}`,
+    cancelUrl: `https://app.test/app/checkout-return?status=cancel&to=${to}`,
+  }))
+})
+
+test('a junk return_url falls back to the standalone scheme (never http)', async () => {
+  createPackageCheckout.mockResolvedValue({ url: 'https://checkout.stripe/x', sessionId: 's1' })
+  await checkoutPackageViaApi(svc() as never, { ...args, returnTo: 'https://evil.example/phish' })
+  const to = encodeURIComponent('circlefitness://checkout-return')
+  expect(createPackageCheckout).toHaveBeenCalledWith(expect.objectContaining({
+    successUrl: `https://app.test/app/checkout-return?status=success&to=${to}`,
+  }))
+})

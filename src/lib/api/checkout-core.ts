@@ -1,5 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getProviderForBox } from '@/lib/psp'
+import { resolveAppTarget } from '@/lib/app-return'
+
+// Stripe needs https redirect URLs, so both flows bounce through /app/checkout-return, which
+// deep-links back into the app. `returnTo` is the app's own runtime deep link (Expo Go vs
+// standalone schemes differ) — validated by resolveAppTarget, junk falls back to the standalone
+// scheme rather than failing the checkout.
+function appReturnUrls(baseUrl: string, returnTo: string | undefined) {
+  const suffix = returnTo ? `&to=${encodeURIComponent(resolveAppTarget(returnTo))}` : ''
+  return {
+    successUrl: `${baseUrl}/app/checkout-return?status=success${suffix}`,
+    cancelUrl: `${baseUrl}/app/checkout-return?status=cancel${suffix}`,
+  }
+}
 
 // The public API's package-checkout path. Service-role only; box-scoped reads. Mirrors the web
 // buyPackage action: read the ACTIVE package in the buyer's box → create a PSP checkout session →
@@ -11,7 +24,7 @@ export type CheckoutCoreResult =
 
 export async function checkoutPackageViaApi(
   service: SupabaseClient,
-  args: { boxId: string; athleteId: string; packageId: string; baseUrl: string },
+  args: { boxId: string; athleteId: string; packageId: string; baseUrl: string; returnTo?: string },
 ): Promise<CheckoutCoreResult> {
   const { boxId, athleteId, packageId, baseUrl } = args
 
@@ -41,8 +54,7 @@ export async function checkoutPackageViaApi(
       packageName: pkg.name as string,
       priceAed: Number(pkg.price_aed),
       customerEmail: (profile?.email as string | null) ?? null,
-      successUrl: `${baseUrl}/dashboard/shop?purchase=success`,
-      cancelUrl: `${baseUrl}/dashboard/shop`,
+      ...appReturnUrls(baseUrl, args.returnTo),
     })
     return { ok: true, url: session.url }
   } catch (e) {
@@ -60,7 +72,7 @@ export async function checkoutPackageViaApi(
 // a member can only buy for themselves, and the price is the server-read template price (untamperable).
 export async function checkoutProgramViaApi(
   service: SupabaseClient,
-  args: { boxId: string; athleteId: string; templateId: string; baseUrl: string },
+  args: { boxId: string; athleteId: string; templateId: string; baseUrl: string; returnTo?: string },
 ): Promise<CheckoutCoreResult> {
   const { boxId, athleteId, templateId, baseUrl } = args
 
@@ -104,8 +116,7 @@ export async function checkoutProgramViaApi(
       programName: tpl.title as string,
       priceAed: Number(tpl.price_aed),
       customerEmail: (profile?.email as string | null) ?? null,
-      successUrl: `${baseUrl}/dashboard/shop?purchase=success`,
-      cancelUrl: `${baseUrl}/dashboard/shop`,
+      ...appReturnUrls(baseUrl, args.returnTo),
     })
     return { ok: true, url: session.url }
   } catch (e) {

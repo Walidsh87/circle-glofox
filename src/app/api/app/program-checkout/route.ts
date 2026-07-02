@@ -21,12 +21,14 @@ export const POST = withMemberAuth(async (req, { userId, boxId, role }) => {
   } catch {
     return jsonError('validation_error', 'Invalid JSON body.', 400)
   }
-  const b = (body ?? {}) as { template_id?: unknown }
+  const b = (body ?? {}) as { template_id?: unknown; return_url?: unknown }
   const templateId = typeof b.template_id === 'string' ? b.template_id : ''
   if (!templateId) return jsonError('validation_error', 'template_id is required.', 400)
+  // The app's own deep-link return target (Expo Go vs standalone schemes differ); validated in core.
+  const returnTo = typeof b.return_url === 'string' ? b.return_url : undefined
 
   const service = createServiceClient()
-  const res = await checkoutProgramViaApi(service, { boxId, athleteId: userId, templateId, baseUrl: env.NEXT_PUBLIC_APP_URL })
+  const res = await checkoutProgramViaApi(service, { boxId, athleteId: userId, templateId, baseUrl: env.NEXT_PUBLIC_APP_URL, returnTo })
   if (!res.ok) {
     return NextResponse.json({ error: { code: res.code, message: res.message } }, { status: res.code === 'not_found' ? 404 : 502 })
   }

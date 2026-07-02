@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
-import { SKILLS, BELTS } from '@/lib/skills'
+import { SKILL_BESTS, SKILL_BEST_CATEGORIES, skillByKey, parseTimeToSeconds, formatBestValue, toStoredValue } from '@/lib/skill-bests'
 import { setGoal, setGoalStatus, markGoalDone, deleteGoal } from '../_actions/goals'
 // import type only — load-goals.ts is server-only (DB reads); never import its values here.
 import type { GoalWithProgress } from '@/app/dashboard/goals/_lib/load-goals'
@@ -15,7 +15,7 @@ const limeBtn = 'rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text
 
 const TYPE_LABELS: Record<GoalType, string> = {
   lift_1rm: '1RM lift',
-  skill_belt: 'Skill belt',
+  skill_best: 'Skill best',
   attendance: 'Attendance',
   custom: 'Custom',
 }
@@ -28,10 +28,12 @@ export function GoalsCard({ athleteId, goals, canManage }: { athleteId: string; 
   const [title, setTitle] = useState('')
   const [liftName, setLiftName] = useState(LIFT_NAMES[0].value)
   const [targetKg, setTargetKg] = useState('')
-  const [skillKey, setSkillKey] = useState(SKILLS[0].key)
-  const [targetBelt, setTargetBelt] = useState<string>('blue')
+  const [skillKey, setSkillKey] = useState(SKILL_BESTS[0].key)
+  const [targetBest, setTargetBest] = useState('')
   const [targetCount, setTargetCount] = useState('')
   const [targetDate, setTargetDate] = useState('')
+
+  const skillMeasure = skillByKey(skillKey)?.measure ?? 'reps'
 
   const activeGoals = goals.filter((g) => g.status === 'active')
   const archivedGoals = goals.filter((g) => g.status === 'archived')
@@ -47,24 +49,31 @@ export function GoalsCard({ athleteId, goals, canManage }: { athleteId: string; 
 
   function autoTitle(): string {
     if (type === 'lift_1rm') return `${LIFT_NAMES.find((l) => l.value === liftName)?.label ?? liftName} → ${targetKg}kg`
-    if (type === 'skill_belt') return `${SKILLS.find((s) => s.key === skillKey)?.label ?? skillKey} → ${targetBelt} belt`
+    if (type === 'skill_best') {
+      const stored = toStoredValue(skillKey, targetBest)
+      return `${skillByKey(skillKey)?.label ?? skillKey} → ${stored !== null ? formatBestValue(skillKey, stored) : targetBest}`
+    }
     if (type === 'attendance') return `${targetCount} sessions`
     return title.trim()
   }
 
   function submit() {
+    // skill_best target: weight goes over as kg (server converts to grams);
+    // reps/meters as an integer; time is converted mm:ss → seconds here.
+    const bestTarget =
+      skillMeasure === 'time' ? parseTimeToSeconds(targetBest) : (targetBest === '' ? null : Number(targetBest))
     const payload: GoalInput = {
       goalType: type,
       title: title.trim() || autoTitle(),
       liftName: type === 'lift_1rm' ? liftName : null,
-      targetKg: type === 'lift_1rm' ? Number(targetKg) : null,
-      skillKey: type === 'skill_belt' ? skillKey : null,
-      targetBelt: type === 'skill_belt' ? targetBelt : null,
-      targetCount: type === 'attendance' ? Number(targetCount) : null,
+      targetKg: type === 'lift_1rm' ? Number(targetKg) : type === 'skill_best' && skillMeasure === 'weight' ? bestTarget : null,
+      skillKey: type === 'skill_best' ? skillKey : null,
+      targetCount:
+        type === 'attendance' ? Number(targetCount) : type === 'skill_best' && skillMeasure !== 'weight' ? bestTarget : null,
       targetDate: targetDate || null,
     }
     run(() => setGoal(athleteId, payload), () => {
-      setAdding(false); setTitle(''); setTargetKg(''); setTargetCount(''); setTargetDate('')
+      setAdding(false); setTitle(''); setTargetKg(''); setTargetBest(''); setTargetCount(''); setTargetDate('')
     })
   }
 
@@ -142,14 +151,28 @@ export function GoalsCard({ athleteId, goals, canManage }: { athleteId: string; 
                 <input type="number" min="1" placeholder="Target kg" value={targetKg} onChange={(e) => setTargetKg(e.target.value)} className={`${input} w-24`} />
               </>
             )}
-            {type === 'skill_belt' && (
+            {type === 'skill_best' && (
               <>
-                <select value={skillKey} onChange={(e) => setSkillKey(e.target.value)} className={input}>
-                  {SKILLS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                <select value={skillKey} onChange={(e) => { setSkillKey(e.target.value); setTargetBest('') }} className={input}>
+                  {SKILL_BEST_CATEGORIES.map((cat) => (
+                    <optgroup key={cat} label={cat}>
+                      {SKILL_BESTS.filter((s) => s.category === cat).map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
-                <select value={targetBelt} onChange={(e) => setTargetBelt(e.target.value)} className={input}>
-                  {BELTS.map((b) => <option key={b} value={b}>{b}</option>)}
-                </select>
+                {skillMeasure === 'time' ? (
+                  <input placeholder="Target mm:ss" value={targetBest} onChange={(e) => setTargetBest(e.target.value)} className={`${input} w-28`} />
+                ) : (
+                  <input
+                    type="number"
+                    min="1"
+                    step={skillMeasure === 'weight' ? '0.5' : '1'}
+                    placeholder={skillMeasure === 'weight' ? 'Target kg' : skillMeasure === 'distance_m' ? 'Target m' : 'Target reps'}
+                    value={targetBest}
+                    onChange={(e) => setTargetBest(e.target.value)}
+                    className={`${input} w-28`}
+                  />
+                )}
               </>
             )}
             {type === 'attendance' && (

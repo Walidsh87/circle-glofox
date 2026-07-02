@@ -50,8 +50,42 @@ test('lift goal stores only lift fields (skill/count nulled)', async () => {
   const rls = asRole('a1', 'athlete'); serverCreate.mockResolvedValue(rls)
   await setGoal('a1', { goalType: 'lift_1rm', title: 'Squat', liftName: 'back_squat', targetKg: 140 })
   expect(rls.builder('member_goals').insert).toHaveBeenCalledWith(
-    expect.objectContaining({ skill_key: null, target_belt: null, target_count: null }),
+    expect.objectContaining({ skill_key: null, target_count: null }),
   )
+})
+
+test('skill_best reps goal stores skill_key + target_count (grams nulled)', async () => {
+  const rls = asRole('a1', 'athlete'); serverCreate.mockResolvedValue(rls)
+  const res = await setGoal('a1', { goalType: 'skill_best', title: 'Pull-ups', skillKey: 'pullup', targetCount: 25 })
+  expect(res.error).toBeNull()
+  expect(rls.builder('member_goals').insert).toHaveBeenCalledWith(
+    expect.objectContaining({ goal_type: 'skill_best', skill_key: 'pullup', target_count: 25, target_grams: null, lift_name: null }),
+  )
+})
+
+test('skill_best weight goal converts the kg target to grams', async () => {
+  const rls = asRole('a1', 'athlete'); serverCreate.mockResolvedValue(rls)
+  const res = await setGoal('a1', { goalType: 'skill_best', title: 'W. pull-up', skillKey: 'weighted_pullup', targetKg: 32.5 })
+  expect(res.error).toBeNull()
+  expect(rls.builder('member_goals').insert).toHaveBeenCalledWith(
+    expect.objectContaining({ goal_type: 'skill_best', skill_key: 'weighted_pullup', target_grams: 32500, target_count: null }),
+  )
+})
+
+test('skill_best time goal stores seconds in target_count', async () => {
+  const rls = asRole('a1', 'athlete'); serverCreate.mockResolvedValue(rls)
+  const res = await setGoal('a1', { goalType: 'skill_best', title: 'Row 2K', skillKey: 'row_2k', targetCount: 465 })
+  expect(res.error).toBeNull()
+  expect(rls.builder('member_goals').insert).toHaveBeenCalledWith(
+    expect.objectContaining({ goal_type: 'skill_best', skill_key: 'row_2k', target_count: 465, target_grams: null }),
+  )
+})
+
+test('skill_best with an unknown skill is rejected before any DB write', async () => {
+  const rls = asRole('a1', 'athlete'); serverCreate.mockResolvedValue(rls)
+  const res = await setGoal('a1', { goalType: 'skill_best', title: 'x', skillKey: 'flying', targetCount: 10 })
+  expect(res.error).toMatch(/skill/i)
+  expect(rls.builder('member_goals')?.insert).toBeUndefined()
 })
 
 test('setGoalStatus archives box-scoped', async () => {

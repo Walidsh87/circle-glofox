@@ -50,6 +50,24 @@ describe('buildPdplExport', () => {
     expect(out.athlete.parq_responses[0].has_yes).toBe(true)
   })
 
+  test('includes skill bests when provided (defaults to empty)', () => {
+    const withRows = buildPdplExport({
+      profile: baseProfile,
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+      skillBests: [{ skill_key: 'row_2k', value: 465, logged_at: '2026-07-01T08:00:00Z' }],
+    })
+    expect(withRows.athlete.skill_bests).toHaveLength(1)
+    expect(withRows.athlete.skill_bests[0].value).toBe(465)
+
+    const without = buildPdplExport({
+      profile: baseProfile,
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+    })
+    expect(without.athlete.skill_bests).toEqual([])
+  })
+
   test('parq_responses defaults to empty when omitted', () => {
     const out = buildPdplExport({
       profile: baseProfile,

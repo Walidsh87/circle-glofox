@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`093` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`094` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -627,4 +627,22 @@ CREATE POLICY messages_staff_all ON messages FOR ALL
 GRANT SELECT ON bookings TO authenticated, anon;
 -- (Optional: the column-level grants added by 093 become redundant under the table grant and
 --  can be left in place; a fresh table-level SELECT supersedes them for read purposes.)
+```
+
+### 094_skill_bests
+**Partially forward-only.** The new `athlete_skill_bests` table is reversible; the
+`DROP TABLE skill_levels` and the `DELETE ... goal_type='skill_belt'` destroy belt data
+(⚠️ user-approved loss — the belt feature was removed by design; restore from backup/PITR
+if it must come back). Reverse of the reversible parts:
+```sql
+-- 094_skill_bests.sql — drop the bests log + restore the old goal_type list.
+-- ⚠️ Only safe after deleting any skill_best goals (they'd violate the restored CHECK),
+--    and the old code that read skill_levels is gone — reverting the schema alone does
+--    NOT bring belts back.
+DROP TABLE IF EXISTS athlete_skill_bests;
+DELETE FROM member_goals WHERE goal_type = 'skill_best';
+ALTER TABLE member_goals DROP CONSTRAINT IF EXISTS member_goals_goal_type_check;
+ALTER TABLE member_goals ADD CONSTRAINT member_goals_goal_type_check
+  CHECK (goal_type IN ('lift_1rm','skill_belt','attendance','custom'));
+-- skill_levels itself: forward-only (recreate from mig 040 + restore rows from backup).
 ```

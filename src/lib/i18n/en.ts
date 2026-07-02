@@ -51,7 +51,7 @@ export const en = {
     timer: 'Timer',
     buyPack: 'Buy a pack',
     my1rms: 'My 1RMs',
-    skills: 'Skills',
+    skills: 'Skill bests',
     goals: 'My goals',
     program: 'My program',
     movements: 'Movements',

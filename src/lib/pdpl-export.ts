@@ -61,6 +61,12 @@ export type BillingReminderRow = {
   email: string
 }
 
+export type SkillBestRow = {
+  skill_key: string
+  value: number
+  logged_at: string
+}
+
 export type ParqResponseRow = {
   parq_version: number
   answers: boolean[]
@@ -78,6 +84,7 @@ export type PdplExportInput = {
   waiverSignature: WaiverSignatureRow | null
   billingReminders: BillingReminderRow[]
   parqResponses?: ParqResponseRow[]
+  skillBests?: SkillBestRow[]
 }
 
 export type PdplExportOutput = {
@@ -96,6 +103,7 @@ export type PdplExportOutput = {
     waiver_signature: WaiverSignatureRow | null
     billing_reminders: BillingReminderRow[]
     parq_responses: ParqResponseRow[]
+    skill_bests: SkillBestRow[]
   }
 }
 
@@ -116,6 +124,7 @@ export function buildPdplExport(input: PdplExportInput): PdplExportOutput {
       waiver_signature: input.waiverSignature,
       billing_reminders: input.billingReminders,
       parq_responses: input.parqResponses ?? [],
+      skill_bests: input.skillBests ?? [],
     },
   }
 }

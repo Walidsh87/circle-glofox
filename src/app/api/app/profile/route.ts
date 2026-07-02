@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { withMemberAuth } from '@/lib/api/with-member-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { jsonError } from '@/lib/api/respond'
-import { getOwnProfileViaApi, updateOwnProfileViaApi } from '@/lib/api/profile-core'
+import { getOwnProfileViaApi, pickPatchFields, updateOwnProfileViaApi } from '@/lib/api/profile-core'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -29,13 +29,11 @@ export const PATCH = withMemberAuth(async (req, { userId, boxId }) => {
   } catch {
     return jsonError('validation_error', 'Invalid JSON body.', 400)
   }
-  // Reject a non-object body (bare string / number / array): otherwise every field reads as
-  // undefined → null and we'd silently CLEAR the member's saved details on a malformed request.
+  // Reject a non-object body (bare string / number / array) — malformed input, not a patch.
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return jsonError('validation_error', 'Request body must be a JSON object.', 400)
   }
   const b = body as Record<string, unknown>
-  const str = (v: unknown): string | null => (typeof v === 'string' ? v : null)
 
   // Bound every field at the boundary (the validator enforces the real semantic caps) so a huge
   // attacker-supplied string can't force O(n) work / an oversized write before validation runs.
@@ -44,15 +42,10 @@ export const PATCH = withMemberAuth(async (req, { userId, boxId }) => {
   }
 
   const service = createServiceClient()
-  // language rides the same PATCH but is present-only: absent key = preference untouched
-  // (the 5 PII fields are full-replace; the mobile language toggle sends language alone).
-  const res = await updateOwnProfileViaApi(service, userId, boxId, {
-    phone: str(b.phone),
-    emergencyContactName: str(b.emergency_contact_name),
-    emergencyContactPhone: str(b.emergency_contact_phone),
-    bloodType: str(b.blood_type),
-    allergies: str(b.allergies),
-  }, 'language' in b ? b.language : undefined)
+  // Every field is present-only: an absent key leaves the stored column untouched. This is what
+  // keeps the mobile language toggle (which sends {language} alone) from wiping the PII fields.
+  const res = await updateOwnProfileViaApi(service, userId, boxId, pickPatchFields(b),
+    'language' in b ? b.language : undefined)
   if (!res.ok) {
     return NextResponse.json({ error: { code: res.code, message: res.message } }, { status: res.code === 'validation_error' ? 400 : 500 })
   }

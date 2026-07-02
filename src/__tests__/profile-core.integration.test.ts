@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest'
 import { makeSupabaseMock, type MockResult } from './helpers/supabase-mock'
-import { getOwnProfileViaApi, updateOwnProfileViaApi } from '@/lib/api/profile-core'
+import { getOwnProfileViaApi, pickPatchFields, updateOwnProfileViaApi } from '@/lib/api/profile-core'
 
 function svc(results: Record<string, MockResult | MockResult[]>) {
   return makeSupabaseMock({ results })
@@ -95,5 +95,46 @@ test('update with language null (explicit) → validation_error (column is NOT N
   const m = svc({ profiles: { data: null, error: null } })
   const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', base, null)
   expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/language/i) })
+  expect(m.builder('profiles')).toBeUndefined()
+})
+
+// ---- present-only PII semantics (the language-toggle wipe bug) ----
+
+test('pickPatchFields: absent keys → undefined; string → value; non-string → null (explicit clear)', () => {
+  expect(pickPatchFields({})).toEqual({
+    phone: undefined, emergencyContactName: undefined, emergencyContactPhone: undefined,
+    bloodType: undefined, allergies: undefined,
+  })
+  expect(pickPatchFields({ phone: '0501234567', blood_type: 42, allergies: null })).toEqual({
+    phone: '0501234567', emergencyContactName: undefined, emergencyContactPhone: undefined,
+    bloodType: null, allergies: null,
+  })
+})
+
+test('language-only patch writes ONLY language — never nulls the five PII columns', async () => {
+  const m = svc({ profiles: { data: null, error: null } })
+  const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', {}, 'ar')
+  expect(res).toEqual({ ok: true })
+  expect(m.builder('profiles')!.update).toHaveBeenCalledWith({ language: 'ar' })
+})
+
+test('partial patch writes only the provided fields', async () => {
+  const m = svc({ profiles: { data: null, error: null } })
+  const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', { phone: '0501234567' })
+  expect(res).toEqual({ ok: true })
+  expect(m.builder('profiles')!.update).toHaveBeenCalledWith({ phone: '0501234567' })
+})
+
+test('empty patch (no fields, no language) is a no-op ok — no DB write', async () => {
+  const m = svc({ profiles: { data: null, error: null } })
+  const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', {})
+  expect(res).toEqual({ ok: true })
+  expect(m.builder('profiles')).toBeUndefined()
+})
+
+test('an invalid provided field still rejects a partial patch', async () => {
+  const m = svc({ profiles: { data: null, error: null } })
+  const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', { phone: '12345' })
+  expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/UAE phone/i) })
   expect(m.builder('profiles')).toBeUndefined()
 })

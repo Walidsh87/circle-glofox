@@ -8,9 +8,9 @@ function svc(results: Record<string, MockResult | MockResult[]>) {
 const base = { phone: null, emergencyContactName: null, emergencyContactPhone: null, bloodType: null, allergies: null }
 
 test('getOwnProfileViaApi returns the member PII for their own row', async () => {
-  const m = svc({ profiles: { data: { phone: '0501234567', emergency_contact_name: 'Mom', emergency_contact_phone: '0555', blood_type: 'O+', allergies: 'Nuts' }, error: null } })
+  const m = svc({ profiles: { data: { phone: '0501234567', emergency_contact_name: 'Mom', emergency_contact_phone: '0555', blood_type: 'O+', allergies: 'Nuts', language: 'ar' }, error: null } })
   const res = await getOwnProfileViaApi(m as never, 'a1', 'b1')
-  expect(res).toEqual({ phone: '0501234567', emergency_contact_name: 'Mom', emergency_contact_phone: '0555', blood_type: 'O+', allergies: 'Nuts' })
+  expect(res).toEqual({ phone: '0501234567', emergency_contact_name: 'Mom', emergency_contact_phone: '0555', blood_type: 'O+', allergies: 'Nuts', language: 'ar' })
 })
 
 test('getOwnProfileViaApi returns null when no row', async () => {
@@ -56,4 +56,44 @@ test('a DB error on update → internal (not thrown)', async () => {
   const m = svc({ profiles: { data: null, error: { message: 'boom' } } })
   const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', { ...base, bloodType: 'A-' })
   expect(res).toEqual({ ok: false, code: 'internal', message: expect.any(String) })
+})
+
+test('getOwnProfileViaApi coerces an unexpected language value to en', async () => {
+  const m = svc({ profiles: { data: { phone: null, emergency_contact_name: null, emergency_contact_phone: null, blood_type: null, allergies: null, language: 'fr' }, error: null } })
+  const res = await getOwnProfileViaApi(m as never, 'a1', 'b1')
+  expect(res?.language).toBe('en')
+})
+
+test('update with language ar → payload includes language', async () => {
+  const m = svc({ profiles: { data: null, error: null } })
+  const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', base, 'ar')
+  expect(res).toEqual({ ok: true })
+  expect(m.builder('profiles')!.update).toHaveBeenCalledWith({
+    phone: null, emergency_contact_name: null, emergency_contact_phone: null,
+    blood_type: null, allergies: null, language: 'ar',
+  })
+})
+
+test('update without language → payload has NO language key (never clobbers the preference)', async () => {
+  const m = svc({ profiles: { data: null, error: null } })
+  const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', { ...base, phone: '0501234567' })
+  expect(res).toEqual({ ok: true })
+  expect(m.builder('profiles')!.update).toHaveBeenCalledWith({
+    phone: '0501234567', emergency_contact_name: null, emergency_contact_phone: null,
+    blood_type: null, allergies: null,
+  })
+})
+
+test('update with an invalid language → validation_error, no write', async () => {
+  const m = svc({ profiles: { data: null, error: null } })
+  const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', base, 'fr')
+  expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/language/i) })
+  expect(m.builder('profiles')).toBeUndefined()
+})
+
+test('update with language null (explicit) → validation_error (column is NOT NULL)', async () => {
+  const m = svc({ profiles: { data: null, error: null } })
+  const res = await updateOwnProfileViaApi(m as never, 'a1', 'b1', base, null)
+  expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/language/i) })
+  expect(m.builder('profiles')).toBeUndefined()
 })

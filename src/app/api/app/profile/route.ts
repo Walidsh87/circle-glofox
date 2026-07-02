@@ -44,13 +44,15 @@ export const PATCH = withMemberAuth(async (req, { userId, boxId }) => {
   }
 
   const service = createServiceClient()
+  // language rides the same PATCH but is present-only: absent key = preference untouched
+  // (the 5 PII fields are full-replace; the mobile language toggle sends language alone).
   const res = await updateOwnProfileViaApi(service, userId, boxId, {
     phone: str(b.phone),
     emergencyContactName: str(b.emergency_contact_name),
     emergencyContactPhone: str(b.emergency_contact_phone),
     bloodType: str(b.blood_type),
     allergies: str(b.allergies),
-  })
+  }, 'language' in b ? b.language : undefined)
   if (!res.ok) {
     return NextResponse.json({ error: { code: res.code, message: res.message } }, { status: res.code === 'validation_error' ? 400 : 500 })
   }

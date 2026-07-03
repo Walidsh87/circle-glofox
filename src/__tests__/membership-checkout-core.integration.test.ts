@@ -117,6 +117,19 @@ describe('getMembershipPurchaseState', () => {
     const svc = getSvc([activeRow({ provider_plan_ref: null, payment_status: 'paid' })], [catalogPlan()])
     expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: 'enable_autopay', plans: [] })
   })
+
+  test('legacy free-text ref on the row (not a real Stripe price) → null, not enable_autopay', async () => {
+    const svc = getSvc([activeRow({ provider_plan_ref: '1050AED', payment_status: 'paid' })], [])
+    expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: null, plans: [] })
+  })
+
+  test('legacy free-text ref via the catalog fallback → null, not enable_autopay', async () => {
+    const svc = getSvc(
+      [activeRow({ provider_plan_ref: null, payment_status: 'paid' })],
+      [catalogPlan({ provider_plan_ref: '1050AED' })],
+    )
+    expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: null, plans: [] })
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -181,6 +194,13 @@ describe('buyMembershipViaApi', () => {
 
   test('plan without a provider ref → validation_error, nothing inserted', async () => {
     const svc = buySvc({ plan: { data: catalogPlan({ provider_plan_ref: null }), error: null } })
+    const res = await buyMembershipViaApi(svc as never, buyArgs)
+    expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.any(String) })
+    expect(svc.builder('memberships')).toBeUndefined() // memberships never touched
+  })
+
+  test('plan with a legacy free-text ref (not a real Stripe price) → validation_error, nothing inserted', async () => {
+    const svc = buySvc({ plan: { data: catalogPlan({ provider_plan_ref: '1050AED' }), error: null } })
     const res = await buyMembershipViaApi(svc as never, buyArgs)
     expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.any(String) })
     expect(svc.builder('memberships')).toBeUndefined() // memberships never touched
@@ -341,6 +361,34 @@ describe('enableAutoPayViaApi', () => {
 
   test('no plan ref on the row and none resolvable from the catalog → validation_error', async () => {
     const svc = autoSvc([activeRow({ provider_plan_ref: null })], { plan: { data: null, error: null } })
+    const res = await enableAutoPayViaApi(svc as never, autoArgs)
+    expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/front desk/i) })
+    expect(createCheckoutSession).not.toHaveBeenCalled()
+  })
+
+  test('legacy free-text ref on the row (regression: real prod case) → validation_error, never reaches Stripe', async () => {
+    const svc = autoSvc([activeRow({ provider_plan_ref: '1050AED' })])
+    const res = await enableAutoPayViaApi(svc as never, autoArgs)
+    expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/front desk/i) })
+    expect(createCustomer).not.toHaveBeenCalled()
+    expect(createCheckoutSession).not.toHaveBeenCalled()
+  })
+
+  test('legacy free-text ref on the row, catalog fallback resolves a real price → uses the catalog ref, not the garbage one', async () => {
+    const svc = autoSvc(
+      [activeRow({ provider_plan_ref: '1050AED', provider_customer_ref: 'cus_1' })],
+      { plan: { data: { provider_plan_ref: 'price_9' }, error: null } },
+    )
+    const res = await enableAutoPayViaApi(svc as never, autoArgs)
+    expect(res).toEqual({ ok: true, url: 'https://checkout.stripe/s' })
+    expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({ planRef: 'price_9' }))
+  })
+
+  test('legacy free-text ref both on the row and in the catalog fallback → validation_error, never reaches Stripe', async () => {
+    const svc = autoSvc(
+      [activeRow({ provider_plan_ref: '1050AED' })],
+      { plan: { data: { provider_plan_ref: '1050AED' }, error: null } },
+    )
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/front desk/i) })
     expect(createCheckoutSession).not.toHaveBeenCalled()

@@ -36,6 +36,12 @@ type CatalogRow = { id: string; name: string; monthly_price_aed: number; provide
 const MEMBERSHIP_COLS =
   'id, plan_id, end_date, start_date, payment_status, is_trial, frozen_from, frozen_until, provider_subscription_ref, provider_plan_ref'
 
+// Some legacy membership rows predate the plan-catalog feature and carry a free-text
+// placeholder in provider_plan_ref (e.g. '1050AED') instead of a real Stripe price id —
+// a bare truthy check would pass that straight to Stripe and blow up. Require the actual
+// Stripe id shape before treating a ref as usable.
+const isPriceRef = (ref: string | null | undefined): ref is string => !!ref && ref.startsWith('price_')
+
 // UTC calendar date — parity with plan-change-core.
 const todayUtc = () => new Date().toISOString().slice(0, 10)
 
@@ -80,7 +86,7 @@ export async function getMembershipPurchaseState(
   }
 
   const current = active[0] // newest by start_date
-  const planRef =
+  const rawPlanRef =
     current.provider_plan_ref ??
     catalog.find((p) => p.id === current.plan_id)?.provider_plan_ref ??
     null
@@ -89,7 +95,7 @@ export async function getMembershipPurchaseState(
     !!current.is_trial ||
     isFrozenOn(current, today) ||
     current.end_date !== null || // future-dated = scheduled cancellation
-    planRef === null // no Stripe price to charge against
+    !isPriceRef(rawPlanRef) // no valid Stripe price to charge against
   if (staffOnly) return { action: null, plans: [] }
 
   return { action: current.payment_status === 'paid' ? 'enable_autopay' : 'pay_now', plans: [] }
@@ -114,7 +120,7 @@ export async function buyMembershipViaApi(
     .eq('is_trial', false)
     .maybeSingle()
   if (!plan) return { ok: false, code: 'not_found', message: 'Plan not found.' }
-  if (!plan.provider_plan_ref) {
+  if (!isPriceRef(plan.provider_plan_ref)) {
     return { ok: false, code: 'validation_error', message: "This plan isn't available for online purchase." }
   }
 
@@ -241,7 +247,7 @@ export async function enableAutoPayViaApi(
   }
 
   let planRef = current.provider_plan_ref
-  if (!planRef && current.plan_id) {
+  if (!isPriceRef(planRef) && current.plan_id) {
     const { data: plan } = await service
       .from('membership_plans')
       .select('provider_plan_ref')
@@ -251,7 +257,7 @@ export async function enableAutoPayViaApi(
       .maybeSingle()
     planRef = (plan?.provider_plan_ref as string | null) ?? null
   }
-  if (!planRef) {
+  if (!isPriceRef(planRef)) {
     return { ok: false, code: 'validation_error', message: 'Ask the front desk to set this up.' }
   }
 

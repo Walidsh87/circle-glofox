@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { summarizeTemplateSessions, buildDrip, weekEndDate, upNext } from '@/lib/program-store'
+import { summarizeTemplateSessions, buildDrip, weekEndDate, upNext, sessionLogged } from '@/lib/program-store'
 
 describe('summarizeTemplateSessions', () => {
   it('counts sessions and the max week per template', () => {
@@ -110,5 +110,19 @@ describe('upNext', () => {
   it('null for undated programs', () => {
     const weeks = buildDrip(null, [{ week: null, exercises: [{ logDays: [] }] }], '2026-06-10')
     expect(upNext(weeks)).toBeNull()
+  })
+})
+
+describe('sessionLogged', () => {
+  const s = (dates: string[]) => ({ exercises: [{ logDays: dates.map((date) => ({ date })) }] })
+  it('true when a log falls inside the week range', () => {
+    expect(sessionLogged(s(['2026-06-09']), '2026-06-08', '2026-06-14')).toBe(true)
+  })
+  it('false when logs exist only outside the range', () => {
+    expect(sessionLogged(s(['2026-06-02']), '2026-06-08', '2026-06-14')).toBe(false)
+  })
+  it('undated (null range): any log ever counts', () => {
+    expect(sessionLogged(s(['2026-06-02']), null, null)).toBe(true)
+    expect(sessionLogged(s([]), null, null)).toBe(false)
   })
 })

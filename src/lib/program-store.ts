@@ -72,19 +72,25 @@ export function buildDrip<T extends { week: number | null }>(
 
 export type UpNextPointer = { weekIdx: number; sessionIdx: number }
 
+type LoggedSession = { exercises: { logDays: { date: string }[] }[] }
+
+/** A day counts as done when any of its exercises has a log inside the week's range. */
+export function sessionLogged(session: LoggedSession, unlockDate: string | null, endDate: string | null): boolean {
+  if (unlockDate == null || endDate == null) return session.exercises.some((ex) => ex.logDays.length > 0)
+  return session.exercises.some((ex) => ex.logDays.some((d) => d.date >= unlockDate && d.date <= endDate))
+}
+
 /**
  * "Up next": the first session in the CURRENT week with no log inside the week's
  * date range. Null for undated programs (no current week) or an all-logged week.
  */
-export function upNext<T extends { week: number | null; exercises: { logDays: { date: string }[] }[] }>(
+export function upNext<T extends { week: number | null } & LoggedSession>(
   weeks: DripWeek<T>[],
 ): UpNextPointer | null {
   const weekIdx = weeks.findIndex((w) => w.current)
   if (weekIdx === -1) return null
   const wk = weeks[weekIdx]
-  const sessionIdx = wk.sessions.findIndex(
-    (s) => !s.exercises.some((ex) => ex.logDays.some((d) => d.date >= wk.unlockDate! && d.date <= wk.endDate!)),
-  )
+  const sessionIdx = wk.sessions.findIndex((s) => !sessionLogged(s, wk.unlockDate, wk.endDate))
   return sessionIdx === -1 ? null : { weekIdx, sessionIdx }
 }
 

@@ -19,6 +19,8 @@ type ExerciseRow = {
   percentage: number | null
   target_note: string | null
   rest_seconds: number | null
+  video_url: string | null
+  metric: ProgramExercise['metric']
 }
 type SessionRow = { id: string; client_uid: string; title: string }
 
@@ -32,6 +34,8 @@ function toExercise(e: ExerciseRow): ProgramExercise {
     percentage: e.percentage,
     target_note: e.target_note,
     rest_seconds: e.rest_seconds,
+    video_url: e.video_url,
+    metric: e.metric,
   }
 }
 
@@ -61,7 +65,7 @@ async function loadTree(supabase: SupabaseClient, athleteId: string, boxId: stri
   const { data: exerciseRows } = sessionIds.length
     ? await supabase
         .from('program_exercises')
-        .select('session_id, client_uid, name, lift_name, sets, reps, percentage, target_note, rest_seconds')
+        .select('session_id, client_uid, name, lift_name, sets, reps, percentage, target_note, rest_seconds, video_url, metric')
         .in('session_id', sessionIds)
         .eq('box_id', boxId)
         .order('position')
@@ -117,7 +121,7 @@ export async function loadMemberProgram(supabase: SupabaseClient, athleteId: str
   const { data: exerciseRows } = sessionIds.length
     ? await supabase
         .from('program_exercises')
-        .select('id, session_id, client_uid, name, lift_name, sets, reps, percentage, target_note, rest_seconds')
+        .select('id, session_id, client_uid, name, lift_name, sets, reps, percentage, target_note, rest_seconds, video_url, metric')
         .in('session_id', sessionIds)
         .eq('box_id', boxId)
         .order('position')
@@ -130,7 +134,7 @@ export async function loadMemberProgram(supabase: SupabaseClient, athleteId: str
     exerciseIds.length
       ? supabase
           .from('program_set_logs')
-          .select('exercise_id, performed_on, set_number, weight_grams, reps, note')
+          .select('exercise_id, performed_on, set_number, weight_grams, reps, note, duration_seconds, distance_meters, calories')
           .eq('athlete_id', athleteId)
           .eq('box_id', boxId)
           .in('exercise_id', exerciseIds)

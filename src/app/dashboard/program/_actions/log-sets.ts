@@ -4,6 +4,7 @@ import { requireUserAction } from '@/lib/auth/action-guards'
 import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateSetEntries, isValidPerformedOn, kgToGrams, type SetEntry } from '@/lib/program-log'
+import type { ExerciseMetric } from '@/lib/program'
 import { isWeekUnlocked, weekUnlockDate } from '@/lib/program-store'
 import { todayInTimezone } from '@/lib/timezone'
 
@@ -12,17 +13,20 @@ import { todayInTimezone } from '@/lib/timezone'
 // only returns their own program_exercises) to source a trusted box_id.
 export async function logSets(exerciseId: string, performedOn: string, entries: SetEntry[]): Promise<{ error: string | null }> {
   if (!isValidPerformedOn(performedOn)) return { error: 'Pick a valid date.' }
-  const err = validateSetEntries(entries)
-  if (err) return { error: err }
 
   const auth = await requireUserAction()
   if ('error' in auth) return { error: auth.error }
   const { supabase, user } = auth
 
-  const { data: ex } = await supabase.from('program_exercises').select('id, box_id, athlete_id, session_id').eq('id', exerciseId).maybeSingle()
+  const { data: ex } = await supabase.from('program_exercises').select('id, box_id, athlete_id, session_id, metric').eq('id', exerciseId).maybeSingle()
   if (!ex || (ex as { athlete_id: string }).athlete_id !== user.id) return { error: 'Exercise not found.' }
   const boxId = (ex as { box_id: string }).box_id
   const sessionId = (ex as { session_id: string }).session_id
+  const metric = ((ex as { metric?: ExerciseMetric }).metric ?? 'load') as ExerciseMetric
+
+  // Validate against the exercise's OWN metric (server-derived, never client input).
+  const err = validateSetEntries(entries, metric)
+  if (err) return { error: err }
 
   // Drip gate: a bought program's week unlocks on a schedule. Reject logging against a
   // not-yet-unlocked week (week IS NULL → coach-assigned program → always allowed).
@@ -49,8 +53,11 @@ export async function logSets(exerciseId: string, performedOn: string, entries: 
     exercise_id: exerciseId,
     performed_on: performedOn,
     set_number: e.setNumber,
-    weight_grams: e.weightKg != null ? kgToGrams(e.weightKg) : null,
-    reps: e.reps ?? null,
+    weight_grams: metric === 'load' && e.weightKg != null ? kgToGrams(e.weightKg) : null,
+    reps: metric === 'load' ? (e.reps ?? null) : null,
+    duration_seconds: metric === 'time' ? e.durationSeconds : null,
+    distance_meters: metric === 'distance' ? e.distanceMeters : null,
+    calories: metric === 'calories' ? e.calories : null,
   }))
   const { error } = await supabase.from('program_set_logs').upsert(rows, { onConflict: 'exercise_id,athlete_id,performed_on,set_number' })
   if (error) return actionError('logSets', error)

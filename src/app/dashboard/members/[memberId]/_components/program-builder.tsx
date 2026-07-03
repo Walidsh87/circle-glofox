@@ -4,14 +4,16 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 import { saveProgram } from '../_actions/program'
-import type { ProgramExercise, ProgramInput, ProgramSession } from '@/lib/program'
+import { EXERCISE_METRICS, type ExerciseMetric, type ProgramExercise, type ProgramInput, type ProgramSession } from '@/lib/program'
 import type { EditableProgram } from '@/app/dashboard/program/_lib/load-program'
 
 const input = 'h-8 rounded-lg border border-line-strong bg-surface px-2 text-[12.5px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent'
 const btn = 'rounded-lg border border-line bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink-2 transition-colors hover:border-line-strong disabled:opacity-50'
 const limeBtn = 'rounded-lg bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-ink transition-opacity hover:opacity-90 disabled:opacity-50'
 
-const newExercise = (): ProgramExercise => ({ client_uid: crypto.randomUUID(), name: '', lift_name: null, sets: 5, reps: '5', percentage: null, target_note: null, rest_seconds: null })
+const newExercise = (): ProgramExercise => ({ client_uid: crypto.randomUUID(), name: '', lift_name: null, sets: 5, reps: '5', percentage: null, target_note: null, rest_seconds: null, video_url: null, metric: 'load' })
+
+const METRIC_LABELS: Record<ExerciseMetric, string> = { load: 'Weight × reps', time: 'Time', distance: 'Distance', calories: 'Calories' }
 const newSession = (n: number): ProgramSession => ({ client_uid: crypto.randomUUID(), title: `Day ${n}`, exercises: [newExercise()] })
 
 function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
@@ -116,6 +118,15 @@ export function ProgramBuilder({
                 </>
               )}
               <input className={`${input} w-28`} placeholder="note (RPE 8…)" value={ex.target_note ?? ''} maxLength={60} onChange={(e) => patchExercise(si, ei, { target_note: e.target.value || null })} />
+              <select
+                className={input}
+                value={ex.metric}
+                title="How the athlete logs this exercise"
+                onChange={(e) => patchExercise(si, ei, { metric: e.target.value as ExerciseMetric })}
+              >
+                {EXERCISE_METRICS.map((m) => <option key={m} value={m}>{METRIC_LABELS[m]}</option>)}
+              </select>
+              <input className={`${input} w-44`} type="url" placeholder="video URL (https://…)" value={ex.video_url ?? ''} maxLength={300} onChange={(e) => patchExercise(si, ei, { video_url: e.target.value.trim() || null })} />
               <button type="button" className={btn} disabled={ei === 0} onClick={() => patchSession(si, { exercises: move(s.exercises, ei, -1) })}>↑</button>
               <button type="button" className={btn} disabled={ei === s.exercises.length - 1} onClick={() => patchSession(si, { exercises: move(s.exercises, ei, 1) })}>↓</button>
               <button type="button" className={btn} onClick={() => patchSession(si, { exercises: s.exercises.filter((_, j) => j !== ei) })}>×</button>

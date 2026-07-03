@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateProgram, resolveExercise, resolveProgram, type ProgramExercise, type ProgramInput } from './program'
+import { validateProgram, resolveExercise, resolveProgram, resolveVideoUrl, type ProgramExercise, type ProgramInput } from './program'
 
 const ex = (o: Partial<ProgramExercise> = {}): ProgramExercise => ({
   client_uid: '11111111-1111-1111-1111-111111111111',
@@ -10,6 +10,8 @@ const ex = (o: Partial<ProgramExercise> = {}): ProgramExercise => ({
   percentage: 80,
   target_note: null,
   rest_seconds: null,
+  video_url: null,
+  metric: 'load',
   ...o,
 })
 
@@ -59,6 +61,42 @@ describe('validateProgram', () => {
   })
   it('accepts a named lift with no percentage', () => {
     expect(validateProgram(input({ sessions: [{ client_uid: '33333333-3333-3333-3333-333333333333', title: 'D1', exercises: [ex({ percentage: null })] }] }))).toBeNull()
+  })
+  it('accepts an https video link', () => {
+    expect(validateProgram(input({ sessions: [{ client_uid: '33333333-3333-3333-3333-333333333333', title: 'D1', exercises: [ex({ video_url: 'https://www.youtube.com/watch?v=abc123' })] }] }))).toBeNull()
+  })
+  it('rejects a non-https video link', () => {
+    expect(validateProgram(input({ sessions: [{ client_uid: '33333333-3333-3333-3333-333333333333', title: 'D1', exercises: [ex({ video_url: 'http://youtube.com/watch?v=abc' })] }] }))).toMatch(/https/i)
+  })
+  it('rejects a javascript: video link', () => {
+    expect(validateProgram(input({ sessions: [{ client_uid: '33333333-3333-3333-3333-333333333333', title: 'D1', exercises: [ex({ video_url: 'javascript:alert(1)' })] }] }))).toMatch(/https/i)
+  })
+  it('rejects an over-long video link', () => {
+    expect(validateProgram(input({ sessions: [{ client_uid: '33333333-3333-3333-3333-333333333333', title: 'D1', exercises: [ex({ video_url: 'https://x.example/' + 'a'.repeat(300) })] }] }))).toMatch(/long/i)
+  })
+  it('rejects an unknown metric', () => {
+    expect(validateProgram(input({ sessions: [{ client_uid: '33333333-3333-3333-3333-333333333333', title: 'D1', exercises: [ex({ metric: 'sprint' as ProgramExercise['metric'] })] }] }))).toMatch(/logged/i)
+  })
+  it('accepts every valid metric', () => {
+    for (const metric of ['load', 'time', 'distance', 'calories'] as const) {
+      expect(validateProgram(input({ sessions: [{ client_uid: '33333333-3333-3333-3333-333333333333', title: 'D1', exercises: [ex({ metric })] }] }))).toBeNull()
+    }
+  })
+})
+
+describe('resolveVideoUrl', () => {
+  const lib = new Map([['back_squat', 'https://lib.example/bs']])
+  it('the exercise link wins over the library', () => {
+    expect(resolveVideoUrl('https://own.example/v', 'back_squat', lib)).toBe('https://own.example/v')
+  })
+  it('falls back to the library by lift name', () => {
+    expect(resolveVideoUrl(null, 'back_squat', lib)).toBe('https://lib.example/bs')
+  })
+  it('null when the lift has no library video', () => {
+    expect(resolveVideoUrl(null, 'deadlift', lib)).toBeNull()
+  })
+  it('null for a custom exercise with no link', () => {
+    expect(resolveVideoUrl(null, null, lib)).toBeNull()
   })
 })
 

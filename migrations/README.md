@@ -28,6 +28,8 @@ pg_dump --schema-only --no-owner --no-privileges --schema=public \
 
 Seed/test data (never run in prod): `../seed-demo.sql`, `../reseed-instances.sql`, `seed-checkin-test.sql`.
 
+`../seed-wod-schedule-programs.sql` is the one exception — it's meant to run against the real box in prod (deliberately, by hand). It adds programming content only (WODs, class schedule, coach training programs) for the real coaches/athletes; no fake members/billing/leads. Idempotent, safe to re-run.
+
 ## Conventions going forward
 
 - New migrations: next number in sequence here (`020_*.sql`), **not** scattered in the repo root.

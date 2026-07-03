@@ -1,11 +1,11 @@
 // #87 member goals: pure validation + progress derivation. Progress is computed
-// at READ time from the member's current data (1RM / belt / attendance) — nothing
-// here touches the DB, and an auto-tracked goal is "met" purely by comparison
+// at READ time from the member's current data (1RM / skill best / attendance) —
+// nothing here touches the DB, and an auto-tracked goal is "met" purely by comparison
 // (no stored achieved flag, no cron). Only `custom` goals carry a manual achieved_at.
-import { BELTS, beltRank, SKILL_KEYS } from '@/lib/skills'
+import { skillByKey, formatBestValue, MEASURES } from '@/lib/skill-bests'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 
-export type GoalType = 'lift_1rm' | 'skill_belt' | 'attendance' | 'custom'
+export type GoalType = 'lift_1rm' | 'skill_best' | 'attendance' | 'custom'
 export type GoalStatus = 'active' | 'archived'
 
 export type Goal = {
@@ -13,10 +13,9 @@ export type Goal = {
   goal_type: GoalType
   title: string
   lift_name: string | null
-  target_grams: number | null
+  target_grams: number | null // lift_1rm target, or skill_best target for weight-measure skills
   skill_key: string | null
-  target_belt: string | null
-  target_count: number | null
+  target_count: number | null // attendance sessions, or skill_best target (reps / meters / seconds)
   target_date: string | null
   status: GoalStatus
   achieved_at: string | null
@@ -25,7 +24,7 @@ export type Goal = {
 
 export type GoalContext = {
   liftGrams?: number | null // current 1RM (grams) for goal.lift_name
-  belt?: string | null // current belt for goal.skill_key
+  bestValue?: number | null // current skill best (stored units) for goal.skill_key
   attendanceCount?: number // check-ins counted toward this goal
 }
 
@@ -37,7 +36,7 @@ export type GoalProgress = {
   label: string
 }
 
-const GOAL_TYPES: GoalType[] = ['lift_1rm', 'skill_belt', 'attendance', 'custom']
+const GOAL_TYPES: GoalType[] = ['lift_1rm', 'skill_best', 'attendance', 'custom']
 const LIFT_VALUES = new Set(LIFT_NAMES.map((l) => l.value))
 const MAX_KG = 1000
 const MAX_COUNT = 1000
@@ -62,10 +61,9 @@ export type GoalInput = {
   goalType: string
   title: string
   liftName?: string | null
-  targetKg?: number | null
+  targetKg?: number | null // lift_1rm target, or skill_best target for weight-measure skills
   skillKey?: string | null
-  targetBelt?: string | null
-  targetCount?: number | null
+  targetCount?: number | null // attendance, or skill_best target (reps / meters / seconds — time arrives as seconds)
   targetDate?: string | null
 }
 
@@ -82,10 +80,22 @@ export function validateGoal(input: GoalInput): string | null {
       if (!input.liftName || !LIFT_VALUES.has(input.liftName)) return 'Pick a lift from the list.'
       if (!input.targetKg || input.targetKg <= 0 || input.targetKg > MAX_KG) return `Enter a target weight between 1 and ${MAX_KG} kg.`
       return null
-    case 'skill_belt':
-      if (!input.skillKey || !SKILL_KEYS.has(input.skillKey)) return 'Pick a skill from the list.'
-      if (!input.targetBelt || !(BELTS as readonly string[]).includes(input.targetBelt)) return 'Pick a target belt.'
+    case 'skill_best': {
+      const skill = input.skillKey ? skillByKey(input.skillKey) : undefined
+      if (!skill) return 'Pick a skill from the list.'
+      if (skill.measure === 'weight') {
+        const grams = input.targetKg ? Math.round(input.targetKg * 1000) : 0
+        if (grams < MEASURES.weight.min || grams > MEASURES.weight.max) return 'Enter a target weight between 0.1 and 300 kg.'
+        return null
+      }
+      const { min, max } = MEASURES[skill.measure]
+      if (!input.targetCount || !Number.isInteger(input.targetCount) || input.targetCount < min || input.targetCount > max) {
+        if (skill.measure === 'time') return 'Enter a target time between 0:01 and 2:00:00.'
+        if (skill.measure === 'distance_m') return 'Enter a target between 1 and 1000 meters.'
+        return 'Enter a target between 1 and 1000 reps.'
+      }
       return null
+    }
     case 'attendance':
       if (!input.targetCount || !Number.isInteger(input.targetCount) || input.targetCount <= 0 || input.targetCount > MAX_COUNT)
         return `Enter a target number of sessions between 1 and ${MAX_COUNT}.`
@@ -111,16 +121,29 @@ export function goalProgress(goal: Goal, ctx: GoalContext): GoalProgress {
         label: `${formatKg(current)} / ${formatKg(target)} kg`,
       }
     }
-    case 'skill_belt': {
-      const cur = ctx.belt ? beltRank(ctx.belt) : -1
-      const tgt = goal.target_belt ? beltRank(goal.target_belt) : -1
-      const met = cur >= 0 && tgt >= 0 && cur >= tgt
+    case 'skill_best': {
+      const key = goal.skill_key ?? ''
+      const measure = skillByKey(key)?.measure ?? 'reps'
+      const target = measure === 'weight' ? (goal.target_grams ?? 0) : (goal.target_count ?? 0)
+      const current = ctx.bestValue ?? 0
+      const label = `${current > 0 ? formatBestValue(key, current) : '—'} / ${formatBestValue(key, target)}`
+      if (measure === 'time') {
+        // Lower is better: met when the current best is at or under the target;
+        // pct approaches 100 as the time comes down (0 when no best is logged yet).
+        return {
+          met: target > 0 && current > 0 && current <= target,
+          current,
+          target,
+          pct: current > 0 ? pct(target, current) : 0,
+          label,
+        }
+      }
       return {
-        met,
-        current: Math.max(0, cur),
-        target: Math.max(0, tgt),
-        pct: tgt <= 0 ? (met ? 100 : 0) : pct(Math.max(0, cur), tgt),
-        label: `${ctx.belt ?? '—'} → ${goal.target_belt ?? '—'}`,
+        met: target > 0 && current >= target,
+        current,
+        target,
+        pct: pct(current, target),
+        label,
       }
     }
     case 'attendance': {

@@ -4,6 +4,7 @@ import { requireUserAction, type UserActionContext } from '@/lib/auth/action-gua
 import { actionError } from '@/lib/action-error'
 import { revalidatePath } from 'next/cache'
 import { validateGoal, type GoalInput } from '@/lib/goals'
+import { skillByKey } from '@/lib/skill-bests'
 import { PROGRAMMING_ROLES } from '@/lib/auth/roles'
 
 type Result = { error: string | null }
@@ -40,6 +41,9 @@ export async function setGoal(athleteId: string, input: GoalInput): Promise<Resu
   const { supabase, userId, boxId } = auth
 
   const type = input.goalType as GoalInput['goalType']
+  // skill_best targets split by measure: weight rides target_grams (kg → grams,
+  // like lift_1rm); reps/meters/seconds ride target_count.
+  const measure = type === 'skill_best' && input.skillKey ? skillByKey(input.skillKey)?.measure : undefined
   const row = {
     box_id: boxId,
     athlete_id: athleteId,
@@ -47,10 +51,11 @@ export async function setGoal(athleteId: string, input: GoalInput): Promise<Resu
     goal_type: type,
     title: input.title.trim(),
     lift_name: type === 'lift_1rm' ? (input.liftName ?? null) : null,
-    target_grams: type === 'lift_1rm' && input.targetKg ? Math.round(input.targetKg * 1000) : null,
-    skill_key: type === 'skill_belt' ? (input.skillKey ?? null) : null,
-    target_belt: type === 'skill_belt' ? (input.targetBelt ?? null) : null,
-    target_count: type === 'attendance' ? (input.targetCount ?? null) : null,
+    target_grams:
+      (type === 'lift_1rm' || measure === 'weight') && input.targetKg ? Math.round(input.targetKg * 1000) : null,
+    skill_key: type === 'skill_best' ? (input.skillKey ?? null) : null,
+    target_count:
+      type === 'attendance' || (type === 'skill_best' && measure !== 'weight') ? (input.targetCount ?? null) : null,
     target_date: input.targetDate || null,
   }
   const { error } = await supabase.from('member_goals').insert(row)

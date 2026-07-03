@@ -56,6 +56,7 @@ export async function GET(
     { data: waiverSignature },
     { data: billingReminders },
     { data: parqRows },
+    { data: skillBestRows },
   ] = await Promise.all([
     service.from('bookings')
       .select('class_instance_id, checked_in, checked_in_at, overridden_at, overridden_reason')
@@ -85,6 +86,11 @@ export async function GET(
       .eq('athlete_id', params.athleteId)
       .eq('box_id', viewer.box_id)
       .order('parq_version', { ascending: true }),
+    service.from('athlete_skill_bests')
+      .select('skill_key, value, logged_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
+      .order('logged_at', { ascending: true }),
   ])
 
   const output = buildPdplExport({
@@ -96,6 +102,7 @@ export async function GET(
     waiverSignature: waiverSignature as never,
     billingReminders: (billingReminders ?? []) as never,
     parqResponses: (parqRows ?? []) as never,
+    skillBests: (skillBestRows ?? []) as never,
   })
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null

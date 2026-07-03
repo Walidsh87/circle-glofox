@@ -53,7 +53,7 @@ export const ar: typeof en = {
     timer: 'المؤقّت',
     buyPack: 'اشترِ باقة',
     my1rms: 'أرقامي القياسية 1RM',
-    skills: 'المهارات',
+    skills: 'أفضل أرقام المهارات',
     goals: 'أهدافي',
     program: 'برنامجي',
     movements: 'الحركات',

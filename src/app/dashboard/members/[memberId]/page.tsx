@@ -14,7 +14,6 @@ import { MembershipLifecycle } from './_components/membership-lifecycle'
 import { ChangePlan } from './_components/change-plan'
 import { MemberTags } from './_components/member-tags'
 import { HouseholdCard } from './_components/household-card'
-import { SkillsEditor } from './_components/skills-editor'
 import { MemberFollowups } from './_components/member-followups'
 import { MemberNotes } from './_components/member-notes'
 import { MyDetailsCard } from './_components/my-details-card'
@@ -194,7 +193,6 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     { data: memberCredits },
     { data: planList },
     { data: tagRows },
-    { data: skillRows },
     { data: followupRows },
     { data: ciRows },
     { data: progRows },
@@ -219,9 +217,6 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     isStaff
       ? supabase.from('member_tags').select('tag, athlete_id').eq('box_id', viewer.box_id)
       : Promise.resolve({ data: [] as { tag: string; athlete_id: string }[] }),
-    isStaff
-      ? supabase.from('skill_levels').select('skill_key, belt').eq('athlete_id', params.memberId).eq('box_id', viewer.box_id)
-      : Promise.resolve({ data: [] as { skill_key: string; belt: string }[] }),
     isStaff
       ? supabase.from('follow_up_tasks').select('id, title, due_date, done, assigned_to').eq('box_id', viewer.box_id).eq('member_id', params.memberId).eq('done', false).order('due_date', { ascending: true })
       : Promise.resolve({ data: [] as { id: string; title: string; due_date: string; done: boolean; assigned_to: string | null }[] }),
@@ -264,9 +259,6 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
 
   // Member notes (#92/#105): staff-only interaction log, newest first.
   const memberNotes = (noteRows ?? []) as import('./_components/member-notes').MemberNote[]
-
-  // Skills (#36): staff assess belts per skill for this member.
-  const skillLevels: Record<string, string> = Object.fromEntries((skillRows ?? []).map((r) => [r.skill_key, r.belt]))
 
   // Follow-up tasks (#47/#60): this member's open tasks, staff-only; assignee resolved from box staff.
   const boxStaffList = (boxStaff ?? []) as { id: string; full_name: string | null }[]
@@ -456,12 +448,6 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         {isStaff && (
           <Section label="Tags">
             <MemberTags athleteId={member.id} tags={memberTags} suggestions={tagSuggestions} />
-          </Section>
-        )}
-
-        {isStaff && (
-          <Section label="Skills">
-            <SkillsEditor athleteId={member.id} levels={skillLevels} />
           </Section>
         )}
 

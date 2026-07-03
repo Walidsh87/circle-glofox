@@ -6,7 +6,7 @@ import { resolveAppTarget } from '@/lib/app-return'
 // deep-links back into the app. `returnTo` is the app's own runtime deep link (Expo Go vs
 // standalone schemes differ) — validated by resolveAppTarget, junk falls back to the standalone
 // scheme rather than failing the checkout.
-function appReturnUrls(baseUrl: string, returnTo: string | undefined) {
+export function appReturnUrls(baseUrl: string, returnTo: string | undefined) {
   const suffix = returnTo ? `&to=${encodeURIComponent(resolveAppTarget(returnTo))}` : ''
   return {
     successUrl: `${baseUrl}/app/checkout-return?status=success${suffix}`,

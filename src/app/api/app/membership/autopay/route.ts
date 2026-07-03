@@ -8,9 +8,9 @@ import { env } from '@/env'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// POST /api/app/membership/autopay — body { return_url? }: start a Stripe subscription
-// checkout for the member's EXISTING active membership (enable auto-pay, or resume a
-// pay-now for an unpaid one). Athlete-only; athleteId/boxId forced from the verified JWT.
+// POST /api/app/membership/autopay — body { return_url? }: pay-now resume for the member's
+// EXISTING active-but-UNPAID membership (finish an abandoned in-app buy). Enabling auto-pay
+// on a PAID membership is staff-only and refused. Athlete-only; ids forced from the JWT.
 export const POST = withMemberAuth(async (req, { userId, boxId, role }) => {
   if (role !== 'athlete') return jsonError('forbidden', 'Only members can manage their membership.', 403)
   let body: unknown

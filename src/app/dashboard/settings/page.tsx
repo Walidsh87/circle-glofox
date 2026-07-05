@@ -23,7 +23,7 @@ export default async function SettingsPage() {
   const [{ data: box }, { count: stripeConnectedCount }, { data: checklistRows }] = await Promise.all([
     supabase
       .from('boxes')
-      .select('trn, legal_name, billing_address, tv_token, checkin_token, booking_close_minutes, late_cancel_hours, roster_public, ramadan_start, ramadan_end')
+      .select('trn, legal_name, billing_address, booking_close_minutes, late_cancel_hours, roster_public, ramadan_start, ramadan_end')
       .eq('id', profile.box_id)
       .single(),
     supabase
@@ -48,9 +48,11 @@ export default async function SettingsPage() {
   const ramadanSuggested = upcomingRamadanWindow(todayInTimezone(boxes?.timezone ?? 'Asia/Dubai'))
 
   // api_keys + webhook_subscriptions are service-role-only (RLS, no policies) —
-  // fetch with the service client, box-scoped.
+  // fetch with the service client, box-scoped. tv_token + checkin_token are
+  // secret columns deliberately REVOKED from `authenticated` (mig 019/089), so
+  // they must also be read via the service client, not the RLS client above.
   const service = createServiceClient()
-  const [{ data: apiKeys }, { data: webhookSubs }] = await Promise.all([
+  const [{ data: apiKeys }, { data: webhookSubs }, { data: boxTokens }] = await Promise.all([
     service
       .from('api_keys')
       .select('id, label, key_prefix, scopes, last_used_at, revoked_at, created_at')
@@ -61,6 +63,11 @@ export default async function SettingsPage() {
       .select('id, url, event_types, active, created_at')
       .eq('box_id', profile.box_id)
       .order('created_at', { ascending: false }),
+    service
+      .from('boxes')
+      .select('tv_token, checkin_token')
+      .eq('id', profile.box_id)
+      .single(),
   ])
 
   return (
@@ -84,14 +91,14 @@ export default async function SettingsPage() {
         <TokenLinkCard
           title="TV display"
           description="A public, read-only board for a gym-floor TV — today's WOD, the live leaderboard, and PRs. Anyone with the link can view it, so keep it private; regenerate to revoke the old one."
-          link={box?.tv_token ? `${env.NEXT_PUBLIC_APP_URL}/tv/${box.tv_token}` : null}
+          link={boxTokens?.tv_token ? `${env.NEXT_PUBLIC_APP_URL}/tv/${boxTokens.tv_token}` : null}
           action={setTvToken}
           enableLabel="Generate link"
         />
         <TokenLinkCard
           title="Door check-in QR"
           description="Members scan a printed QR at the door to check themselves into booked classes (opens 60 min before class). Regenerate to invalidate old posters and shared links."
-          link={box?.checkin_token ? `${env.NEXT_PUBLIC_APP_URL}/checkin/${box.checkin_token}` : null}
+          link={boxTokens?.checkin_token ? `${env.NEXT_PUBLIC_APP_URL}/checkin/${boxTokens.checkin_token}` : null}
           action={setCheckinToken}
           enableLabel="Enable door check-in"
           extraLink={{ href: '/dashboard/settings/checkin-poster', label: 'Print poster' }}

@@ -27,6 +27,10 @@ export function weekUnlockDate(startDate: string, week: number): string {
   return addDays(startDate, 7 * (week - 1))
 }
 
+export function weekEndDate(startDate: string, week: number): string {
+  return addDays(weekUnlockDate(startDate, week), 6)
+}
+
 export function isWeekUnlocked(startDate: string | null, week: number | null, today: string): boolean {
   if (startDate == null || week == null) return true
   return today >= weekUnlockDate(startDate, week) // YYYY-MM-DD compares lexically
@@ -44,7 +48,7 @@ export function groupByWeek<T extends { week: number | null }>(sessions: T[]): {
     .map(([week, sessions]) => ({ week, sessions }))
 }
 
-export type DripWeek<T> = { week: number | null; locked: boolean; unlockDate: string | null; sessions: T[] }
+export type DripWeek<T> = { week: number | null; locked: boolean; unlockDate: string | null; endDate: string | null; current: boolean; sessions: T[] }
 
 /** Group sessions by week and decide each week's lock state for a drip schedule. */
 export function buildDrip<T extends { week: number | null }>(
@@ -52,12 +56,42 @@ export function buildDrip<T extends { week: number | null }>(
   sessions: T[],
   today: string,
 ): DripWeek<T>[] {
-  return groupByWeek(sessions).map(({ week, sessions }) => ({
-    week,
-    locked: !isWeekUnlocked(startDate, week, today),
-    unlockDate: startDate != null && week != null ? weekUnlockDate(startDate, week) : null,
-    sessions,
-  }))
+  return groupByWeek(sessions).map(({ week, sessions }) => {
+    const unlockDate = startDate != null && week != null ? weekUnlockDate(startDate, week) : null
+    const endDate = startDate != null && week != null ? weekEndDate(startDate, week) : null
+    return {
+      week,
+      locked: !isWeekUnlocked(startDate, week, today),
+      unlockDate,
+      endDate,
+      current: unlockDate != null && endDate != null && unlockDate <= today && today <= endDate,
+      sessions,
+    }
+  })
+}
+
+export type UpNextPointer = { weekIdx: number; sessionIdx: number }
+
+type LoggedSession = { exercises: { logDays: { date: string }[] }[] }
+
+/** A day counts as done when any of its exercises has a log inside the week's range. */
+export function sessionLogged(session: LoggedSession, unlockDate: string | null, endDate: string | null): boolean {
+  if (unlockDate == null || endDate == null) return session.exercises.some((ex) => ex.logDays.length > 0)
+  return session.exercises.some((ex) => ex.logDays.some((d) => d.date >= unlockDate && d.date <= endDate))
+}
+
+/**
+ * "Up next": the first session in the CURRENT week with no log inside the week's
+ * date range. Null for undated programs (no current week) or an all-logged week.
+ */
+export function upNext<T extends { week: number | null } & LoggedSession>(
+  weeks: DripWeek<T>[],
+): UpNextPointer | null {
+  const weekIdx = weeks.findIndex((w) => w.current)
+  if (weekIdx === -1) return null
+  const wk = weeks[weekIdx]
+  const sessionIdx = wk.sessions.findIndex((s) => !sessionLogged(s, wk.unlockDate, wk.endDate))
+  return sessionIdx === -1 ? null : { weekIdx, sessionIdx }
 }
 
 /** For the storefront: per template id → session count + max week (0 = no week structure). */

@@ -144,7 +144,7 @@ export async function instantiateProgram(
   const { data: exerciseRows } = tplSessionIds.length
     ? await service
         .from('program_exercises')
-        .select('session_id, position, name, lift_name, sets, reps, percentage, target_note, rest_seconds')
+        .select('session_id, position, name, lift_name, sets, reps, percentage, target_note, rest_seconds, video_url, metric')
         .in('session_id', tplSessionIds)
         .eq('box_id', boxId)
         .order('position')
@@ -216,6 +216,7 @@ export async function instantiateProgram(
         session_id: sid, box_id: boxId, athlete_id: athleteId, client_uid: crypto.randomUUID(),
         position: e.position, name: e.name, lift_name: e.lift_name, sets: e.sets, reps: e.reps,
         percentage: e.percentage, target_note: e.target_note, rest_seconds: e.rest_seconds,
+        video_url: e.video_url, metric: e.metric,
       }
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)

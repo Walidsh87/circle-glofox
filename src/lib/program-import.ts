@@ -87,7 +87,7 @@ function parseExerciseLine(raw: string): ExResult {
   }
 
   return {
-    ex: { client_uid: crypto.randomUUID(), name, lift_name, sets, reps, percentage, target_note, rest_seconds: null },
+    ex: { client_uid: crypto.randomUUID(), name, lift_name, sets, reps, percentage, target_note, rest_seconds: null, video_url: null, metric: 'load' },
     pctNoLift,
     rounded,
     noName: name === '',

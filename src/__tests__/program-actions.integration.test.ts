@@ -13,7 +13,7 @@ beforeEach(() => vi.clearAllMocks())
 const validInput: ProgramInput = {
   title: 'Strength block',
   notes: null,
-  sessions: [{ client_uid: '22222222-2222-2222-2222-222222222222', title: 'Day 1', exercises: [{ client_uid: '66666666-6666-6666-6666-666666666666', name: 'Back Squat', lift_name: 'back_squat', sets: 5, reps: '3', percentage: 80, target_note: null, rest_seconds: null }] }],
+  sessions: [{ client_uid: '22222222-2222-2222-2222-222222222222', title: 'Day 1', exercises: [{ client_uid: '66666666-6666-6666-6666-666666666666', name: 'Back Squat', lift_name: 'back_squat', sets: 5, reps: '3', percentage: 80, target_note: null, rest_seconds: null, video_url: null, metric: 'load' }] }],
 }
 
 // profiles is queried twice: once by requireProgrammingAction, once by athleteInBox.
@@ -81,6 +81,36 @@ test('new program: inserts program + upserts sessions + exercises, box/athlete s
     [expect.objectContaining({ session_id: 'sess1', box_id: 'b1', athlete_id: 'a1', client_uid: '66666666-6666-6666-6666-666666666666', name: 'Back Squat', lift_name: 'back_squat', percentage: 80 })],
     expect.objectContaining({ onConflict: 'session_id,client_uid' }),
   )
+})
+
+test('persists video_url + metric on the exercise row', async () => {
+  const rls = coachMock(); serverCreate.mockResolvedValue(rls)
+  const input: ProgramInput = {
+    ...validInput,
+    sessions: [{
+      ...validInput.sessions[0],
+      exercises: [{ ...validInput.sessions[0].exercises[0], video_url: 'https://youtube.com/watch?v=abc', metric: 'time' }],
+    }],
+  }
+  const res = await saveProgram('a1', null, input)
+  expect(res.error).toBeNull()
+  expect(rls.builder('program_exercises').upsert).toHaveBeenCalledWith(
+    [expect.objectContaining({ video_url: 'https://youtube.com/watch?v=abc', metric: 'time' })],
+    expect.anything(),
+  )
+})
+
+test('rejects a non-https video link before any DB call', async () => {
+  serverCreate.mockResolvedValue(coachMock())
+  const input: ProgramInput = {
+    ...validInput,
+    sessions: [{
+      ...validInput.sessions[0],
+      exercises: [{ ...validInput.sessions[0].exercises[0], video_url: 'http://sketchy.example/v' }],
+    }],
+  }
+  const res = await saveProgram('a1', null, input)
+  expect(res.error).toMatch(/https/i)
 })
 
 test('setProgramActive updates box- AND athlete-scoped', async () => {

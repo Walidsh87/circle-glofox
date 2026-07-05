@@ -10,7 +10,7 @@ async function load() {
   return (await import('@/app/dashboard/program/_actions/log-sets')).logSets
 }
 
-const ENTRY = [{ setNumber: 1, weightKg: 100, reps: 3 }]
+const ENTRY = [{ setNumber: 1, weightKg: 100, reps: 3, durationSeconds: null, distanceMeters: null, calories: null }]
 
 // logSets query order:
 //   1. program_exercises.maybeSingle()  (id, box_id, athlete_id, session_id) — ownership

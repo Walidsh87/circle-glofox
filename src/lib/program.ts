@@ -3,6 +3,9 @@
 import { loadForPercent } from '@/lib/percentage'
 import { LIFT_NAMES } from '@/app/dashboard/lifts/_lib/lift-names'
 
+export type ExerciseMetric = 'load' | 'time' | 'distance' | 'calories'
+export const EXERCISE_METRICS: ExerciseMetric[] = ['load', 'time', 'distance', 'calories']
+
 export type ProgramExercise = {
   client_uid: string // stable id → diff-save key + per-set log target
   name: string
@@ -12,6 +15,8 @@ export type ProgramExercise = {
   percentage: number | null // %1RM (needs lift_name)
   target_note: string | null // "RPE 8", "bodyweight"
   rest_seconds: number | null
+  video_url: string | null // per-exercise demo; falls back to movement_videos[lift_name]
+  metric: ExerciseMetric // what the athlete logs: weight×reps | time | distance | calories
 }
 export type ProgramSession = { client_uid: string; title: string; week?: number | null; exercises: ProgramExercise[] }
 export type ProgramInput = { title: string; notes: string | null; sessions: ProgramSession[] }
@@ -23,6 +28,16 @@ export type ResolvedExercise = ProgramExercise & {
 
 const LIFT_VALUES = new Set(LIFT_NAMES.map((l) => l.value))
 const MAX_PCT = 200
+const MAX_VIDEO_URL = 300
+const METRIC_VALUES = new Set<string>(EXERCISE_METRICS)
+
+function videoUrlError(url: string): string | null {
+  if (url.length > MAX_VIDEO_URL) return `Video link is too long (max ${MAX_VIDEO_URL} characters).`
+  let parsed: URL
+  try { parsed = new URL(url) } catch { return 'Video link must be an https:// URL.' }
+  if (parsed.protocol !== 'https:') return 'Video link must be an https:// URL.'
+  return null
+}
 // client_uids are interpolated into a PostgREST `in (...)` filter on save — enforce
 // strict UUID shape here so a crafted id can't break/inject that filter.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -50,12 +65,22 @@ export function validateProgram(input: ProgramInput): string | null {
         if (!ex.lift_name) return 'A % target needs a lift selected.'
       }
       if (ex.reps && ex.reps.length > 20) return 'Reps is too long (max 20 characters).'
+      if (ex.video_url) {
+        const vErr = videoUrlError(ex.video_url)
+        if (vErr) return vErr
+      }
+      if (!METRIC_VALUES.has(ex.metric)) return 'Pick how the exercise is logged.'
       if (!ex.client_uid || !UUID_RE.test(ex.client_uid)) return 'Exercise has an invalid id.'
       if (uids.has(ex.client_uid)) return 'Duplicate exercise id in a session.'
       uids.add(ex.client_uid)
     }
   }
   return null
+}
+
+/** Demo-video precedence: the exercise's own link wins; else the movement library by lift. */
+export function resolveVideoUrl(videoUrl: string | null, liftName: string | null, videoBySlug: Map<string, string>): string | null {
+  return videoUrl ?? (liftName ? (videoBySlug.get(liftName) ?? null) : null)
 }
 
 /** Resolve an exercise's prescribed load from the athlete's 1RM (grams). */

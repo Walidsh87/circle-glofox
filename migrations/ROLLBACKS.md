@@ -646,3 +646,16 @@ ALTER TABLE member_goals ADD CONSTRAINT member_goals_goal_type_check
   CHECK (goal_type IN ('lift_1rm','skill_belt','attendance','custom'));
 -- skill_levels itself: forward-only (recreate from mig 040 + restore rows from backup).
 ```
+
+### 095_program_video_metric
+```sql
+-- 095_program_video_metric.sql — drop the per-exercise video/metric columns and
+-- the cardio set-log fields. ⚠️ Destroys any coach-entered video links, metric
+-- choices, and time/distance/calorie logs (weight/reps logs untouched).
+ALTER TABLE program_set_logs DROP COLUMN IF EXISTS calories;
+ALTER TABLE program_set_logs DROP COLUMN IF EXISTS distance_meters;
+ALTER TABLE program_set_logs DROP COLUMN IF EXISTS duration_seconds;
+ALTER TABLE program_exercises DROP COLUMN IF EXISTS metric;
+ALTER TABLE program_exercises DROP COLUMN IF EXISTS video_url;
+-- (CHECK constraints drop with their columns.)
+```

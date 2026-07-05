@@ -64,6 +64,7 @@ export async function saveTemplate(
         session_id: sid, box_id: boxId, athlete_id: author, client_uid: ex.client_uid, position: i,
         name: ex.name.trim(), lift_name: ex.lift_name || null, sets: ex.sets ?? null, reps: ex.reps?.trim() || null,
         percentage: ex.percentage ?? null, target_note: ex.target_note?.trim() || null, rest_seconds: ex.rest_seconds ?? null,
+        video_url: ex.video_url?.trim() || null, metric: ex.metric,
       }))
       const { error: exErr } = await supabase.from('program_exercises').upsert(exRows, { onConflict: 'session_id,client_uid' })
       if (exErr) return actionError('saveTemplate', exErr)

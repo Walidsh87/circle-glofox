@@ -86,6 +86,7 @@ export async function saveProgram(
         session_id: sid, box_id: boxId, athlete_id: athleteId, client_uid: ex.client_uid, position: i,
         name: ex.name.trim(), lift_name: ex.lift_name || null, sets: ex.sets ?? null, reps: ex.reps?.trim() || null,
         percentage: ex.percentage ?? null, target_note: ex.target_note?.trim() || null, rest_seconds: ex.rest_seconds ?? null,
+        video_url: ex.video_url?.trim() || null, metric: ex.metric,
       }))
       const { error: exErr } = await supabase.from('program_exercises').upsert(exRows, { onConflict: 'session_id,client_uid' })
       if (exErr) return actionError('saveProgram', exErr)
@@ -133,7 +134,7 @@ export async function duplicateProgram(programId: string, targetAthleteId: strin
   const { data: sessions } = await supabase.from('program_sessions').select('id, position, title').eq('program_id', programId).eq('box_id', boxId).order('position')
   const sessionIds = ((sessions ?? []) as { id: string }[]).map((s) => s.id)
   const { data: exercises } = sessionIds.length
-    ? await supabase.from('program_exercises').select('session_id, position, name, lift_name, sets, reps, percentage, target_note, rest_seconds').in('session_id', sessionIds).eq('box_id', boxId).order('position')
+    ? await supabase.from('program_exercises').select('session_id, position, name, lift_name, sets, reps, percentage, target_note, rest_seconds, video_url, metric').in('session_id', sessionIds).eq('box_id', boxId).order('position')
     : { data: [] as Record<string, unknown>[] }
 
   const { data: newProg, error: pErr } = await supabase
@@ -164,6 +165,7 @@ export async function duplicateProgram(programId: string, targetAthleteId: strin
         session_id: sid, box_id: boxId, athlete_id: targetAthleteId, client_uid: crypto.randomUUID(),
         position: e.position, name: e.name, lift_name: e.lift_name, sets: e.sets, reps: e.reps,
         percentage: e.percentage, target_note: e.target_note, rest_seconds: e.rest_seconds,
+        video_url: e.video_url, metric: e.metric,
       }
     })
     .filter((r): r is NonNullable<typeof r> => r !== null)

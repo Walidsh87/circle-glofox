@@ -52,7 +52,7 @@ export default async function EditTemplatePage(ctx: { params: Promise<{ template
   const { data: exerciseRows } = sessionIds.length
     ? await supabase
         .from('program_exercises')
-        .select('session_id, client_uid, name, lift_name, sets, reps, percentage, target_note, rest_seconds')
+        .select('session_id, client_uid, name, lift_name, sets, reps, percentage, target_note, rest_seconds, video_url, metric')
         .in('session_id', sessionIds)
         .eq('box_id', boxId)
         .order('position')
@@ -66,6 +66,8 @@ export default async function EditTemplatePage(ctx: { params: Promise<{ template
         percentage: number | null
         target_note: string | null
         rest_seconds: number | null
+        video_url: string | null
+        metric: ProgramExercise['metric']
       }[] }
 
   const exercises = (exerciseRows ?? []) as {
@@ -78,6 +80,8 @@ export default async function EditTemplatePage(ctx: { params: Promise<{ template
     percentage: number | null
     target_note: string | null
     rest_seconds: number | null
+    video_url: string | null
+    metric: ProgramExercise['metric']
   }[]
 
   const initial: EditableProgram = {
@@ -100,6 +104,8 @@ export default async function EditTemplatePage(ctx: { params: Promise<{ template
           percentage: e.percentage,
           target_note: e.target_note,
           rest_seconds: e.rest_seconds,
+          video_url: e.video_url,
+          metric: e.metric,
         })),
     })) as ProgramSession[],
   }

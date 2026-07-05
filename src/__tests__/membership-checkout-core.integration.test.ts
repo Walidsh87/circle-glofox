@@ -78,9 +78,9 @@ describe('getMembershipPurchaseState', () => {
     expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: null, plans: [] })
   })
 
-  test('active paid, no subscription → enable_autopay', async () => {
+  test('active paid, no subscription → null (auto-pay is staff-only)', async () => {
     const svc = getSvc([activeRow({ payment_status: 'paid' })])
-    expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: 'enable_autopay', plans: [] })
+    expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: null, plans: [] })
   })
 
   test('active unpaid, no subscription → pay_now', async () => {
@@ -113,9 +113,22 @@ describe('getMembershipPurchaseState', () => {
     expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: null, plans: [] })
   })
 
-  test('row ref null but the plan_id catalog row carries a ref → enable_autopay', async () => {
-    const svc = getSvc([activeRow({ provider_plan_ref: null, payment_status: 'paid' })], [catalogPlan()])
-    expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: 'enable_autopay', plans: [] })
+  test('unpaid, row ref null but the plan_id catalog row carries a valid ref → pay_now', async () => {
+    const svc = getSvc([activeRow({ provider_plan_ref: null, payment_status: 'unpaid' })], [catalogPlan()])
+    expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: 'pay_now', plans: [] })
+  })
+
+  test('unpaid with a legacy free-text ref on the row (not a real Stripe price) → null', async () => {
+    const svc = getSvc([activeRow({ provider_plan_ref: '1050AED', payment_status: 'unpaid' })], [])
+    expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: null, plans: [] })
+  })
+
+  test('unpaid with a legacy free-text ref via the catalog fallback → null', async () => {
+    const svc = getSvc(
+      [activeRow({ provider_plan_ref: null, payment_status: 'unpaid' })],
+      [catalogPlan({ provider_plan_ref: '1050AED' })],
+    )
+    expect(await getMembershipPurchaseState(svc as never, 'a1', 'b1')).toEqual({ action: null, plans: [] })
   })
 })
 
@@ -181,6 +194,13 @@ describe('buyMembershipViaApi', () => {
 
   test('plan without a provider ref → validation_error, nothing inserted', async () => {
     const svc = buySvc({ plan: { data: catalogPlan({ provider_plan_ref: null }), error: null } })
+    const res = await buyMembershipViaApi(svc as never, buyArgs)
+    expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.any(String) })
+    expect(svc.builder('memberships')).toBeUndefined() // memberships never touched
+  })
+
+  test('plan with a legacy free-text ref (not a real Stripe price) → validation_error, nothing inserted', async () => {
+    const svc = buySvc({ plan: { data: catalogPlan({ provider_plan_ref: '1050AED' }), error: null } })
     const res = await buyMembershipViaApi(svc as never, buyArgs)
     expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.any(String) })
     expect(svc.builder('memberships')).toBeUndefined() // memberships never touched
@@ -275,9 +295,14 @@ function autoSvc(rows: unknown[], over: { plan?: MockResult } = {}) {
   })
 }
 
+// This endpoint is now the PAY-NOW resume for an active-but-UNPAID membership only —
+// enabling auto-pay on a PAID membership is staff-only and refused. Every eligible-path
+// row is therefore unpaid.
+const unpaidRow = (over: Record<string, unknown> = {}) => activeRow({ payment_status: 'unpaid', ...over })
+
 describe('enableAutoPayViaApi', () => {
-  test('happy path with an existing customer ref → checkout opened, createCustomer NOT called', async () => {
-    const svc = autoSvc([activeRow({ provider_customer_ref: 'cus_1' })])
+  test('pay-now on an unpaid membership with an existing customer ref → checkout opened, createCustomer NOT called', async () => {
+    const svc = autoSvc([unpaidRow({ provider_customer_ref: 'cus_1' })])
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: true, url: 'https://checkout.stripe/s' })
     expect(createCustomer).not.toHaveBeenCalled()
@@ -292,7 +317,7 @@ describe('enableAutoPayViaApi', () => {
   })
 
   test('missing customer ref → creates the Stripe customer and backfills it on the membership', async () => {
-    const svc = autoSvc([activeRow({ provider_customer_ref: null })])
+    const svc = autoSvc([unpaidRow({ provider_customer_ref: null })])
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: true, url: 'https://checkout.stripe/s' })
     expect(createCustomer).toHaveBeenCalledWith({
@@ -304,43 +329,79 @@ describe('enableAutoPayViaApi', () => {
     expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({ customerRef: 'cus_new' }))
   })
 
+  test('PAID membership → validation_error, never reaches Stripe (auto-pay is staff-only)', async () => {
+    const svc = autoSvc([activeRow({ payment_status: 'paid', provider_customer_ref: 'cus_1' })])
+    const res = await enableAutoPayViaApi(svc as never, autoArgs)
+    expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/front desk/i) })
+    expect(createCustomer).not.toHaveBeenCalled()
+    expect(createCheckoutSession).not.toHaveBeenCalled()
+  })
+
   test('no active membership → validation_error', async () => {
-    const svc = autoSvc([activeRow({ end_date: day(-1) })])
+    const svc = autoSvc([unpaidRow({ end_date: day(-1) })])
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/front desk/i) })
     expect(createCheckoutSession).not.toHaveBeenCalled()
   })
 
   test('subscription already active → conflict', async () => {
-    const svc = autoSvc([activeRow({ provider_subscription_ref: 'sub_1' })])
+    const svc = autoSvc([unpaidRow({ provider_subscription_ref: 'sub_1' })])
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: false, code: 'conflict', message: expect.stringMatching(/already/i) })
     expect(createCheckoutSession).not.toHaveBeenCalled()
   })
 
   test('trial membership → validation_error', async () => {
-    const svc = autoSvc([activeRow({ is_trial: true })])
+    const svc = autoSvc([unpaidRow({ is_trial: true })])
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/trial/i) })
     expect(createCheckoutSession).not.toHaveBeenCalled()
   })
 
   test('frozen membership → validation_error', async () => {
-    const svc = autoSvc([activeRow({ frozen_from: day(-1), frozen_until: null })])
+    const svc = autoSvc([unpaidRow({ frozen_from: day(-1), frozen_until: null })])
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/frozen/i) })
     expect(createCheckoutSession).not.toHaveBeenCalled()
   })
 
   test('end-dated membership (scheduled cancellation) → validation_error', async () => {
-    const svc = autoSvc([activeRow({ end_date: day(30) })])
+    const svc = autoSvc([unpaidRow({ end_date: day(30) })])
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.any(String) })
     expect(createCheckoutSession).not.toHaveBeenCalled()
   })
 
   test('no plan ref on the row and none resolvable from the catalog → validation_error', async () => {
-    const svc = autoSvc([activeRow({ provider_plan_ref: null })], { plan: { data: null, error: null } })
+    const svc = autoSvc([unpaidRow({ provider_plan_ref: null })], { plan: { data: null, error: null } })
+    const res = await enableAutoPayViaApi(svc as never, autoArgs)
+    expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/front desk/i) })
+    expect(createCheckoutSession).not.toHaveBeenCalled()
+  })
+
+  test('legacy free-text ref on the row (regression: real prod case) → validation_error, never reaches Stripe', async () => {
+    const svc = autoSvc([unpaidRow({ provider_plan_ref: '1050AED' })])
+    const res = await enableAutoPayViaApi(svc as never, autoArgs)
+    expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/front desk/i) })
+    expect(createCustomer).not.toHaveBeenCalled()
+    expect(createCheckoutSession).not.toHaveBeenCalled()
+  })
+
+  test('legacy free-text ref on the row, catalog fallback resolves a real price → uses the catalog ref, not the garbage one', async () => {
+    const svc = autoSvc(
+      [unpaidRow({ provider_plan_ref: '1050AED', provider_customer_ref: 'cus_1' })],
+      { plan: { data: { provider_plan_ref: 'price_9' }, error: null } },
+    )
+    const res = await enableAutoPayViaApi(svc as never, autoArgs)
+    expect(res).toEqual({ ok: true, url: 'https://checkout.stripe/s' })
+    expect(createCheckoutSession).toHaveBeenCalledWith(expect.objectContaining({ planRef: 'price_9' }))
+  })
+
+  test('legacy free-text ref both on the row and in the catalog fallback → validation_error, never reaches Stripe', async () => {
+    const svc = autoSvc(
+      [unpaidRow({ provider_plan_ref: '1050AED' })],
+      { plan: { data: { provider_plan_ref: '1050AED' }, error: null } },
+    )
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: false, code: 'validation_error', message: expect.stringMatching(/front desk/i) })
     expect(createCheckoutSession).not.toHaveBeenCalled()
@@ -348,7 +409,7 @@ describe('enableAutoPayViaApi', () => {
 
   test('row ref null but the plan_id catalog lookup resolves one → checkout uses the catalog ref', async () => {
     const svc = autoSvc(
-      [activeRow({ provider_plan_ref: null, provider_customer_ref: 'cus_1' })],
+      [unpaidRow({ provider_plan_ref: null, provider_customer_ref: 'cus_1' })],
       { plan: { data: { provider_plan_ref: 'price_9' }, error: null } },
     )
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
@@ -358,7 +419,7 @@ describe('enableAutoPayViaApi', () => {
 
   test('provider failure → internal (not thrown)', async () => {
     createCheckoutSession.mockRejectedValue(new Error('stripe down'))
-    const svc = autoSvc([activeRow({ provider_customer_ref: 'cus_1' })])
+    const svc = autoSvc([unpaidRow({ provider_customer_ref: 'cus_1' })])
     const res = await enableAutoPayViaApi(svc as never, autoArgs)
     expect(res).toEqual({ ok: false, code: 'internal', message: expect.any(String) })
   })

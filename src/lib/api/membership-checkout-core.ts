@@ -11,7 +11,7 @@ import { isFrozenOn } from '@/lib/membership-status'
 // `.eq('box_id', boxId)` (+ `.eq('athlete_id', athleteId)` where applicable). A member can
 // only ever read their own membership state and buy/enable for themselves, in their box.
 
-export type MembershipAction = 'buy' | 'pay_now' | 'enable_autopay' | null
+export type MembershipAction = 'buy' | 'pay_now' | null
 export type PlanOption = { id: string; name: string; priceAed: number }
 export type MembershipPurchaseState = { action: MembershipAction; plans: PlanOption[] }
 export type MembershipCheckoutResult =
@@ -36,14 +36,21 @@ type CatalogRow = { id: string; name: string; monthly_price_aed: number; provide
 const MEMBERSHIP_COLS =
   'id, plan_id, end_date, start_date, payment_status, is_trial, frozen_from, frozen_until, provider_subscription_ref, provider_plan_ref'
 
+// Some legacy membership rows predate the plan-catalog feature and carry a free-text
+// placeholder in provider_plan_ref (e.g. '1050AED') instead of a real Stripe price id —
+// a bare truthy check would pass that straight to Stripe and blow up. Require the actual
+// Stripe id shape before treating a ref as usable.
+const isPriceRef = (ref: string | null | undefined): ref is string => !!ref && ref.startsWith('price_')
+
 // UTC calendar date — parity with plan-change-core.
 const todayUtc = () => new Date().toISOString().slice(0, 10)
 
 // What can THIS member do about paying for a membership right now?
 // - No active membership → 'buy' (with the online-purchasable plan catalog).
-// - Active but already on auto-pay / trial / frozen / end-dated / no resolvable Stripe
-//   price → null (front-desk territory, the app shows nothing actionable).
-// - Otherwise → 'enable_autopay' (paid, just not on auto-pay) or 'pay_now' (unpaid).
+// - Active + unpaid + no subscription → 'pay_now' (finish their own abandoned purchase).
+// - Everything else → null. Deliberately including active PAID manual payers: putting an
+//   existing membership on card auto-pay is STAFF-ONLY (the owner sends the checkout link
+//   from the web dashboard) — user ruling 2026-07-03, reversing the same-day launch.
 export async function getMembershipPurchaseState(
   service: SupabaseClient,
   athleteId: string,
@@ -80,7 +87,7 @@ export async function getMembershipPurchaseState(
   }
 
   const current = active[0] // newest by start_date
-  const planRef =
+  const rawPlanRef =
     current.provider_plan_ref ??
     catalog.find((p) => p.id === current.plan_id)?.provider_plan_ref ??
     null
@@ -89,10 +96,12 @@ export async function getMembershipPurchaseState(
     !!current.is_trial ||
     isFrozenOn(current, today) ||
     current.end_date !== null || // future-dated = scheduled cancellation
-    planRef === null // no Stripe price to charge against
+    !isPriceRef(rawPlanRef) // no valid Stripe price to charge against
   if (staffOnly) return { action: null, plans: [] }
 
-  return { action: current.payment_status === 'paid' ? 'enable_autopay' : 'pay_now', plans: [] }
+  // Paid manual payer → null (enabling auto-pay is staff-only); only an unpaid membership
+  // with no subscription surfaces an in-app action, and that's the pay-now resume.
+  return { action: current.payment_status === 'paid' ? null : 'pay_now', plans: [] }
 }
 
 // Buy a first membership on a catalog plan: insert an unpaid membership (75b pay-quote
@@ -114,11 +123,11 @@ export async function buyMembershipViaApi(
     .eq('is_trial', false)
     .maybeSingle()
   if (!plan) return { ok: false, code: 'not_found', message: 'Plan not found.' }
-  if (!plan.provider_plan_ref) {
+  if (!isPriceRef(plan.provider_plan_ref)) {
     return { ok: false, code: 'validation_error', message: "This plan isn't available for online purchase." }
   }
 
-  // Pre-check: buying is for members with NO active membership (pay_now/enable_autopay own the rest).
+  // Pre-check: buying is for members with NO active membership (pay_now owns an unpaid one).
   const { data: existing } = await service
     .from('memberships')
     .select('id')
@@ -204,9 +213,10 @@ export async function buyMembershipViaApi(
   }
 }
 
-// Start a Stripe subscription checkout for the member's EXISTING active membership.
-// Doubles as the pay-now resume path (an unpaid membership with no subscription yet —
-// e.g. a buy whose checkout was abandoned). The webhook flips paid + backfills the ref.
+// PAY-NOW RESUME ONLY: start a Stripe subscription checkout for the member's EXISTING
+// active-but-UNPAID membership with no subscription yet (e.g. a buy whose checkout was
+// abandoned). The webhook flips paid + backfills the ref. Putting an already-PAID
+// membership on auto-pay is staff-only (owner checkout link) — refused here.
 export async function enableAutoPayViaApi(
   service: SupabaseClient,
   args: { boxId: string; athleteId: string; baseUrl: string; returnTo?: string },
@@ -239,9 +249,14 @@ export async function enableAutoPayViaApi(
   if (current.end_date !== null) {
     return { ok: false, code: 'validation_error', message: 'Ask at the front desk to set this up.' }
   }
+  // A paid membership going on auto-pay is staff-only — this endpoint is the pay-now
+  // resume for an UNPAID one. (Defense in depth: GET never surfaces this action for paid.)
+  if (current.payment_status === 'paid') {
+    return { ok: false, code: 'validation_error', message: 'Ask at the front desk to set this up.' }
+  }
 
   let planRef = current.provider_plan_ref
-  if (!planRef && current.plan_id) {
+  if (!isPriceRef(planRef) && current.plan_id) {
     const { data: plan } = await service
       .from('membership_plans')
       .select('provider_plan_ref')
@@ -251,7 +266,7 @@ export async function enableAutoPayViaApi(
       .maybeSingle()
     planRef = (plan?.provider_plan_ref as string | null) ?? null
   }
-  if (!planRef) {
+  if (!isPriceRef(planRef)) {
     return { ok: false, code: 'validation_error', message: 'Ask the front desk to set this up.' }
   }
 

@@ -270,6 +270,14 @@ async function main() {
   }
   const boxSecret = await scalar(`select has_column_privilege('authenticated','public.boxes','stripe_secret_key','SELECT')`)
   check('boxes.stripe_secret_key SELECT denied for authenticated (secret stays revoked)', boxSecret === false, `got ${boxSecret}`)
+  // tv_token + checkin_token are secret access tokens (added post-allowlist, mig 028/056) and MUST stay
+  // revoked from authenticated — else any member could read their gym's TV/door link. The owner Settings
+  // + poster pages read them via the SERVICE client, box-scoped (not the RLS client). Granting either to
+  // authenticated to "fix" a display bug would leak the token AND regress here — read via service instead.
+  for (const col of ['tv_token', 'checkin_token']) {
+    const denied = await scalar(`select has_column_privilege('authenticated','public.boxes','${col}','SELECT')`)
+    check(`boxes.${col} SELECT denied for authenticated (secret token stays revoked)`, denied === false, `got ${denied}`)
+  }
 
   // bookings column allowlist (mig 093): the override-audit note (why an unpaid member was let in)
   // MUST stay revoked from authenticated — it leaks another member's payment trouble. The roster

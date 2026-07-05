@@ -1,12 +1,16 @@
 import QRCode from 'qrcode'
 import { notFound } from 'next/navigation'
 import { requireOwnerPage } from '@/lib/auth/page-guards'
+import { createServiceClient } from '@/lib/supabase/service'
 import { env } from '@/env'
 
 export default async function CheckinPosterPage() {
-  const { supabase, profile, box } = await requireOwnerPage()
+  const { profile, box } = await requireOwnerPage()
 
-  const { data: boxRow } = await supabase.from('boxes').select('checkin_token').eq('id', profile.box_id).single()
+  // checkin_token is REVOKED from `authenticated` (mig 019/089) → read via the
+  // service client, box-scoped, not the RLS client.
+  const service = createServiceClient()
+  const { data: boxRow } = await service.from('boxes').select('checkin_token').eq('id', profile.box_id).single()
   if (!boxRow?.checkin_token) notFound()
 
   const url = `${env.NEXT_PUBLIC_APP_URL}/checkin/${boxRow.checkin_token}`

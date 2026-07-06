@@ -3,6 +3,7 @@ import { DashboardShell } from '@/components/shell/dashboard-shell'
 import { dueNow } from '@/lib/desk-tasks'
 import type { TaskRow } from '@/app/dashboard/tasks/_components/task-item'
 import { DeskSearch } from './_components/DeskSearch'
+import { DeskActionTiles } from './_components/DeskActionTiles'
 import { DeskTaskQueue } from './_components/DeskTaskQueue'
 
 type DbTask = { id: string; title: string; due_date: string; done: boolean; lead_id: string | null; member_id: string | null; assigned_to: string | null; completed_at: string | null }
@@ -52,10 +53,15 @@ export default async function DeskPage() {
       boxName={boxName}
       title="Front Desk"
     >
-      <div className="mx-auto w-full max-w-3xl">
-        <p className="mb-5 text-[13px] text-ink-3">Search a member or lead, then check in, take payment, or sign up a walk-in.</p>
-        <DeskTaskQueue tasks={taskRows} />
+      <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5">
+        <div>
+          <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3">{boxName}</div>
+          <h2 className="mb-1 font-display text-[28px] font-semibold tracking-[-0.02em] text-ink">Front Desk</h2>
+          <p className="text-[13.5px] text-ink-2">Search a member or lead — check in, take payment, or sign up a walk-in.</p>
+        </div>
         <DeskSearch />
+        <DeskActionTiles />
+        <DeskTaskQueue tasks={taskRows} />
       </div>
     </DashboardShell>
   )

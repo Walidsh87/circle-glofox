@@ -33,7 +33,7 @@ function initials(name: string | null) {
 }
 
 type Member = { full_name: string | null; email: string | null; phone: string | null; role: string; created_at: string }
-type ActiveMembership = { plan_name: string; monthly_price_aed: number | null; is_trial: boolean | null; end_date: string | null; payment_status: string }
+type ActiveMembership = { plan_name: string; monthly_price_aed: number | null; is_trial: boolean | null; end_date: string | null; payment_status: string; last_paid_date: string | null }
 
 /** Top member-profile card: avatar + identity + membership summary, and (for athletes) glance stats. */
 export async function ProfileHeaderCard({
@@ -44,6 +44,8 @@ export async function ProfileHeaderCard({
   streak,
   checkins,
   lastVisitLabel,
+  badge,
+  nextMilestone,
 }: {
   member: Member
   activeMembership: ActiveMembership | null
@@ -52,6 +54,8 @@ export async function ProfileHeaderCard({
   streak: number
   checkins: number
   lastVisitLabel: string
+  badge: number | null
+  nextMilestone: { remaining: number; threshold: number } | null
 }) {
   const t = await getServerT()
   const effectiveStatus = status === 'unpaid' && activeMembership?.payment_status === 'overdue' ? 'overdue' : status
@@ -60,6 +64,7 @@ export async function ProfileHeaderCard({
     activeMembership?.plan_name,
     activeMembership?.monthly_price_aed ? t('profile.monthlyPrice', { price: activeMembership.monthly_price_aed }) : null,
     t('profile.joined', { date: formatDate(member.created_at) }),
+    activeMembership?.last_paid_date ? t('profile.lastPaid', { date: activeMembership.last_paid_date }) : null,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -100,10 +105,19 @@ export async function ProfileHeaderCard({
       </div>
 
       {(member.role === 'athlete' || checkins > 0) && (
-        <div className="flex gap-6">
-          <Stat value={streak > 0 ? `🔥 ${streak}` : '—'} label={t('profile.consistency.weekStreak')} />
-          <Stat value={String(checkins)} label={t('profile.consistency.checkIns')} />
-          <Stat value={lastVisitLabel} label={t('profile.consistency.lastVisit')} />
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex gap-6">
+            <Stat value={streak > 0 ? `🔥 ${streak}` : '—'} label={t('profile.consistency.weekStreak')} />
+            <Stat value={String(checkins)} label={t('profile.consistency.checkIns')} />
+            <Stat value={lastVisitLabel} label={t('profile.consistency.lastVisit')} />
+          </div>
+          {(badge !== null || nextMilestone) && (
+            <div className="text-end text-[11px] text-ink-3">
+              {badge !== null && t('profile.consistency.club', { badge })}
+              {badge !== null && nextMilestone ? ' · ' : ''}
+              {nextMilestone && t('profile.consistency.nextMilestone', { remaining: nextMilestone.remaining, threshold: nextMilestone.threshold })}
+            </div>
+          )}
         </div>
       )}
     </Card>

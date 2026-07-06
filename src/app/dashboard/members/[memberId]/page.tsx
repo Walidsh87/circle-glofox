@@ -9,7 +9,7 @@ import { EditMemberForm } from './_components/edit-member-form'
 import { SellPackage } from './_components/sell-package'
 import { PtScheduler } from './_components/pt-scheduler'
 import { PtSessionsList, type PtSessionItem } from './_components/pt-sessions-list'
-import { currentStreakWeeks, totalCheckins } from '@/lib/consistency'
+import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } from '@/lib/consistency'
 import { MembershipLifecycle } from './_components/membership-lifecycle'
 import { ChangePlan } from './_components/change-plan'
 import { MemberTags } from './_components/member-tags'
@@ -370,6 +370,8 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
   const consistencyStreak = currentStreakWeeks(checkInDates, today)
   const lastCheckIn = checkInDates.length ? checkInDates.reduce((a, b) => (a > b ? a : b)) : null
   const lastVisitLabel = relDayLabel(lastCheckIn, today)
+  const consistencyBadge = currentMilestone(consistencyTotal)
+  const consistencyNext = nextMilestone(consistencyTotal)
   const goalsData = goalsDataPromise ? await goalsDataPromise : null
   const programs = programsPromise ? await programsPromise : []
   const programMembers = programMembersPromise
@@ -422,6 +424,8 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
           streak={consistencyStreak}
           checkins={consistencyTotal}
           lastVisitLabel={lastVisitLabel}
+          badge={consistencyBadge}
+          nextMilestone={consistencyNext}
         />
 
         <div className="grid gap-3.5 lg:grid-cols-[300px_1fr] lg:items-start">

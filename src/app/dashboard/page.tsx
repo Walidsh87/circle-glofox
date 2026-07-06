@@ -166,6 +166,12 @@ export default async function DashboardPage() {
     )
   }
   if (isOwner) quickActions.push({ label: 'Payments', href: '/dashboard/payments' })
+  if (!isStaff) {
+    quickActions.push(
+      { label: 'Book a class', href: '/dashboard/schedule' },
+      { label: 'My 1RMs', href: '/dashboard/lifts' },
+    )
+  }
 
   return (
     <DashboardShell

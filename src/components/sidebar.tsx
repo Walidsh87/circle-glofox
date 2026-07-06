@@ -298,7 +298,7 @@ export function Sidebar({
                   >
                     <span>{group.sectionKey ? t(group.sectionKey) : group.section}</span>
                     <span className="flex-1" />
-                    <span className="text-[10px] text-ink-faint">{group.items.length}</span>
+                    <span className="text-[10px] text-ink-3">{group.items.length}</span>
                     <svg
                       width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                       strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"

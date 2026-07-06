@@ -99,7 +99,7 @@ export function CheckInButton({
       >
         {done && <span className="text-sm">✓</span>}
         {showDot && (
-          <span title={dotTitle} className="h-2 w-2 shrink-0 rounded-full bg-danger" />
+          <span role="img" aria-label={dotTitle} title={dotTitle} className="h-2 w-2 shrink-0 rounded-full bg-danger" />
         )}
         {showStatusIndicator && hasCredit && (
           <span

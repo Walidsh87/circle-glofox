@@ -1,7 +1,9 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { getServerT } from '@/lib/i18n/server'
 import { formatDate } from '../_lib/profile-format'
+import type { MembershipStatus } from '@/lib/membership-status'
 
 const ROLE_TONES: Record<string, 'accent' | 'ok' | 'neutral'> = {
   owner: 'accent',
@@ -9,68 +11,110 @@ const ROLE_TONES: Record<string, 'accent' | 'ok' | 'neutral'> = {
   athlete: 'neutral',
 }
 
-const STATUS_TONES: Record<string, 'ok' | 'warn' | 'danger'> = {
-  paid: 'ok',
-  unpaid: 'warn',
-  overdue: 'danger',
+const STATUS_PILL: Record<MembershipStatus | 'overdue', { label: string; cls: string }> = {
+  paid: { label: 'Active', cls: 'bg-ok-soft text-ok' },
+  unpaid: { label: 'Unpaid', cls: 'bg-warn-soft text-warn' },
+  // `getMembershipStatus` collapses overdue→unpaid; surface the dunning distinction here.
+  overdue: { label: 'Overdue', cls: 'bg-danger-soft text-danger' },
+  frozen: { label: 'Frozen', cls: 'border border-line bg-surface-2 text-ink-3' },
+  no_membership: { label: 'No plan', cls: 'border border-line bg-surface-2 text-ink-3' },
+}
+
+function initials(name: string | null) {
+  return (
+    (name ?? '')
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || '?'
+  )
 }
 
 type Member = { full_name: string | null; email: string | null; phone: string | null; role: string; created_at: string }
-type ActiveMembership = {
-  plan_name: string
-  is_trial: boolean | null
-  end_date: string | null
-  monthly_price_aed: number | null
-  payment_status: string
-  last_paid_date: string | null
-}
+type ActiveMembership = { plan_name: string; monthly_price_aed: number | null; is_trial: boolean | null; end_date: string | null; payment_status: string }
 
-/** Top member-profile card: name + role + contact, and the active membership summary. */
-export async function ProfileHeaderCard({ member, activeMembership }: { member: Member; activeMembership: ActiveMembership | null }) {
+/** Top member-profile card: avatar + identity + membership summary, and (for athletes) glance stats. */
+export async function ProfileHeaderCard({
+  member,
+  activeMembership,
+  status,
+  tags,
+  streak,
+  checkins,
+  lastVisitLabel,
+}: {
+  member: Member
+  activeMembership: ActiveMembership | null
+  status: MembershipStatus | null
+  tags: string[]
+  streak: number
+  checkins: number
+  lastVisitLabel: string
+}) {
   const t = await getServerT()
-  return (
-    <Card className="mb-4 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="mb-2.5 flex items-center gap-2.5">
-            <span className="font-display text-xl font-bold text-ink">{member.full_name}</span>
-            <Badge tone={ROLE_TONES[member.role] ?? 'neutral'} className="capitalize">
-              {member.role}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap gap-4">
-            {member.email && <span className="text-[13.5px] text-ink-2">{member.email}</span>}
-            {member.phone && <span className="font-mono text-[13px] text-ink-3">{member.phone}</span>}
-            <span className="text-xs text-ink-3">{t('profile.joined', { date: formatDate(member.created_at) })}</span>
-          </div>
-        </div>
+  const effectiveStatus = status === 'unpaid' && activeMembership?.payment_status === 'overdue' ? 'overdue' : status
+  const pill = effectiveStatus ? STATUS_PILL[effectiveStatus] : null
+  const meta = [
+    activeMembership?.plan_name,
+    activeMembership?.monthly_price_aed ? t('profile.monthlyPrice', { price: activeMembership.monthly_price_aed }) : null,
+    t('profile.joined', { date: formatDate(member.created_at) }),
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
-        {activeMembership && (
-          <div className="text-end">
-            <div className="mb-1 text-[13px] font-semibold text-ink">{activeMembership.plan_name}</div>
-            <div className="flex items-center justify-end gap-2">
-              {activeMembership.is_trial && (
-                <span className="font-mono text-[11px] font-bold text-accent-ink">
-                  {t('profile.trial')}{activeMembership.end_date ? ` · ${t('profile.trialEnds', { date: activeMembership.end_date })}` : ''}
-                </span>
-              )}
-              {activeMembership.monthly_price_aed && (
-                <span className="font-mono text-[13px] text-ink-3">
-                  {t('profile.monthlyPrice', { price: activeMembership.monthly_price_aed })}
-                </span>
-              )}
-              <Badge tone={STATUS_TONES[activeMembership.payment_status] ?? 'warn'} className="capitalize">
-                {activeMembership.payment_status}
-              </Badge>
-            </div>
-            {activeMembership.last_paid_date && (
-              <div className="mt-1 font-mono text-[11.5px] text-ink-3">
-                {t('profile.lastPaid', { date: activeMembership.last_paid_date })}
-              </div>
-            )}
+  return (
+    <Card className="flex flex-wrap items-center gap-4 p-5">
+      <div className="grid h-[46px] w-[46px] shrink-0 place-items-center rounded-full bg-accent text-[15px] font-bold text-accent-contrast">
+        {initials(member.full_name)}
+      </div>
+
+      <div className="min-w-[200px] flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-display text-xl font-semibold tracking-[-0.01em] text-ink">{member.full_name}</span>
+          {pill && (
+            <span className={cn('rounded-full px-2 py-0.5 text-[11.5px] font-semibold', pill.cls)}>{pill.label}</span>
+          )}
+          {activeMembership?.is_trial && (
+            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11.5px] font-semibold text-accent-ink">
+              {t('profile.trial')}{activeMembership.end_date ? ` · ${t('profile.trialEnds', { date: activeMembership.end_date })}` : ''}
+            </span>
+          )}
+          <Badge tone={ROLE_TONES[member.role] ?? 'neutral'} className="capitalize">
+            {member.role}
+          </Badge>
+          {tags.map((tag) => (
+            <Badge key={tag} tone="accent" className="font-mono text-[9.5px] font-bold">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+        <div className="mt-1 text-[12.5px] text-ink-3">{meta}</div>
+        {(member.email || member.phone) && (
+          <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-ink-3">
+            {member.email && <span className="text-ink-2">{member.email}</span>}
+            {member.phone && <span className="font-mono">{member.phone}</span>}
           </div>
         )}
       </div>
+
+      {(member.role === 'athlete' || checkins > 0) && (
+        <div className="flex gap-6">
+          <Stat value={streak > 0 ? `🔥 ${streak}` : '—'} label={t('profile.consistency.weekStreak')} />
+          <Stat value={String(checkins)} label={t('profile.consistency.checkIns')} />
+          <Stat value={lastVisitLabel} label={t('profile.consistency.lastVisit')} />
+        </div>
+      )}
     </Card>
+  )
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-end">
+      <div className="font-mono text-[17px] font-bold text-ink">{value}</div>
+      <div className="text-[10.5px] text-ink-3">{label}</div>
+    </div>
   )
 }

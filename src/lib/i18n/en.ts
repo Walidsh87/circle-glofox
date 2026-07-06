@@ -124,7 +124,7 @@ export const en = {
     trialEnds: 'ends {date}',
     monthlyPrice: 'AED {price}/mo',
     lastPaid: 'Last paid {date}',
-    consistency: { section: 'Consistency', weekStreak: 'week streak', checkIns: 'check-ins', club: '🏅 {badge} Club', nextMilestone: '{remaining} to the {threshold} Club' },
+    consistency: { section: 'Consistency', weekStreak: 'week streak', checkIns: 'check-ins', lastVisit: 'last visit', club: '🏅 {badge} Club', nextMilestone: '{remaining} to the {threshold} Club' },
     personalMedical: { section: 'Personal & medical', dob: 'Date of birth', bloodType: 'Blood type', emergencyContact: 'Emergency contact', idDocument: 'ID document', noId: 'No ID on file', allergies: 'Allergies / medical notes' },
     lifts: { section: '1RM Lifts', empty: 'No lifts logged yet.' },
     scores: { section: 'WOD Score History', empty: 'No scores logged yet.' },

@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`096` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`097` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -685,4 +685,9 @@ GRANT EXECUTE ON FUNCTION public.create_default_waiver()  TO PUBLIC;
 GRANT EXECUTE ON FUNCTION public.create_default_terms()   TO PUBLIC;
 GRANT EXECUTE ON FUNCTION public.create_default_parq()    TO PUBLIC;
 GRANT EXECUTE ON FUNCTION public.handle_self_signup()     TO PUBLIC;
+```
+
+### 097_bar_speed
+```sql
+DROP TABLE IF EXISTS athlete_bar_speed_sets;   -- ⚠️ destroys all Bar Speed velocity history (athlete-logged; export first)
 ```

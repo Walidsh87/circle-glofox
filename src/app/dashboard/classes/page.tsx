@@ -2,15 +2,13 @@ import { requirePage } from '@/lib/auth/page-guards'
 import { PROGRAMMING_ROLES } from '@/lib/auth/roles'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
 import Link from 'next/link'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Table, Th, Td } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { AddTemplateForm } from './_components/add-template-form'
 import { TemplateActions } from './_components/template-actions'
 import { GenerateForm } from './_components/generate-form'
+import { ClassesHeader } from './_components/classes-header'
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 function formatTime(time: string) {
   const [h, m] = time.split(':').map(Number)
@@ -42,6 +40,18 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
       .order('full_name'),
   ])
 
+  const total = templates?.length ?? 0
+  const grouped = WEEKDAYS
+    .map((name, wd) => ({ wd, name, rows: (templates ?? []).filter((t) => t.weekday === wd) }))
+    .filter((g) => g.rows.length > 0)
+
+  const seasonPill = (on: boolean) =>
+    cn('rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-colors', on ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-ink-3 hover:text-ink')
+
+  const cols = isStaff
+    ? 'grid-cols-[76px_1.6fr_0.7fr_0.6fr_1fr_0.8fr_30px]'
+    : 'grid-cols-[76px_1.6fr_0.7fr_0.6fr_1fr_0.8fr]'
+
   return (
     <DashboardShell
       active="classes"
@@ -49,90 +59,85 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
       userRole={profile.role}
       boxName={boxName}
       title="Class Schedule"
-      actions={<span className="font-mono text-xs text-ink-3">{templates?.length ?? 0} templates</span>}
     >
-      <div className="mb-4 flex gap-1.5">
-        <Link
-          href="/dashboard/classes?season=default"
-          className={cn('rounded-lg px-3 py-1.5 text-[13px] font-semibold', season === 'default' ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-ink-3 hover:text-ink')}
-        >Default schedule</Link>
-        <Link
-          href="/dashboard/classes?season=ramadan"
-          className={cn('rounded-lg px-3 py-1.5 text-[13px] font-semibold', season === 'ramadan' ? 'bg-accent text-accent-contrast' : 'bg-surface-2 text-ink-3 hover:text-ink')}
-        >Ramadan schedule</Link>
-      </div>
-      {season === 'ramadan' && (
-        <p className="mb-4 text-[12.5px] text-ink-3">
-          These classes auto-apply during your Ramadan window — set the dates in{' '}
-          <Link href="/dashboard/settings" className="underline hover:text-ink">Settings</Link>.
-        </p>
-      )}
+      <div className="mx-auto flex max-w-[1000px] flex-col gap-[18px]">
+        <ClassesHeader
+          boxName={boxName}
+          count={total}
+          addForm={isStaff ? <AddTemplateForm coaches={coaches ?? []} season={season} /> : null}
+          generateForm={isStaff ? <GenerateForm /> : null}
+        />
 
-      {isStaff && (
-        <div className="mb-5 grid gap-3.5 lg:grid-cols-2">
-          <Card className="p-5">
-            <p className="mb-3 text-[13px] font-semibold text-ink">Add class template</p>
-            <AddTemplateForm coaches={coaches ?? []} season={season} />
-          </Card>
-          <Card className="p-5">
-            <p className="mb-3 text-[13px] font-semibold text-ink">Generate instances</p>
-            <GenerateForm />
-          </Card>
+        {/* Season toggle */}
+        <div className="flex gap-1.5">
+          <Link href="/dashboard/classes?season=default" className={seasonPill(season === 'default')}>Default schedule</Link>
+          <Link href="/dashboard/classes?season=ramadan" className={seasonPill(season === 'ramadan')}>Ramadan schedule</Link>
         </div>
-      )}
+        {season === 'ramadan' && (
+          <p className="-mt-2 text-[12.5px] text-ink-3">
+            These classes auto-apply during your Ramadan window — set the dates in{' '}
+            <Link href="/dashboard/settings" className="underline hover:text-ink">Settings</Link>.
+          </p>
+        )}
 
-      <Table>
-        <thead>
-          <tr className="bg-surface-2">
-            <Th>Class</Th>
-            <Th>Day</Th>
-            <Th>Time</Th>
-            <Th>Cap</Th>
-            <Th>Coach</Th>
-            <Th>Status</Th>
-            {isStaff && <Th />}
-          </tr>
-        </thead>
-        <tbody>
-          {templates?.map((t) => {
-            const coach = t.profiles as { full_name: string } | { full_name: string }[] | null
-            const coachName = Array.isArray(coach) ? coach[0]?.full_name : coach?.full_name
-            return (
-              <tr key={t.id} className={cn('last:[&>td]:border-0', !t.active && 'opacity-50')}>
-                <Td className="font-semibold">{t.name}</Td>
-                <Td className="font-mono text-ink-3">{WEEKDAYS[t.weekday]}</Td>
-                <Td className="font-mono text-ink-3">{formatTime(t.start_time)}</Td>
-                <Td className="font-mono text-ink-3">{t.capacity}</Td>
-                <Td className="text-ink-3">{coachName ?? '—'}</Td>
-                <Td>
-                  <Badge tone={t.active ? 'ok' : 'neutral'}>{t.active ? 'Active' : 'Inactive'}</Badge>
-                </Td>
-                {isStaff && (
-                  <Td>
-                    <TemplateActions
-                      templateId={t.id}
-                      active={t.active}
-                      name={t.name}
-                      weekday={t.weekday}
-                      startTime={t.start_time}
-                      capacity={t.capacity}
-                      coachId={t.coach_id}
-                      coaches={coaches ?? []}
-                    />
-                  </Td>
-                )}
-              </tr>
-            )
-          })}
-          {(!templates || templates.length === 0) && (
-            <tr>
-              <td colSpan={7} className="px-4 py-10 text-center text-[13px] text-ink-3">
-                No class templates yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
+        {/* Grouped-by-weekday schedule */}
+        {grouped.length > 0 ? (
+          <div className="rounded-xl border border-line bg-surface shadow-card">
+            {grouped.map((g, gi) => (
+              <div key={g.wd}>
+                <div className={cn('flex items-center gap-2.5 border-b border-line bg-surface-2 px-4 py-2', gi === 0 && 'rounded-t-xl')}>
+                  <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink">{g.name}</span>
+                  <span className="font-mono text-[10px] text-ink-3">{g.rows.length} {g.rows.length === 1 ? 'class' : 'classes'}</span>
+                </div>
+                {g.rows.map((t, ri) => {
+                  const coach = t.profiles as { full_name: string } | { full_name: string }[] | null
+                  const coachName = Array.isArray(coach) ? coach[0]?.full_name : coach?.full_name
+                  const isLast = gi === grouped.length - 1 && ri === g.rows.length - 1
+                  return (
+                    <div
+                      key={t.id}
+                      className={cn(
+                        'grid items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-2',
+                        cols,
+                        !isLast && 'border-b border-line',
+                        isLast && 'rounded-b-xl',
+                        !t.active && 'opacity-50'
+                      )}
+                    >
+                      <span className="font-mono text-[13px] text-ink">{formatTime(t.start_time)}</span>
+                      <span className="truncate text-[13.5px] font-semibold text-ink">{t.name}</span>
+                      <span className="font-mono text-xs text-ink-3">{t.duration_minutes} min</span>
+                      <span className="font-mono text-xs text-ink-3">{t.capacity}</span>
+                      <span className="truncate text-[13px] text-ink-3">{coachName ?? '—'}</span>
+                      <span>
+                        <span className={cn('inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11.5px] font-semibold', t.active ? 'bg-ok-soft text-ok' : 'border border-line bg-surface-2 text-ink-3')}>
+                          {t.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </span>
+                      {isStaff && (
+                        <TemplateActions
+                          templateId={t.id}
+                          active={t.active}
+                          name={t.name}
+                          weekday={t.weekday}
+                          startTime={t.start_time}
+                          capacity={t.capacity}
+                          coachId={t.coach_id}
+                          coaches={coaches ?? []}
+                        />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-line bg-surface px-4 py-10 text-center text-[13px] text-ink-3 shadow-card">
+            No class templates yet.
+          </div>
+        )}
+      </div>
     </DashboardShell>
   )
 }

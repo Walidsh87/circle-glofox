@@ -143,6 +143,30 @@ export default async function DashboardPage() {
     if (!onboardingComplete(steps)) onboardingSteps = steps
   }
 
+  const dateLabel = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    timeZone: timezone,
+  }).format(new Date())
+
+  const now = Date.now()
+  const whiteboardLive = (todayClasses ?? []).some((c) => {
+    const start = new Date(c.starts_at).getTime()
+    return now >= start && now < start + (c.duration_minutes ?? 60) * 60_000
+  })
+
+  const quickActions: { label: string; href: string; accent?: boolean }[] = []
+  if (isStaff) {
+    quickActions.push(
+      { label: 'Class schedule', href: '/dashboard/classes' },
+      { label: whiteboardLive ? 'Whiteboard · live' : 'Whiteboard', href: '/dashboard/whiteboard', accent: true },
+      { label: 'Daily WOD', href: '/dashboard/wod' },
+      { label: 'Members', href: '/dashboard/members' },
+    )
+  }
+  if (isOwner) quickActions.push({ label: 'Payments', href: '/dashboard/payments' })
+
   return (
     <DashboardShell
       active="dashboard"
@@ -150,18 +174,8 @@ export default async function DashboardPage() {
       userRole={profile.role}
       boxName={boxName}
       title="Dashboard"
-      actions={
-        isStaff ? (
-          <Link
-            href="/dashboard/whiteboard"
-            className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-          >
-            Open Whiteboard
-          </Link>
-        ) : undefined
-      }
     >
-      <div className="flex flex-col gap-5">
+      <div className="mx-auto flex max-w-[1000px] flex-col gap-[22px]">
         <PasswordNudge show={!hasPassword} />
 
         {onboardingSteps && <OnboardingChecklist steps={onboardingSteps} />}
@@ -170,28 +184,46 @@ export default async function DashboardPage() {
           <ClockCard openSince={(openCard as { clock_in: string } | null)?.clock_in ?? null} timeZone={timezone} />
         )}
 
-        {/* Greeting */}
-        <div>
-          <div className="mb-1.5 font-mono text-xs uppercase tracking-[0.08em] text-ink-3">
-            {boxName}
+        {/* Greeting + page actions */}
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-3">
+              {boxName} · {dateLabel}
+            </div>
+            <h2 className="mb-1 font-display text-[28px] font-semibold tracking-[-0.02em] text-ink">
+              Welcome, {firstName}.
+            </h2>
+            <p className="text-[13.5px] text-ink-2">
+              {profile.role === 'owner' ? 'You have full access to your gym.' : `Signed in as ${profile.role}.`}
+            </p>
           </div>
-          <h2 className="mb-1 font-display text-3xl font-semibold tracking-[-0.02em] text-ink">
-            Welcome, {firstName}.
-          </h2>
-          <p className="text-sm text-ink-2">
-            {profile.role === 'owner' ? 'You have full access to your gym.' : `Signed in as ${profile.role}.`}
-          </p>
+          {isStaff && (
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/dashboard/whiteboard"
+                className="inline-flex items-center rounded-[9px] border border-line bg-surface px-3.5 py-2 text-[13px] font-semibold text-ink transition-colors hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                Open Whiteboard
+              </Link>
+              <Link
+                href="/dashboard/members"
+                className="inline-flex items-center rounded-[9px] bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-contrast shadow-card transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                + New member
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* Stats row — owner only */}
+        {/* Stats — owner only, single 6-up grid (2×3 below lg) */}
         {isOwner && (
-          <div className="grid max-w-[860px] grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard label="Athletes" value={String(memberCount ?? 0)} href="/dashboard/members?tab=members" />
-            <StatCard label="MRR · AED" value={mrrAed > 0 ? mrrAed.toLocaleString() : '—'} href="/dashboard/payments" />
-            <StatCard label="Unpaid" value={String(unpaidCount)} fill={unpaidCount > 0 ? 'warn' : undefined} href="/dashboard/payments" />
-            <StatCard label="Active Leads" value={String(activeLeadCount ?? 0)} href="/dashboard/members?tab=leads" fill={activeLeadCount && activeLeadCount > 0 ? 'accent' : undefined} />
-            <StatCard label="Follow-ups due" value={String(tasksDueCount ?? 0)} href="/dashboard/tasks" fill={tasksDueCount && tasksDueCount > 0 ? 'accent' : undefined} />
-            <StatCard label="Onboarding to-do" value={String(onboardingTodo)} href="/dashboard/members?tab=members" fill={onboardingTodo > 0 ? 'accent' : undefined} />
+          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-6">
+            <StatCard compact label="Athletes" value={String(memberCount ?? 0)} href="/dashboard/members?tab=members" />
+            <StatCard compact label="MRR · AED" value={mrrAed > 0 ? mrrAed.toLocaleString() : '—'} href="/dashboard/payments" />
+            <StatCard compact label="Unpaid" value={String(unpaidCount)} fill={unpaidCount > 0 ? 'warn' : undefined} href="/dashboard/payments" />
+            <StatCard compact label="Active Leads" value={String(activeLeadCount ?? 0)} href="/dashboard/members?tab=leads" fill={activeLeadCount && activeLeadCount > 0 ? 'accent' : undefined} />
+            <StatCard compact label="Follow-ups due" value={String(tasksDueCount ?? 0)} href="/dashboard/tasks" fill={tasksDueCount && tasksDueCount > 0 ? 'accent' : undefined} />
+            <StatCard compact label="Onboarding to-do" value={String(onboardingTodo)} href="/dashboard/members?tab=members" fill={onboardingTodo > 0 ? 'accent' : undefined} />
           </div>
         )}
 
@@ -199,8 +231,8 @@ export default async function DashboardPage() {
         {isStaff && (
           <div
             className={cn(
-              'grid max-w-[900px] gap-3.5',
-              todayClasses && todayClasses.length > 0 ? 'lg:grid-cols-[1.4fr_1fr]' : 'grid-cols-1'
+              'grid gap-3.5',
+              todayClasses && todayClasses.length > 0 ? 'items-start lg:grid-cols-[1.4fr_1fr]' : 'grid-cols-1'
             )}
           >
             {todayClasses && todayClasses.length > 0 && (
@@ -281,49 +313,29 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Nav cards grid — always shown */}
-        <div className="grid max-w-[900px] grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2.5">
-          {isStaff && <NavCard href="/dashboard/classes" label="Class Schedule" description="Templates & generator" />}
-          <NavCard href="/dashboard/schedule" label="Book a Class" description="Upcoming classes" />
-          {isStaff && <NavCard href="/dashboard/whiteboard" label="Whiteboard" description="Live check-in board" accent />}
-          {isStaff && <NavCard href="/dashboard/wod" label="Daily WOD" description="Workout + leaderboard" />}
-          <NavCard href="/dashboard/lifts" label="My 1RMs" description="Log & calculate lifts" />
-          {['owner', 'admin', 'coach', 'receptionist'].includes(profile.role) && (
-            <NavCard href="/dashboard/members" label="Members" description="Directory & management" />
-          )}
-          {isOwner && <NavCard href="/dashboard/payments" label="Payments" description="Membership billing" />}
-        </div>
+        {/* Quick actions — reuses the role conditions of the old nav cards */}
+        {quickActions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3">
+              Quick actions
+            </span>
+            {quickActions.map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className={cn(
+                  'rounded-full px-3 py-[5px] text-[12.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                  a.accent
+                    ? 'border border-transparent bg-accent-soft text-accent-ink hover:border-accent'
+                    : 'border border-line bg-surface text-ink-2 hover:border-line-strong hover:text-ink'
+                )}
+              >
+                {a.label}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </DashboardShell>
-  )
-}
-
-function NavCard({
-  href,
-  label,
-  description,
-  accent,
-}: {
-  href: string
-  label: string
-  description: string
-  accent?: boolean
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'flex flex-col gap-1.5 rounded-xl border p-4 shadow-card transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-        accent
-          ? 'border-accent-soft bg-surface-2 hover:border-accent'
-          : 'border-line bg-surface hover:border-line-strong'
-      )}
-    >
-      <div className={cn('font-display text-sm font-semibold tracking-[-0.01em]', accent ? 'text-accent-ink' : 'text-ink')}>
-        {label}
-      </div>
-      <div className={cn('text-xs leading-snug', accent ? 'text-ink-2' : 'text-ink-3')}>{description}</div>
-      <div className={cn('mt-1.5 text-xs font-medium', accent ? 'text-accent-ink' : 'text-ink-3')}>Open →</div>
-    </Link>
   )
 }

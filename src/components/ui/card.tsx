@@ -19,6 +19,7 @@ export function StatCard({
   fill,
   href,
   className,
+  compact = false,
 }: {
   label: string
   value: React.ReactNode
@@ -27,11 +28,40 @@ export function StatCard({
   fill?: 'warn' | 'accent'
   href?: string
   className?: string
+  /** Denser variant used on the dashboard-home 6-up grid: 11px radius, 10px label, 21px value. */
+  compact?: boolean
 }) {
   const toneClass =
     tone === 'up' ? 'text-accent-ink' : tone === 'down' ? 'text-danger' : 'text-ink-3'
   const labelClass = fill === 'warn' ? 'text-warn' : fill === 'accent' ? 'text-accent-ink' : 'text-ink-3'
   const valueClass = fill === 'warn' ? 'text-warn' : fill === 'accent' ? 'text-accent-ink' : 'text-ink'
+
+  if (compact) {
+    // Built as a plain div (not <Card>) so fill variants deterministically drop the
+    // base shadow — twMerge won't reconcile the custom `shadow-card` against `shadow-none`.
+    const body = (
+      <div
+        className={cn(
+          'flex flex-col gap-1.5 rounded-[11px] border border-line px-3.5 py-[13px] transition-colors hover:border-line-strong',
+          fill === 'warn' ? 'bg-warn-soft' : fill === 'accent' ? 'bg-accent-soft' : 'bg-surface shadow-card',
+          className
+        )}
+      >
+        <div className={cn('font-mono text-[10px] uppercase tracking-[0.08em]', labelClass)}>{label}</div>
+        <div className={cn('text-[21px] font-bold tracking-[-0.01em]', valueClass)}>{value}</div>
+        {sub && <div className={cn('text-xs font-semibold', toneClass)}>{sub}</div>}
+      </div>
+    )
+    return href ? (
+      <Link
+        href={href}
+        className="block rounded-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
+        {body}
+      </Link>
+    ) : body
+  }
+
   const body = (
     <Card
       className={cn(

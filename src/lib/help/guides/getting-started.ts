@@ -79,12 +79,12 @@ export const guide: HelpGuide = {
         'Unpaid stat in amber — click through to Payments to see who owes.',
         'Follow-ups due — tasks assigned to you or the team that are overdue or due today.',
         'Onboarding to-do — members who haven\'t completed your onboarding checklist yet.',
-        'Open Whiteboard button — launches the live check-in board for the gym floor.',
+        'Open Whiteboard and + New member sit beside the greeting; a Quick actions row links to the class schedule, whiteboard, daily WOD, members, and payments.',
       ],
     },
     {
       type: 'note',
-      text: 'Members (athletes) see a simpler view: Book a Class, My 1RMs, and their own profile. They do not see billing or management sections.',
+      text: 'Members (athletes) see a simpler view — their own schedule, WODs, 1RMs, and profile from the sidebar. They do not see billing or management sections.',
     },
     {
       type: 'link',

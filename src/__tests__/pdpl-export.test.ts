@@ -93,6 +93,67 @@ describe('buildPdplExport', () => {
     expect(parsed).toBeLessThanOrEqual(after)
   })
 
+  test('extended DSAR sections default to empty when omitted', () => {
+    const out = buildPdplExport({
+      profile: baseProfile,
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+    })
+    expect(out.athlete.invoices).toEqual([])
+    expect(out.athlete.credit_notes).toEqual([])
+    expect(out.athlete.terms_signatures).toEqual([])
+    expect(out.athlete.messages).toEqual([])
+    expect(out.athlete.staff_notes).toEqual([])
+    expect(out.athlete.coach_scaling_notes).toEqual([])
+    expect(out.athlete.goals).toEqual([])
+    expect(out.athlete.training_plans).toEqual([])
+    expect(out.athlete.programs).toEqual([])
+    expect(out.athlete.program_set_logs).toEqual([])
+    expect(out.athlete.pt_sessions).toEqual([])
+    expect(out.athlete.retention_outreach).toEqual([])
+    expect(out.athlete.achievements).toEqual([])
+    expect(out.athlete.package_credits).toEqual([])
+    expect(out.athlete.waitlist_entries).toEqual([])
+  })
+
+  test('carries populated extended DSAR sections', () => {
+    const out = buildPdplExport({
+      profile: baseProfile,
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+      invoices: [{ invoice_number: 'INV-0001', issued_at: '2026-06-01T10:00:00Z', description: 'Unlimited — June', subtotal_aed: 714.29, vat_rate: 5, vat_aed: 35.71, total_aed: 750 }],
+      creditNotes: [{ credit_note_number: 'CN-0001', issued_at: '2026-06-10T10:00:00Z', subtotal_aed: 714.29, vat_aed: 35.71, total_aed: 750, reason: 'Duplicate charge' }],
+      termsSignatures: [{ full_name: 'Test User', terms_version: 2, signed_at: '2026-04-01T09:00:00Z', ip_address: '1.2.3.4', user_agent: 'Mozilla/5.0' }],
+      messages: [{ sender_role: 'member', channel: 'in_app', body: 'Can I freeze my plan?', created_at: '2026-06-15T08:00:00Z' }],
+      memberNotes: [{ note_type: 'call', note: 'Asked about PT pricing', created_by_name: 'Front Desk', created_at: '2026-06-16T08:00:00Z' }],
+      coachNotes: [{ note: 'Scale pull-ups to ring rows', updated_at: '2026-06-17T08:00:00Z' }],
+      goals: [{ goal_type: 'lift_1rm', title: '140kg back squat', status: 'active', target_date: '2026-12-01', achieved_at: null }],
+      trainingPlans: [{ title: 'Squat block', body: '3 week wave', active: true, created_at: '2026-06-01T08:00:00Z' }],
+      programs: [{ title: 'Strength Foundations', notes: null, active: true, created_at: '2026-07-01T08:00:00Z' }],
+      programSetLogs: [{ performed_on: '2026-07-02', set_number: 1, weight_grams: 100000, reps: 5, duration_seconds: null, distance_meters: null, calories: null, note: null }],
+      ptSessions: [{ scheduled_at: '2026-06-20T15:00:00Z', duration_minutes: 60, status: 'scheduled', redeemed_at: '2026-06-18T09:00:00Z' }],
+      outreach: [{ contacted_at: '2026-06-19T09:00:00Z', note: 'Checked in after absence' }],
+      achievements: [{ kind: 'milestone', threshold: 100, earned_at: '2026-06-21T07:00:00Z' }],
+      packageCredits: [{ kind: 'class', credits_total: 10, credits_remaining: 4, expires_at: null, created_at: '2026-05-01T08:00:00Z' }],
+      waitlist: [{ class_instance_id: 'ci-1', created_at: '2026-06-22T06:00:00Z' }],
+    })
+    expect(out.athlete.invoices[0].invoice_number).toBe('INV-0001')
+    expect(out.athlete.credit_notes[0].reason).toBe('Duplicate charge')
+    expect(out.athlete.terms_signatures[0].terms_version).toBe(2)
+    expect(out.athlete.messages[0].channel).toBe('in_app')
+    expect(out.athlete.staff_notes[0].note_type).toBe('call')
+    expect(out.athlete.coach_scaling_notes[0].note).toContain('ring rows')
+    expect(out.athlete.goals[0].goal_type).toBe('lift_1rm')
+    expect(out.athlete.training_plans[0].active).toBe(true)
+    expect(out.athlete.programs[0].title).toBe('Strength Foundations')
+    expect(out.athlete.program_set_logs[0].weight_grams).toBe(100000)
+    expect(out.athlete.pt_sessions[0].duration_minutes).toBe(60)
+    expect(out.athlete.retention_outreach[0].note).toContain('absence')
+    expect(out.athlete.achievements[0].threshold).toBe(100)
+    expect(out.athlete.package_credits[0].credits_remaining).toBe(4)
+    expect(out.athlete.waitlist_entries[0].class_instance_id).toBe('ci-1')
+  })
+
   test('carries the member national ID fields', () => {
     const out = buildPdplExport({
       profile: { ...baseProfile, id_type: 'emirates_id', id_number: '784199012345676' },

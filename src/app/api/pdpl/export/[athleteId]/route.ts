@@ -93,6 +93,101 @@ export async function GET(
       .order('logged_at', { ascending: true }),
   ])
 
+  // The member's shared staff thread (one per member); messages hang off it.
+  const { data: conversation } = await service
+    .from('conversations')
+    .select('id')
+    .eq('member_id', params.athleteId)
+    .eq('box_id', viewer.box_id)
+    .maybeSingle()
+
+  const [
+    { data: invoices },
+    { data: creditNotes },
+    { data: termsSignatures },
+    { data: messages },
+    { data: memberNotes },
+    { data: coachNotes },
+    { data: goals },
+    { data: trainingPlans },
+    { data: programs },
+    { data: programSetLogs },
+    { data: ptSessions },
+    { data: outreach },
+    { data: achievements },
+    { data: packageCredits },
+    { data: waitlist },
+  ] = await Promise.all([
+    service.from('invoices')
+      .select('invoice_number, issued_at, description, subtotal_aed, vat_rate, vat_aed, total_aed')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
+      .order('issued_at', { ascending: true }),
+    service.from('credit_notes')
+      .select('credit_note_number, issued_at, subtotal_aed, vat_aed, total_aed, reason')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
+      .order('issued_at', { ascending: true }),
+    service.from('terms_signatures')
+      .select('full_name, terms_version, signed_at, ip_address, user_agent')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
+      .order('signed_at', { ascending: true }),
+    conversation
+      ? service.from('messages')
+          .select('sender_role, channel, body, created_at')
+          .eq('conversation_id', conversation.id)
+          .eq('box_id', viewer.box_id)
+          .order('created_at', { ascending: true })
+      : Promise.resolve({ data: [] }),
+    service.from('member_notes')
+      .select('note_type, note, created_by_name, created_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
+      .order('created_at', { ascending: true }),
+    service.from('athlete_coach_notes')
+      .select('note, updated_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+    service.from('member_goals')
+      .select('goal_type, title, status, target_date, achieved_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+    service.from('member_training_plans')
+      .select('title, body, active, created_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+    service.from('member_programs')
+      .select('title, notes, active, created_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+    service.from('program_set_logs')
+      .select('performed_on, set_number, weight_grams, reps, duration_seconds, distance_meters, calories, note')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
+      .order('performed_on', { ascending: true }),
+    service.from('pt_sessions')
+      .select('scheduled_at, duration_minutes, status, redeemed_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+    service.from('member_outreach')
+      .select('contacted_at, note')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+    service.from('member_achievements')
+      .select('kind, threshold, earned_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+    service.from('package_credits')
+      .select('kind, credits_total, credits_remaining, expires_at, created_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+    service.from('class_waitlist')
+      .select('class_instance_id, created_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id),
+  ])
+
   const output = buildPdplExport({
     profile: athlete,
     memberships: (memberships ?? []) as never,
@@ -103,6 +198,21 @@ export async function GET(
     billingReminders: (billingReminders ?? []) as never,
     parqResponses: (parqRows ?? []) as never,
     skillBests: (skillBestRows ?? []) as never,
+    invoices: (invoices ?? []) as never,
+    creditNotes: (creditNotes ?? []) as never,
+    termsSignatures: (termsSignatures ?? []) as never,
+    messages: (messages ?? []) as never,
+    memberNotes: (memberNotes ?? []) as never,
+    coachNotes: (coachNotes ?? []) as never,
+    goals: (goals ?? []) as never,
+    trainingPlans: (trainingPlans ?? []) as never,
+    programs: (programs ?? []) as never,
+    programSetLogs: (programSetLogs ?? []) as never,
+    ptSessions: (ptSessions ?? []) as never,
+    outreach: (outreach ?? []) as never,
+    achievements: (achievements ?? []) as never,
+    packageCredits: (packageCredits ?? []) as never,
+    waitlist: (waitlist ?? []) as never,
   })
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null

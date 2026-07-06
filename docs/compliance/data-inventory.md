@@ -2,7 +2,7 @@
 
 **Regime:** UAE Personal Data Protection Law — Federal Decree-Law No. 45 of 2021 (PDPL).
 **Status:** _Draft — the **owner-to-ratify** items in §3 and §7 are business/legal decisions, not code facts._
-**Last grounded against the codebase:** 2026-06-28.
+**Last grounded against the codebase:** 2026-07-05 (audit run — migs 073–095 folded in).
 
 This is the data-inventory + retention/erasure policy the audit checklist requires
 ([`docs/audit/CHECKLIST.md`](../audit/CHECKLIST.md) §2.4). It records *what* personal data the platform
@@ -21,13 +21,16 @@ Every category below is tenant-isolated by `box_id` (Postgres RLS, `auth_box_id(
 | **Medical / health** 🔴 | `profiles`: blood_type, allergies, date_of_birth, emergency_contact_name/phone; `parq_responses` | Safety / duty of care (explicit consent) | **Service-role only → staff UI** (column-revoked from `authenticated`, mig 071) + self |
 | **Government ID** 🔴 | `profiles`: id_type, id_number (Emirates ID / Passport / Iqama) | Identity verification (legal) | **Service-role only → staff UI** (mig 071); **never logged** |
 | Financial | `memberships`, `invoices`, `credit_notes`, `payment_events`, `package_credits`, `quotes` | Billing, **UAE VAT** (legal obligation) | Owner/coach (RLS); self sees own invoices. **No card data** — Stripe holds it; we store only provider refs |
-| Attendance & performance | `bookings`, `workout_scores`, `athlete_lifts`(+history), `member_achievements`, `skill_levels`, `pt_sessions` | Provide the service | Box-wide (RLS) + self |
+| Attendance & performance | `bookings`, `workout_scores`, `athlete_lifts`(+history), `member_achievements`, `athlete_skill_bests`, `pt_sessions`, `class_waitlist` | Provide the service | Box-wide (RLS) + self *(skill bests: self + staff)* |
+| Coaching & training | `member_goals`, `member_training_plans`, `member_programs`/`program_sessions`/`program_exercises`, `program_set_logs`; `class_debriefs` (coach-attributed recaps) | Provide the service | Staff + self (own rows) |
+| Staff notes about members | `member_notes` (call/visit/post-class log, author snapshot), `athlete_coach_notes` (scaling notes), `member_outreach` (retention contacts) | Service / duty of care (legitimate interest) | **Staff only — never member-visible in-app**, but disclosable in a DSAR |
 | Agreements | `waiver_signatures`, `terms_signatures`, `parq_responses` — incl. **IP address + user-agent** at signing | Liability / contract (legal) | Staff + self |
-| Communications | `profiles.marketing_opt_out` + `unsubscribe_token`; `messages`, `conversations`; `broadcast/sms/wa_recipients`, `push_subscriptions` | Service + marketing (consent / opt-out) | Staff + self (own thread) |
+| Communications | `profiles.marketing_opt_out` + `unsubscribe_token`; `messages`, `conversations`; `broadcast/sms/wa_recipients`, `push_subscriptions` (device endpoints) | Service + marketing (consent / opt-out) | Staff + self (own thread) |
 | CRM / leads | `leads`: name, email, phone, source, referred_by | Pre-contract enquiry (legitimate interest) | Staff |
+| Platform API / egress | `api_keys` (created_by ref, hashed key), `webhook_subscriptions` + `webhook_deliveries` — **member-event JSON payloads sent to owner-configured third-party URLs** | Integrations (owner-directed) | Owner; ⚠️ webhook targets are an **egress channel the owner controls** — treat each configured endpoint as a data recipient |
 | Security & accountability | `audit_log`, `portal_access_log`, `pdpl_exports` | Security, breach detection (legal obligation) | Owner only (append-only) |
 
-> The member **data-subject access export** (`buildPdplExport`, `/api/pdpl/export`) currently covers: profile (incl. medical + ID), memberships, bookings, lifts, scores, waiver signature, billing reminders, PAR-Q responses. **Gap:** it does **not** yet include invoices/credit-notes, in-app messages, or CRM/lead history — extend it before treating it as a complete DSAR response.
+> The member **data-subject access export** (`buildPdplExport`, `/api/pdpl/export`) covers: profile (incl. medical + ID), memberships, bookings, lifts, scores, skill bests, waiver + terms signatures, billing reminders, PAR-Q responses, **invoices + credit notes, in-app/WhatsApp messages, staff notes (member_notes + coach scaling notes + outreach), goals, training plans, programs + set logs, PT sessions, achievements, package credits, and waitlist entries** (extended 2026-07-05). **Deliberately not exported:** comms *delivery* logs (`broadcast/sms/wa_recipients` — send-status metadata; the message content is in the campaign, not per-member), `push_subscriptions` (device endpoint tokens), and `leads` (lead rows are deleted on conversion, so a member has none; an unconverted lead's data is just name/email/phone/source — handle ad-hoc if requested). Staff-authored notes ARE included — PDPL access rights cover opinions recorded about the subject.
 
 ---
 
@@ -66,7 +69,7 @@ Every category below is tenant-isolated by `box_id` (Postgres RLS, `auth_box_id(
 
 | Right | How it's fulfilled today |
 |---|---|
-| **Access / portability** | Owner-triggered JSON export (`/api/pdpl/export`, `buildPdplExport`); each export is logged in `pdpl_exports`. *(Extend coverage — see §1 note.)* |
+| **Access / portability** | Owner-triggered JSON export (`/api/pdpl/export`, `buildPdplExport`); each export is logged in `pdpl_exports`. Coverage extended 2026-07-05 — see §1 note for the deliberate exclusions. |
 | **Erasure** | Member removal deletes the `profiles` row → child data CASCADEs / actor refs SET NULL (mig 088); the auth user is deleted. **Financial records are retained** for the legal-obligation period (partial erasure) — document this to the member. |
 | **Rectification** | Self-service profile edits (athlete "My details", #77) + staff edit on the member page |
 | **Objection / opt-out** | `profiles.marketing_opt_out` + public `/unsubscribe/[token]`; bounce/complaint auto-suppression |
@@ -90,5 +93,6 @@ Follow [`docs/runbooks/disaster-recovery.md`](../runbooks/disaster-recovery.md) 
 - [ ] Put **signed DPAs** in place with each §2 sub-processor; record their status.
 - [ ] Decide whether a **DPO / data-protection contact** is required and name them.
 - [ ] Name the **controller legal entity** per gym (the box owner).
-- [ ] **Extend the PDPL export** to cover invoices/credit-notes, messages, and lead history (§1 note).
+- [x] ~~**Extend the PDPL export** to cover invoices/credit-notes, messages, and lead history~~ — done 2026-07-05 (§1 note lists the coverage + the deliberate exclusions; lead history is N/A per-member since lead rows are deleted on conversion).
+- [ ] Ratify the §1 note's **deliberate export exclusions** (delivery logs, push endpoints) and the inclusion of **staff notes** in DSAR responses.
 - [ ] Decide on an **automated retention purge** (none today — deletion is manual/erasure-driven).

@@ -115,8 +115,9 @@ These have no standing gate and **can drift between runs**. Run each command / o
 - **Pass:** no path to `main` that skips CI; pre-ship-review is habitual.
 
 ### 2.12 — Accessibility 🟠 🟢
-- **Check:** spot-check a key flow (booking / whiteboard) — `prefers-reduced-motion` respected (motion is enhancement only), keyboard-navigable, controls labelled (`aria-*`), contrast-safe. Use the `accessibility-tester` agent for a deeper pass.
-- **Pass:** no keyboard traps, labelled interactive controls, motion optional. *(No automated a11y gate today — judgment item.)*
+- **Gated since 2026-07-05:** `e2e/a11y.spec.ts` (@axe-core/playwright) scans login / schedule / whiteboard / dashboard-home inside the required `e2e` check — **serious/critical violations block merge** (moderate/minor logged as advisory).
+- **Check (judgment residue):** keyboard-navigate a key flow; `prefers-reduced-motion` respected; anything axe can't see (focus order, meaningful alt text). Use the `accessibility-tester` agent for a deeper pass.
+- **Pass:** e2e a11y specs green + no keyboard traps on the spot-checked flow.
 
 ### 2.13 — Architecture docs & ADRs 🟠 🟢
 - **Run:** `ls decisions/` + open [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md)

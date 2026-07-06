@@ -27,6 +27,8 @@ flowchart TB
     PUB["Public visitor / lead"]
   end
 
+  MOB["Circle Mobile<br/>Expo / React Native (separate repo)<br/>native-first hybrid"]
+
   APP["Circle Fitness<br/>Next.js 16 App Router on Vercel<br/>(Server Components + Server Actions)"]
 
   subgraph ext["External services (behind src/lib/*)"]
@@ -41,8 +43,12 @@ flowchart TB
   end
 
   ATH --> APP
+  ATH --> MOB
   STAFF --> APP
   PUB -->|"login · /join · /embed · /quote · /tv · /checkin"| APP
+
+  MOB -->|"member JWT · /api/app/* + /app/checkout-return"| APP
+  MOB -->|"supabase-js on-device (anon key, RLS)"| SUPA
 
   APP -->|"@supabase/ssr · RLS + service role"| SUPA
   APP -->|"checkout · portal · refund"| STRIPE
@@ -62,7 +68,7 @@ flowchart TB
 
 ## 2. Request lifecycle — the house shape
 
-Almost all writes flow through a **server action** with the same pipeline. The discipline is: *validate → guard → bind tenant from session → tenant-scoped query → revalidate → return `{ error }`*. There are three entry types — user actions, provider webhooks, and crons.
+Almost all writes flow through a **server action** with the same pipeline. The discipline is: *validate → guard → bind tenant from session → tenant-scoped query → revalidate → return `{ error }`*. There are four entry types — user actions, provider webhooks, crons, and the member-JWT mobile API.
 
 ```mermaid
 flowchart TB
@@ -88,6 +94,11 @@ flowchart TB
   subgraph c["③ Cron (/api/cron/*, Vercel Scheduler)"]
     direction TB
     C1["Bearer CRON_SECRET<br/>(constant-time compare)"] --> C2["Service client across boxes,<br/>each query box-scoped"]
+  end
+
+  subgraph m["④ Member-JWT mobile API (/api/app/*)"]
+    direction TB
+    M1["withMemberAuth: Bearer Supabase JWT<br/>→ box_id + role from the caller's OWN profile row"] --> M2["Handler (Zod-validated body),<br/>service client pinned to that box + user"]
   end
 ```
 
@@ -132,9 +143,9 @@ App Router with a **feature-folder** convention: each dashboard feature owns its
 ```mermaid
 flowchart LR
   subgraph app["src/app"]
-    PUBSURF["Public surfaces<br/>[gymSlug] · auth · join · onboarding<br/>embed · quote · portal · tv · checkin · unsubscribe"]
-    DASH["dashboard/* (~50 features, role-tiered)<br/>members · schedule · whiteboard · wod · programming<br/>payments · invoices · kpi · reports · inbox · automations · …<br/>each: _actions / _components / _lib"]
-    API["api/*<br/>v1 (public REST) · cron · webhooks · calendar · pdpl · gym · health"]
+    PUBSURF["Public surfaces<br/>[gymSlug] · auth · join · onboarding<br/>embed · quote · portal · tv · checkin · unsubscribe<br/>app/checkout-return (mobile Stripe trampoline)"]
+    DASH["dashboard/* (~50 features, role-tiered)<br/>members · schedule · whiteboard · wod · programming<br/>program + program-store · skill-bests · goals<br/>payments · invoices · kpi · reports · inbox · automations · …<br/>each: _actions / _components / _lib"]
+    API["api/*<br/>v1 (public REST) · app (member-JWT mobile) · cron · webhooks<br/>calendar · pdpl · gym · health"]
   end
 
   subgraph lib["src/lib (shared)"]
@@ -176,7 +187,7 @@ flowchart TB
     cls["class_templates · class_instances<br/>bookings · class_waitlist"]
   end
   subgraph prog["Programming & performance"]
-    pr["workouts(+templates) · workout_scores · score_reactions<br/>athlete_lifts(+history) · member_programs · program_sessions<br/>program_exercises · program_set_logs · goals · training_plans<br/>movement_videos · skill_levels · achievements · class_debriefs"]
+    pr["workouts(+templates) · workout_scores · score_reactions<br/>athlete_lifts(+history) · member_programs (incl. published<br/>Program Store templates) · program_sessions · program_exercises<br/>program_set_logs · goals · training_plans · movement_videos<br/>athlete_skill_bests · achievements · class_debriefs"]
   end
   subgraph ops["Coaching & ops"]
     op["coach_availability · coach_time_off · pay_rates · pay_adjustments<br/>timecards · pt_sessions · sub_requests · member_notes · coach_notes"]
@@ -232,6 +243,8 @@ flowchart LR
 
 There's also a **public REST API** (`/api/v1/*`: members, memberships, classes, bookings, leads, packages, `openapi.json`) authenticated by hashed `api_keys`, and per-athlete **ICS calendar** feeds (`/api/calendar/[token]`) and **PDPL export** (`/api/pdpl/export`).
 
+The **member-JWT mobile API** (`/api/app/*`: profile, membership + buy/pay-now, bookings, agreements, plan-change, referral, calendar-token, pack + program checkout) serves the Circle Mobile app; each route runs through `withMemberAuth` (View 2 ④). Mobile Stripe checkouts return via the public `/app/checkout-return` trampoline (strict custom-scheme allowlist → deep-link back into the app), and mobile **self-signup** is provisioned by a `SECURITY DEFINER` trigger on `auth.users` (migration 087 — box chosen server-side from the `self_signup_default` flag, never from client input).
+
 ---
 
 ## Maintenance
@@ -244,4 +257,4 @@ There's also a **public REST API** (`/api/v1/*`: members, memberships, classes, 
 | Add a table / data domain | View 5 |
 | Make a durable architectural ruling | a new ADR in `decisions/` (then link it here) |
 
-*Last grounded against the codebase: 2026-06-28.*
+*Last grounded against the codebase: 2026-07-05.*

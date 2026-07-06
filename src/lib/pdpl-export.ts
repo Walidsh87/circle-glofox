@@ -75,6 +75,116 @@ export type ParqResponseRow = {
   reviewed_at: string | null
 }
 
+export type InvoiceRow = {
+  invoice_number: string
+  issued_at: string
+  description: string | null
+  subtotal_aed: number
+  vat_rate: number
+  vat_aed: number
+  total_aed: number
+}
+
+export type CreditNoteRow = {
+  credit_note_number: string
+  issued_at: string
+  subtotal_aed: number
+  vat_aed: number
+  total_aed: number
+  reason: string | null
+}
+
+export type TermsSignatureRow = {
+  full_name: string
+  terms_version: number
+  signed_at: string
+  ip_address: string | null
+  user_agent: string | null
+}
+
+export type MessageRow = {
+  sender_role: string
+  channel: string
+  body: string
+  created_at: string
+}
+
+export type MemberNoteRow = {
+  note_type: string
+  note: string
+  created_by_name: string
+  created_at: string
+}
+
+export type CoachNoteRow = {
+  note: string
+  updated_at: string
+}
+
+export type GoalRow = {
+  goal_type: string
+  title: string
+  status: string
+  target_date: string | null
+  achieved_at: string | null
+}
+
+export type TrainingPlanRow = {
+  title: string
+  body: string | null
+  active: boolean
+  created_at: string
+}
+
+export type ProgramRow = {
+  title: string
+  notes: string | null
+  active: boolean
+  created_at: string
+}
+
+export type ProgramSetLogRow = {
+  performed_on: string
+  set_number: number
+  weight_grams: number | null
+  reps: number | null
+  duration_seconds: number | null
+  distance_meters: number | null
+  calories: number | null
+  note: string | null
+}
+
+export type PtSessionRow = {
+  scheduled_at: string | null
+  duration_minutes: number | null
+  status: string | null
+  redeemed_at: string
+}
+
+export type OutreachRow = {
+  contacted_at: string
+  note: string | null
+}
+
+export type AchievementRow = {
+  kind: string
+  threshold: number
+  earned_at: string
+}
+
+export type PackageCreditRow = {
+  kind: string
+  credits_total: number
+  credits_remaining: number
+  expires_at: string | null
+  created_at: string
+}
+
+export type WaitlistRow = {
+  class_instance_id: string
+  created_at: string
+}
+
 export type PdplExportInput = {
   profile: ProfileRow
   memberships: MembershipRow[]
@@ -85,6 +195,21 @@ export type PdplExportInput = {
   billingReminders: BillingReminderRow[]
   parqResponses?: ParqResponseRow[]
   skillBests?: SkillBestRow[]
+  invoices?: InvoiceRow[]
+  creditNotes?: CreditNoteRow[]
+  termsSignatures?: TermsSignatureRow[]
+  messages?: MessageRow[]
+  memberNotes?: MemberNoteRow[]
+  coachNotes?: CoachNoteRow[]
+  goals?: GoalRow[]
+  trainingPlans?: TrainingPlanRow[]
+  programs?: ProgramRow[]
+  programSetLogs?: ProgramSetLogRow[]
+  ptSessions?: PtSessionRow[]
+  outreach?: OutreachRow[]
+  achievements?: AchievementRow[]
+  packageCredits?: PackageCreditRow[]
+  waitlist?: WaitlistRow[]
 }
 
 export type PdplExportOutput = {
@@ -104,6 +229,21 @@ export type PdplExportOutput = {
     billing_reminders: BillingReminderRow[]
     parq_responses: ParqResponseRow[]
     skill_bests: SkillBestRow[]
+    invoices: InvoiceRow[]
+    credit_notes: CreditNoteRow[]
+    terms_signatures: TermsSignatureRow[]
+    messages: MessageRow[]
+    staff_notes: MemberNoteRow[]
+    coach_scaling_notes: CoachNoteRow[]
+    goals: GoalRow[]
+    training_plans: TrainingPlanRow[]
+    programs: ProgramRow[]
+    program_set_logs: ProgramSetLogRow[]
+    pt_sessions: PtSessionRow[]
+    retention_outreach: OutreachRow[]
+    achievements: AchievementRow[]
+    package_credits: PackageCreditRow[]
+    waitlist_entries: WaitlistRow[]
   }
 }
 
@@ -125,6 +265,21 @@ export function buildPdplExport(input: PdplExportInput): PdplExportOutput {
       billing_reminders: input.billingReminders,
       parq_responses: input.parqResponses ?? [],
       skill_bests: input.skillBests ?? [],
+      invoices: input.invoices ?? [],
+      credit_notes: input.creditNotes ?? [],
+      terms_signatures: input.termsSignatures ?? [],
+      messages: input.messages ?? [],
+      staff_notes: input.memberNotes ?? [],
+      coach_scaling_notes: input.coachNotes ?? [],
+      goals: input.goals ?? [],
+      training_plans: input.trainingPlans ?? [],
+      programs: input.programs ?? [],
+      program_set_logs: input.programSetLogs ?? [],
+      pt_sessions: input.ptSessions ?? [],
+      retention_outreach: input.outreach ?? [],
+      achievements: input.achievements ?? [],
+      package_credits: input.packageCredits ?? [],
+      waitlist_entries: input.waitlist ?? [],
     },
   }
 }

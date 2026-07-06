@@ -2,19 +2,18 @@ import { requireStaffPage } from '@/lib/auth/page-guards'
 import { ALL_STAFF_ROLES } from '@/lib/auth/roles'
 import Link from 'next/link'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { TabNav } from '@/components/ui/tab-nav'
-import { Table, Th, Td } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { AddMemberForm } from './_components/add-member-form'
-import { RemoveMemberButton } from './_components/remove-member-button'
-import { ResetMfaButton } from './_components/reset-mfa-button'
 import { AddLeadForm } from './_components/add-lead-form'
 import { LeadsList, type Lead } from './_components/leads-list'
 import { DownloadCsvButton } from '@/components/download-csv-button'
-import { RolePicker } from './_components/role-picker'
-import { groupByInto } from '@/lib/grouping'
+import { PeopleHeader } from './_components/people-header'
+import { PeopleTable, type PersonRow } from './_components/people-table'
+import { groupBy, groupByInto } from '@/lib/grouping'
+import { getMembershipStatus, type MembershipRow } from '@/lib/membership-status'
+import { todayInTimezone } from '@/lib/timezone'
+import { lastVisit } from './_lib/last-visit'
 
 type Tab = 'members' | 'staff' | 'leads'
 
@@ -24,7 +23,7 @@ export default async function MembersPage({
   searchParams: Promise<{ tab?: string; tag?: string }>
 }) {
   const sp = await searchParams
-  const { supabase, user, profile, boxName } = await requireStaffPage()
+  const { supabase, user, profile, boxName, box } = await requireStaffPage()
   const isOwner = profile.role === 'owner'
 
   const allowedTabs: Tab[] = isOwner ? ['members', 'staff', 'leads'] : ['members', 'leads']
@@ -69,6 +68,58 @@ export default async function MembersPage({
   const allTags = [...new Set((tagRows ?? []).map((r) => r.tag))].sort()
   const shownPeople = (people ?? []).filter((p) => !tagFilter || (tagsByAthlete.get(p.id) ?? []).includes(tagFilter))
 
+  // Enriched rows for the members/staff table. Membership status + last visit are
+  // athlete-only, so they're fetched (and populated) only on the members tab.
+  let rows: PersonRow[] = []
+  if (tab !== 'leads') {
+    if (tab === 'members') {
+      const tz = box.timezone ?? 'Asia/Dubai'
+      const today = todayInTimezone(tz)
+      const dayInTz = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
+      // Bound both enrichment queries to the shown members (mirrors retention/prep), not the whole box.
+      const athleteIds = shownPeople.map((p) => p.id)
+      const [{ data: mems }, { data: visits }] = await Promise.all([
+        supabase.from('memberships').select('athlete_id, payment_status, end_date, frozen_from, frozen_until').eq('box_id', profile.box_id).in('athlete_id', athleteIds),
+        supabase.from('bookings').select('athlete_id, class_instances(starts_at)').eq('box_id', profile.box_id).eq('checked_in', true).in('athlete_id', athleteIds),
+      ])
+      const memsByAthlete = groupBy((mems ?? []) as (MembershipRow & { athlete_id: string })[], (m) => m.athlete_id)
+      const lastVisitByAthlete = new Map<string, string>()
+      for (const v of (visits ?? []) as { athlete_id: string; class_instances: { starts_at: string } | { starts_at: string }[] | null }[]) {
+        const ci = Array.isArray(v.class_instances) ? v.class_instances[0] : v.class_instances
+        if (!ci?.starts_at) continue
+        const d = dayInTz.format(new Date(ci.starts_at))
+        const prev = lastVisitByAthlete.get(v.athlete_id)
+        if (!prev || d > prev) lastVisitByAthlete.set(v.athlete_id, d)
+      }
+      rows = shownPeople.map((p) => {
+        const lv = lastVisit(lastVisitByAthlete.get(p.id) ?? null, today)
+        return {
+          id: p.id,
+          full_name: p.full_name,
+          email: p.email,
+          phone: p.phone,
+          role: p.role,
+          tags: tagsByAthlete.get(p.id) ?? [],
+          status: getMembershipStatus(memsByAthlete.get(p.id) ?? [], today),
+          lastVisitLabel: lv.label,
+          lastVisitStale: lv.stale,
+        }
+      })
+    } else {
+      rows = shownPeople.map((p) => ({
+        id: p.id,
+        full_name: p.full_name,
+        email: p.email,
+        phone: p.phone,
+        role: p.role,
+        tags: tagsByAthlete.get(p.id) ?? [],
+        status: null,
+        lastVisitLabel: null,
+        lastVisitStale: false,
+      }))
+    }
+  }
+
   // CSV export for the active tab's table (#54)
   const csvExport = tab === 'leads'
     ? {
@@ -88,6 +139,27 @@ export default async function MembersPage({
     { key: 'leads', label: 'Leads', count: leadCount ?? 0 },
   ]
 
+  const chip = 'rounded-full px-2.5 py-1 text-xs font-semibold transition-colors'
+  const tagChips = allTags.length > 0 ? (
+    <div className="flex flex-wrap gap-1.5">
+      <Link
+        href={`/dashboard/members?tab=${tab}`}
+        className={cn(chip, !tagFilter ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2 text-ink-3 hover:text-ink')}
+      >
+        All
+      </Link>
+      {allTags.map((t) => (
+        <Link
+          key={t}
+          href={`/dashboard/members?tab=${tab}&tag=${encodeURIComponent(t)}`}
+          className={cn(chip, tagFilter === t ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2 text-ink-3 hover:text-ink')}
+        >
+          {t}
+        </Link>
+      ))}
+    </div>
+  ) : null
+
   return (
     <DashboardShell
       active="members"
@@ -95,128 +167,49 @@ export default async function MembersPage({
       userRole={profile.role}
       boxName={boxName}
       title="People"
-      actions={isOwner ? <DownloadCsvButton filename={csvExport.filename} headers={csvExport.headers} rows={csvExport.rows} /> : undefined}
     >
-      <div className="mb-5 -mt-1">
+      <div className="mx-auto flex max-w-[1000px] flex-col gap-[18px]">
+        <PeopleHeader
+          boxName={boxName}
+          addLabel={tab === 'leads' ? 'Add lead' : tab === 'staff' ? 'Add staff' : 'Add member'}
+          exportSlot={
+            isOwner ? (
+              <DownloadCsvButton filename={csvExport.filename} headers={csvExport.headers} rows={csvExport.rows} />
+            ) : null
+          }
+          addForm={
+            tab === 'leads' ? (
+              <AddLeadForm />
+            ) : (
+              <AddMemberForm
+                roles={
+                  tab === 'staff'
+                    ? [{ value: 'coach', label: 'Coach' }, { value: 'admin', label: 'Admin' }, { value: 'receptionist', label: 'Receptionist' }]
+                    : [{ value: 'athlete', label: 'Athlete' }]
+                }
+              />
+            )
+          }
+        />
+
         <TabNav
           tabs={TABS.map((t) => ({ key: t.key, label: t.label, href: `/dashboard/members?tab=${t.key}`, count: t.count }))}
           active={tab}
         />
-      </div>
 
-      {/* ── Leads tab ── */}
-      {tab === 'leads' && (
-        <>
-          <Card className="mb-5 p-5">
-            <p className="mb-3 text-[13px] font-semibold text-ink">Add lead</p>
-            <AddLeadForm />
-          </Card>
+        {tab === 'leads' ? (
           <LeadsList leads={(leads ?? []) as Lead[]} staff={(leadStaff ?? []) as { id: string; full_name: string | null }[]} />
-        </>
-      )}
-
-      {/* ── Members / Coaches tab ── */}
-      {tab !== 'leads' && (
-        <>
-          <Card className="mb-5 p-5">
-            <p className="mb-3 text-[13px] font-semibold text-ink">
-              Add {tab === 'staff' ? 'staff' : 'member'}
-            </p>
-            <AddMemberForm roles={tab === 'staff'
-              ? [{ value: 'coach', label: 'Coach' }, { value: 'admin', label: 'Admin' }, { value: 'receptionist', label: 'Receptionist' }]
-              : [{ value: 'athlete', label: 'Athlete' }]} />
-          </Card>
-
-          {allTags.length > 0 && (
-            <div className="mb-3.5 flex flex-wrap gap-1.5">
-              <Link
-                href={`/dashboard/members?tab=${tab}`}
-                className={cn(
-                  'rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
-                  !tagFilter ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2 text-ink-3 hover:text-ink'
-                )}
-              >
-                All
-              </Link>
-              {allTags.map((t) => (
-                <Link
-                  key={t}
-                  href={`/dashboard/members?tab=${tab}&tag=${encodeURIComponent(t)}`}
-                  className={cn(
-                    'rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
-                    tagFilter === t ? 'bg-accent-soft text-accent-ink' : 'bg-surface-2 text-ink-2 hover:text-ink'
-                  )}
-                >
-                  {t}
-                </Link>
-              ))}
-            </div>
-          )}
-
-          <Table>
-            <thead>
-              <tr className="bg-surface-2">
-                <Th>Name</Th>
-                <Th>Email</Th>
-                <Th>Phone</Th>
-                <Th>Role</Th>
-                <Th />
-              </tr>
-            </thead>
-            <tbody>
-              {shownPeople.map((member) => (
-                <tr key={member.id} className="last:[&>td]:border-0">
-                  <Td className="font-semibold">
-                    <Link
-                      href={`/dashboard/members/${member.id}`}
-                      className="text-ink transition-colors hover:text-accent-ink"
-                    >
-                      {member.full_name}
-                    </Link>
-                    {(tagsByAthlete.get(member.id) ?? []).length > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {(tagsByAthlete.get(member.id) ?? []).map((t) => (
-                          <Badge key={t} tone="accent" className="font-mono text-[10px] font-bold">
-                            {t}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </Td>
-                  <Td className="text-ink-3">{member.email}</Td>
-                  <Td className="text-ink-3">{member.phone ?? '—'}</Td>
-                  <Td>
-                    {tab === 'staff' && isOwner && member.role !== 'owner' && member.id !== user.id ? (
-                      <RolePicker profileId={member.id} role={member.role} />
-                    ) : (
-                      <Badge tone={member.role === 'athlete' ? 'neutral' : 'ok'} className="capitalize">
-                        {member.role}
-                      </Badge>
-                    )}
-                  </Td>
-                  <Td className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {tab === 'staff' && isOwner && (
-                        <ResetMfaButton profileId={member.id} name={member.full_name} />
-                      )}
-                      {isOwner && member.id !== user.id && (
-                        <RemoveMemberButton memberId={member.id} memberName={member.full_name} />
-                      )}
-                    </div>
-                  </Td>
-                </tr>
-              ))}
-              {shownPeople.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-[13px] text-ink-3">
-                    {tagFilter ? `No ${tab} with the tag “${tagFilter}”.` : `No ${tab} yet.`}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </>
-      )}
+        ) : (
+          <PeopleTable
+            rows={rows}
+            tab={tab}
+            isOwner={isOwner}
+            currentUserId={user.id}
+            tagChips={tagChips}
+            emptyLabel={tagFilter ? `No ${tab} with the tag “${tagFilter}”.` : `No ${tab} yet.`}
+          />
+        )}
+      </div>
     </DashboardShell>
   )
 }

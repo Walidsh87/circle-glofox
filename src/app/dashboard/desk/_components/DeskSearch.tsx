@@ -6,6 +6,8 @@ import type { PersonHit } from '../_lib/search'
 import { ResultRow } from './ResultRow'
 import { WalkInPanel } from './WalkInPanel'
 
+export const DESK_SEARCH_ID = 'desk-search-input'
+
 export function DeskSearch() {
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<PersonHit[]>([])
@@ -27,16 +29,38 @@ export function DeskSearch() {
     return () => clearTimeout(t)
   }, [q])
 
+  // "/" focuses the search from anywhere on the page (unless already typing in a field).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      const el = e.target as HTMLElement | null
+      const tag = el?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el?.isContentEditable) return
+      e.preventDefault()
+      document.getElementById(DESK_SEARCH_ID)?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <div className="flex flex-col gap-3">
-      <input
-        autoFocus
-        value={q}
-        onChange={(e) => { setQ(e.target.value); setWalkIn(false) }}
-        placeholder="Search name / phone / email / Emirates ID…"
-        aria-label="Search people"
-        className="h-12 w-full rounded-xl border border-line bg-surface px-4 text-[15px] text-ink placeholder:text-ink-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-      />
+      <div className="flex items-center gap-3 rounded-[14px] border border-line bg-surface px-[18px] py-[15px] text-ink-faint shadow-pop transition-colors focus-within:border-line-strong">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input
+          id={DESK_SEARCH_ID}
+          autoFocus
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setWalkIn(false) }}
+          placeholder="Search members & leads by name, phone, email, Emirates ID…"
+          aria-label="Search people"
+          className="w-full bg-transparent text-[15px] text-ink placeholder:text-ink-faint focus:outline-none"
+        />
+        <kbd className="shrink-0 rounded-[5px] border border-line px-[7px] py-px font-mono text-[11px] text-ink-3">/</kbd>
+      </div>
       {loading && <p className="text-[13px] text-ink-3">Searching…</p>}
       {!loading && q.trim() && hits.length === 0 && <p className="text-[13px] text-ink-3">No match.</p>}
       <div className="flex flex-col gap-2">

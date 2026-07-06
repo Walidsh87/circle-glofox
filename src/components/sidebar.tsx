@@ -1,5 +1,13 @@
 'use client'
 
+// Dashboard navigation sidebar.
+// "Run the gym" (23 items for owners) is split into focused, collapsible groups:
+//   pinned / Insights / Members / Billing / Marketing / Training / Athlete view / Workspace
+//   - Groups are collapsible; open/closed state persists in localStorage.
+//   - Group headers show item counts; Marketing + Athlete view collapsed by default for staff.
+//   - Role gating is owner/admin/coach/receptionist/athlete (unchanged from the flat layout).
+
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -19,80 +27,128 @@ type NavItem = {
 }
 
 type NavGroup = {
-  section: string
+  id: string
+  /** null = pinned group: no header, never collapsible */
+  section: string | null
   sectionKey?: string
+  defaultOpen: boolean
   items: NavItem[]
 }
 
+const STORAGE_KEY = 'circle.nav.collapsed'
+
 function getNavGroups(role: string): NavGroup[] {
   const isOwner = role === 'owner'
-  const isManager = role === 'owner' || role === 'admin'
+  const isManager = isOwner || role === 'admin'
   const isProgramming = isManager || role === 'coach'
   const isStaff = isProgramming || role === 'receptionist'
 
   const groups: NavGroup[] = []
 
-  const runTheGym: NavItem[] = [
+  // ── Pinned (no header) ──────────────────────────────────────────
+  const pinned: NavItem[] = [
     { key: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'home' },
   ]
-  if (isOwner) runTheGym.push({ key: 'kpi', label: 'Metrics', href: '/dashboard/kpi', icon: 'chart' })
-  if (isManager) runTheGym.push({ key: 'reports', label: 'Reports', href: '/dashboard/reports', icon: 'chart' })
-  if (isStaff) runTheGym.push({ key: 'retention', label: 'Retention', href: '/dashboard/retention', icon: 'activity' })
-  if (isManager) runTheGym.push({ key: 'lifecycle', label: 'Lifecycle', href: '/dashboard/lifecycle', icon: 'funnel' })
-  if (isStaff) runTheGym.push({ key: 'members', label: 'Member directory', href: '/dashboard/members', icon: 'users' })
-  if (isStaff) runTheGym.push({ key: 'desk', label: 'Front Desk', href: '/dashboard/desk', icon: 'desk' })
-  if (isStaff) runTheGym.push({ key: 'quotes', label: 'Quotes', href: '/dashboard/quotes', icon: 'book' })
-  if (isManager) runTheGym.push({ key: 'waivers', label: 'Waivers', href: '/dashboard/waivers', icon: 'shield' })
-  if (isOwner) runTheGym.push({ key: 'payments', label: 'Payments', href: '/dashboard/payments', icon: 'card' })
-  if (isManager) runTheGym.push({ key: 'packages', label: 'Packages', href: '/dashboard/packages', icon: 'tag' })
-  if (isManager) runTheGym.push({ key: 'broadcasts', label: 'Broadcasts', href: '/dashboard/broadcasts', icon: 'megaphone' })
-  if (isManager) runTheGym.push({ key: 'automations', label: 'Automations', href: '/dashboard/automations', icon: 'zap' })
-  if (isManager) runTheGym.push({ key: 'sequences', label: 'Sequences', href: '/dashboard/sequences', icon: 'layers' })
-  if (isManager) runTheGym.push({ key: 'sms', label: 'SMS', href: '/dashboard/sms', icon: 'phone' })
-  if (isManager) runTheGym.push({ key: 'whatsapp', label: 'WhatsApp', href: '/dashboard/whatsapp', icon: 'wa' })
-  if (isStaff) runTheGym.push({ key: 'inbox', label: 'Inbox', href: '/dashboard/inbox', icon: 'chat' })
-  if (isStaff) runTheGym.push({ key: 'tasks', label: 'Follow-ups', href: '/dashboard/tasks', icon: 'checklist' })
-  if (isManager) runTheGym.push({ key: 'referrals', label: 'Referrals', href: '/dashboard/referrals', icon: 'gift' })
-  if (isOwner) runTheGym.push({ key: 'attribution', label: 'Attribution', href: '/dashboard/attribution', icon: 'chart' })
-  if (isOwner) runTheGym.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
-  if (isOwner) runTheGym.push({ key: 'audit', label: 'Audit log', href: '/dashboard/audit', icon: 'book' })
-  if (isStaff) runTheGym.push({ key: 'help', label: 'Help', href: '/dashboard/help', icon: 'help' })
-  groups.push({ section: 'Run the gym', items: runTheGym })
+  if (isStaff) pinned.push({ key: 'desk', label: 'Front Desk', href: '/dashboard/desk', icon: 'desk' })
+  if (isStaff) pinned.push({ key: 'inbox', label: 'Inbox', href: '/dashboard/inbox', icon: 'chat' })
+  groups.push({ id: 'pinned', section: null, defaultOpen: true, items: pinned })
 
+  // ── Insights ────────────────────────────────────────────────────
+  const insights: NavItem[] = []
+  if (isOwner) insights.push({ key: 'kpi', label: 'Metrics', href: '/dashboard/kpi', icon: 'chart' })
+  if (isManager) insights.push({ key: 'reports', label: 'Reports', href: '/dashboard/reports', icon: 'chart' })
+  if (isStaff) insights.push({ key: 'retention', label: 'Retention', href: '/dashboard/retention', icon: 'activity' })
+  if (isManager) insights.push({ key: 'lifecycle', label: 'Lifecycle', href: '/dashboard/lifecycle', icon: 'funnel' })
+  if (isOwner) insights.push({ key: 'attribution', label: 'Attribution', href: '/dashboard/attribution', icon: 'chart' })
+  groups.push({ id: 'insights', section: 'Insights', defaultOpen: true, items: insights })
+
+  // ── Members ─────────────────────────────────────────────────────
+  const members: NavItem[] = []
+  if (isStaff) members.push({ key: 'members', label: 'Directory', href: '/dashboard/members', icon: 'users' })
+  if (isStaff) members.push({ key: 'tasks', label: 'Follow-ups', href: '/dashboard/tasks', icon: 'checklist' })
+  if (isManager) members.push({ key: 'waivers', label: 'Waivers', href: '/dashboard/waivers', icon: 'shield' })
+  if (isStaff) members.push({ key: 'quotes', label: 'Quotes', href: '/dashboard/quotes', icon: 'book' })
+  if (isManager) members.push({ key: 'referrals', label: 'Referrals', href: '/dashboard/referrals', icon: 'gift' })
+  groups.push({ id: 'members', section: 'Members', defaultOpen: true, items: members })
+
+  // ── Billing ─────────────────────────────────────────────────────
+  const billing: NavItem[] = []
+  if (isOwner) billing.push({ key: 'payments', label: 'Payments', href: '/dashboard/payments', icon: 'card' })
+  if (isManager) billing.push({ key: 'packages', label: 'Packages', href: '/dashboard/packages', icon: 'tag' })
+  groups.push({ id: 'billing', section: 'Billing', defaultOpen: true, items: billing })
+
+  // ── Marketing (collapsed by default) ────────────────────────────
+  const marketing: NavItem[] = []
+  if (isManager) {
+    marketing.push(
+      { key: 'broadcasts', label: 'Broadcasts', href: '/dashboard/broadcasts', icon: 'megaphone' },
+      { key: 'automations', label: 'Automations', href: '/dashboard/automations', icon: 'zap' },
+      { key: 'sequences', label: 'Sequences', href: '/dashboard/sequences', icon: 'layers' },
+      { key: 'sms', label: 'SMS', href: '/dashboard/sms', icon: 'phone' },
+      { key: 'whatsapp', label: 'WhatsApp', href: '/dashboard/whatsapp', icon: 'wa' },
+    )
+  }
+  groups.push({ id: 'marketing', section: 'Marketing', defaultOpen: false, items: marketing })
+
+  // ── Training ────────────────────────────────────────────────────
+  const training: NavItem[] = []
   if (isStaff) {
-    const programmingItems: NavItem[] = [
+    training.push(
       { key: 'prep', label: 'Class prep', href: '/dashboard/prep', icon: 'users' },
       { key: 'classes', label: 'Class schedule', href: '/dashboard/classes', icon: 'calendar' },
       { key: 'availability', label: 'Availability', href: '/dashboard/availability', icon: 'clock' },
       { key: 'pt', label: 'PT sessions', href: '/dashboard/pt', icon: 'calendar' },
       { key: 'cover', label: 'Cover', href: '/dashboard/cover', icon: 'swap' },
-    ]
-    if (isProgramming) programmingItems.push({ key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' })
-    if (isProgramming) programmingItems.push({ key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' })
-    if (isProgramming) programmingItems.push({ key: 'program-store', label: 'Program Store', labelKey: 'nav.programStore', href: '/dashboard/program-store', icon: 'clipboard' })
-    programmingItems.push({ key: 'whiteboard', label: 'Whiteboard', href: '/dashboard/whiteboard', icon: 'monitor', badge: 'live', badgeVariant: 'lime' })
-    programmingItems.push({ key: 'floor', label: 'Floor', href: '/dashboard/floor', icon: 'activity' })
-    groups.push({ section: 'Programming', items: programmingItems })
+    )
+    if (isProgramming) {
+      training.push(
+        { key: 'wod', label: 'Daily WOD', href: '/dashboard/wod', icon: 'flame' },
+        { key: 'programming', label: 'WOD Planner', href: '/dashboard/programming', icon: 'calendar' },
+        { key: 'program-store', label: 'Program Store', labelKey: 'nav.programStore', href: '/dashboard/program-store', icon: 'clipboard' },
+      )
+    }
+    training.push(
+      { key: 'whiteboard', label: 'Whiteboard', href: '/dashboard/whiteboard', icon: 'monitor', badge: 'live', badgeVariant: 'lime' },
+      { key: 'floor', label: 'Floor', href: '/dashboard/floor', icon: 'activity' },
+    )
   }
+  groups.push({ id: 'training', section: 'Training', defaultOpen: true, items: training })
 
-  const athleteItems: NavItem[] = []
-  if (!isStaff) athleteItems.push({ key: 'wod', label: 'Daily WOD', labelKey: 'nav.dailyWod', href: '/dashboard/wod', icon: 'flame' })
-  athleteItems.push({ key: 'schedule', label: 'Book a class', labelKey: 'nav.bookClass', href: '/dashboard/schedule', icon: 'book' })
-  athleteItems.push({ key: 'timer', label: 'Timer', labelKey: 'nav.timer', href: '/dashboard/timer', icon: 'clock' })
-  if (!isStaff) athleteItems.push({ key: 'shop', label: 'Buy a pack', labelKey: 'nav.buyPack', href: '/dashboard/shop', icon: 'tag' })
-  athleteItems.push({ key: 'lifts', label: 'My 1RMs', labelKey: 'nav.my1rms', href: '/dashboard/lifts', icon: 'barbell' })
-  athleteItems.push({ key: 'movements', label: 'Movements', labelKey: 'nav.movements', href: '/dashboard/movements', icon: 'play' })
-  athleteItems.push({ key: 'skills', label: 'Skill bests', labelKey: 'nav.skills', href: '/dashboard/skill-bests', icon: 'medal' })
-  athleteItems.push({ key: 'goals', label: 'My goals', labelKey: 'nav.goals', href: '/dashboard/goals', icon: 'target' })
-  athleteItems.push({ key: 'program', label: 'My program', labelKey: 'nav.program', href: '/dashboard/program', icon: 'clipboard' })
-  athleteItems.push({ key: 'feed', label: 'Activity Feed', labelKey: 'nav.activityFeed', href: '/dashboard/feed', icon: 'activity' })
-  athleteItems.push({ key: 'committed-club', label: 'Committed Club', labelKey: 'nav.committedClub', href: '/dashboard/committed-club', icon: 'trophy' })
-  athleteItems.push({ key: 'achievements', label: 'Achievements', labelKey: 'nav.achievements', href: '/dashboard/achievements', icon: 'award' })
-  athleteItems.push({ key: 'messages', label: 'Messages', labelKey: 'nav.messages', href: '/dashboard/messages', icon: 'chat' })
-  athleteItems.push({ key: 'profile', label: 'My Profile', labelKey: 'nav.myProfile', href: '/dashboard/profile', icon: 'person' })
-  groups.push({ section: 'Athletes', sectionKey: 'nav.athletesSection', items: athleteItems })
+  // ── Athlete view (staff: collapsed peek; athletes: their main nav) ──
+  const athlete: NavItem[] = []
+  if (!isStaff) athlete.push({ key: 'wod', label: 'Daily WOD', labelKey: 'nav.dailyWod', href: '/dashboard/wod', icon: 'flame' })
+  athlete.push({ key: 'schedule', label: 'Book a class', labelKey: 'nav.bookClass', href: '/dashboard/schedule', icon: 'book' })
+  athlete.push({ key: 'timer', label: 'Timer', labelKey: 'nav.timer', href: '/dashboard/timer', icon: 'clock' })
+  if (!isStaff) athlete.push({ key: 'shop', label: 'Buy a pack', labelKey: 'nav.buyPack', href: '/dashboard/shop', icon: 'tag' })
+  athlete.push(
+    { key: 'lifts', label: 'My 1RMs', labelKey: 'nav.my1rms', href: '/dashboard/lifts', icon: 'barbell' },
+    { key: 'movements', label: 'Movements', labelKey: 'nav.movements', href: '/dashboard/movements', icon: 'play' },
+    { key: 'skills', label: 'Skill bests', labelKey: 'nav.skills', href: '/dashboard/skill-bests', icon: 'medal' },
+    { key: 'goals', label: 'My goals', labelKey: 'nav.goals', href: '/dashboard/goals', icon: 'target' },
+    { key: 'program', label: 'My program', labelKey: 'nav.program', href: '/dashboard/program', icon: 'clipboard' },
+    { key: 'feed', label: 'Activity Feed', labelKey: 'nav.activityFeed', href: '/dashboard/feed', icon: 'activity' },
+    { key: 'committed-club', label: 'Committed Club', labelKey: 'nav.committedClub', href: '/dashboard/committed-club', icon: 'trophy' },
+    { key: 'achievements', label: 'Achievements', labelKey: 'nav.achievements', href: '/dashboard/achievements', icon: 'award' },
+    { key: 'messages', label: 'Messages', labelKey: 'nav.messages', href: '/dashboard/messages', icon: 'chat' },
+    { key: 'profile', label: 'My Profile', labelKey: 'nav.myProfile', href: '/dashboard/profile', icon: 'person' },
+  )
+  groups.push({
+    id: 'athlete',
+    section: isStaff ? 'Athlete view' : 'Athletes',
+    sectionKey: isStaff ? undefined : 'nav.athletesSection',
+    defaultOpen: !isStaff, // athletes see their nav open; staff get a collapsed peek
+    items: athlete,
+  })
 
-  return groups
+  // ── Workspace ───────────────────────────────────────────────────
+  const workspace: NavItem[] = []
+  if (isOwner) workspace.push({ key: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings' })
+  if (isOwner) workspace.push({ key: 'audit', label: 'Audit log', href: '/dashboard/audit', icon: 'book' })
+  if (isStaff) workspace.push({ key: 'help', label: 'Help', href: '/dashboard/help', icon: 'help' })
+  groups.push({ id: 'workspace', section: 'Workspace', defaultOpen: true, items: workspace })
+
+  // Drop groups a role can't see into
+  return groups.filter((g) => g.items.length > 0)
 }
 
 function initials(name: string | null) {
@@ -143,6 +199,26 @@ function CIcon({ name, size = 15 }: { name: string; size?: number }) {
   )
 }
 
+/** Collapse state persisted per group id. Missing key = group's defaultOpen. */
+function useCollapsed(): [Record<string, boolean>, (id: string, open: boolean) => void] {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) setCollapsed(JSON.parse(raw))
+    } catch { /* first visit / private mode */ }
+  }, [])
+
+  function set(id: string, open: boolean) {
+    setCollapsed((prev) => {
+      const next = { ...prev, [id]: !open }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
+  return [collapsed, set]
+}
 
 export function Sidebar({
   active,
@@ -160,6 +236,14 @@ export function Sidebar({
   const groups = getNavGroups(userRole)
   const userInitials = initials(userName)
   const boxInitial = boxName ? boxName[0].toUpperCase() : 'C'
+  const [collapsed, setCollapsed] = useCollapsed()
+
+  function isOpen(g: NavGroup) {
+    if (g.section === null) return true
+    // A group containing the active item is always shown open
+    if (g.items.some((i) => i.key === active)) return true
+    return !(collapsed[g.id] ?? !g.defaultOpen)
+  }
 
   async function handleSignOut() {
     document.cookie = 'locale=; Max-Age=0; path=/'
@@ -174,7 +258,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside className="hidden h-screen w-[248px] shrink-0 flex-col gap-[18px] overflow-y-auto border-r border-line bg-surface-2 px-3.5 py-5 md:flex">
+      <aside className="hidden h-screen w-[248px] shrink-0 flex-col gap-[14px] overflow-y-auto border-r border-line bg-surface-2 px-3.5 py-5 md:flex">
         {/* Logo */}
         <div className="flex items-center justify-between px-1.5">
           <div className="flex items-center gap-2 font-display text-[15px] font-semibold text-ink">
@@ -200,44 +284,65 @@ export function Sidebar({
         </div>
 
         {/* Nav groups */}
-        {groups.map((group) => (
-          <div key={group.section} className="flex flex-col gap-0.5">
-            <div className="font-mono px-2.5 pb-1.5 pt-0.5 text-xs uppercase tracking-[0.1em] text-ink-3">
-              {group.sectionKey ? t(group.sectionKey) : group.section}
-            </div>
-            {group.items.map((item) => {
-              const on = item.key === active
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  aria-current={on ? 'page' : undefined}
-                  className={cn(
-                    'flex items-center gap-2.5 rounded-lg border px-2.5 py-[7px] text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                    on
-                      ? 'border-line bg-surface font-semibold text-ink shadow-card'
-                      : 'border-transparent font-medium text-ink-2 hover:bg-surface hover:text-ink'
-                  )}
-                >
-                  <CIcon name={item.icon} size={15} />
-                  <span className="flex-1">{item.labelKey ? t(item.labelKey) : item.label}</span>
-                  {item.badge && (
-                    <span
+        <nav className="flex flex-1 flex-col">
+          {groups.map((group) => {
+            const open = isOpen(group)
+            return (
+              <div key={group.id} className="mb-3 flex flex-col gap-0.5">
+                {group.section !== null && (
+                  <button
+                    type="button"
+                    onClick={() => setCollapsed(group.id, !open)}
+                    aria-expanded={open}
+                    className="font-mono flex w-full items-center gap-1.5 px-2.5 pb-1.5 pt-0.5 text-left text-xs uppercase tracking-[0.1em] text-ink-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    <span>{group.sectionKey ? t(group.sectionKey) : group.section}</span>
+                    <span className="flex-1" />
+                    <span className="text-[10px] text-ink-3">{group.items.length}</span>
+                    <svg
+                      width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"
+                      className={cn('text-ink-faint transition-transform', !open && '-rotate-90')}
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                )}
+                {open && group.items.map((item) => {
+                  const on = item.key === active
+                  return (
+                    <Link
+                      key={item.key}
+                      href={item.href}
+                      aria-current={on ? 'page' : undefined}
                       className={cn(
-                        'font-mono rounded px-1 py-px text-[10px] font-semibold',
-                        item.badgeVariant === 'lime'
-                          ? 'bg-accent-soft text-accent-ink'
-                          : 'bg-danger-soft text-danger'
+                        'flex items-center gap-2.5 rounded-lg border px-2.5 py-[7px] text-[13.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                        on
+                          ? 'border-line bg-surface font-semibold text-ink shadow-card'
+                          : 'border-transparent font-medium text-ink-2 hover:bg-surface hover:text-ink'
                       )}
                     >
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-        ))}
+                      <CIcon name={item.icon} size={15} />
+                      <span className="flex-1">{item.labelKey ? t(item.labelKey) : item.label}</span>
+                      {item.badge && (
+                        <span
+                          className={cn(
+                            'font-mono rounded px-1 py-px text-[10px] font-semibold',
+                            item.badgeVariant === 'lime'
+                              ? 'bg-accent-soft text-accent-ink'
+                              : 'bg-danger-soft text-danger'
+                          )}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            )
+          })}
+        </nav>
 
         {/* User footer */}
         <div className="mt-auto flex items-center gap-2.5 border-t border-line pt-3">
@@ -259,7 +364,7 @@ export function Sidebar({
         </div>
       </aside>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — render logic unchanged; the 4 items shown follow the group order above (pinned first) */}
       <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-line bg-surface pb-[env(safe-area-inset-bottom,8px)] pt-2 md:hidden">
         {mobileItems.map((item) => {
           const on = item.key === active

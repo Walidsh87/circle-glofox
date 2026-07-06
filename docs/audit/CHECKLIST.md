@@ -16,6 +16,7 @@ You say **"run the audit."** Then:
 2. **§2 AUDIT — actually run these.** They drift silently (no gate catches them). I run the listed command / open the file, then report **PASS / WARN / FAIL** per item.
 3. **§3 Manual — you confirm.** Dashboard state outside the repo; I list what to check, you confirm the toggle/alert is live.
 4. **§4 N/A — skip** unless the named revive trigger has fired.
+5. **§5 Pending on owner — read first on a re-run:** open items from the last run that only Walid can close; anything still unticked carries forward as a finding.
 
 I report a verdict per item; runs are **ephemeral** (nothing committed) unless you ask to save a dated report. Items marked 🟢 I can check mechanically; 🟠 need your judgment.
 
@@ -125,6 +126,22 @@ These have no standing gate and **can drift between runs**. Run each command / o
 - **Pass:** ADRs current; `ARCHITECTURE.md` matches reality — refresh it when you add a service, top-level route group, cron/webhook, or data domain (see its Maintenance table).
 - ✅ **Gap closed 2026-06-28** — architecture doc + diagram now exist.
 
+### 2.14 — Supabase security advisors 🟢 🟡 *(added 2026-07-05 — was not in the original checklist)*
+- **Run:** the Supabase MCP `get_advisors` (type `security`, then `performance`) against prod — or Dashboard → Advisors.
+- **Check:** every WARN is either fixed or known-by-design. Known-by-design as of 2026-07-05: `rls_enabled_no_policy` on the 7 deliberate service-role-only tables (`api_keys`, `api_idempotency_keys`, `payment_events`, `portal_access_log`, `push_subscriptions`, `webhook_subscriptions`, `webhook_deliveries`); `waitlist_my_positions` authenticated-EXECUTE (mig 091 design).
+- **Pass:** no NEW advisor findings vs. that known-by-design list. *(Mig 096 cleared the 2026-07-05 batch: search_path pins + anon-EXECUTE revokes. Gotcha proven on prod: `REVOKE FROM anon` alone is a no-op — anon rides the PUBLIC default grant; revoke PUBLIC + re-grant.)*
+
+### 2.15 — circle-mobile (sibling repo) 📱 *(added 2026-07-05 — this checklist previously covered the web repo only)*
+- **Gates (CI since mobile PR #15):** `tsc --noEmit` → `jest` → `expo export` (bundle gate, dummy `EXPO_PUBLIC_` env) → gitleaks full-history. Glance the latest run; CI is **advisory only** until GitHub Pro enables required checks on the private repo.
+- **Run on audit:**
+  ```bash
+  cd ../circle-mobile && npm run type-check && npm test && npm audit --audit-level=high
+  # bundle secret scan:
+  npx expo export --platform ios --output-dir /tmp/exp && grep -rcE "service_role|sk_live|whsec_" /tmp/exp/_expo/static/js/ios/*.hbc
+  ```
+- **Check:** no `service_role`/live-key strings in source or bundle; tokens stored via SecureStore (chunked, `src/lib/supabase.ts`); only `EXPO_PUBLIC_` env in client code; audit-fix any non-breaking advisories.
+- **Known debt (2026-07-05):** 15 moderate advisories chained into Expo SDK 54's build toolchain — clears only with the breaking `expo@57` upgrade (deferred until the 5a redesign chain merges).
+
 ---
 
 ## §3 — Manual / dashboard 🎛️ (you confirm)
@@ -156,6 +173,36 @@ Kept for honesty — not dropped, just not warranted at ~1 gym. Revive when the 
 | Circuit breakers / fallback | today: rate-limiter fails-open; Stripe/Resend/Twilio failures degrade via `{ error }` + best-effort sends | several independent downstreams whose outages need isolation |
 | HIPAA | **not applicable** — UAE app, no US protected health info | — (don't expect to apply) |
 | GDPR | only if you onboard **EU members** | first EU member — until then your regime is **UAE PDPL** (Federal Decree-Law 45/2021), covered in §2.4 |
+
+---
+
+## §5 — Pending on owner 🙋 (from the 2026-07-05 full run)
+
+Everything the run left open that only Walid can close. Tick + date each; when all are ticked, fold the durable ones back into §3 and delete this section.
+
+### Dashboard toggles / checks
+- [ ] **Supabase Auth → enable leaked-password protection** (HaveIBeenPwned check; staff accounts have passwords) — advisor WARN from §2.14.
+- [ ] **§2.1 session settings glance** — Supabase → Authentication: access-token TTL ≤ 1h, refresh-token rotation ON; verify "sign out all users" works. *(Only §2 item not run on 2026-07-05 — dashboard-only.)*
+- [ ] **Backups / PITR** 🔴 — confirm Pro plan + PITR on (§3).
+- [ ] **Restore drill** 🔴 — none on record; do one PITR/rebuild per `disaster-recovery.md` §1 (§3).
+- [ ] **Spend / cost alerts** — Vercel + Supabase + Stripe + Anthropic/Resend/Twilio (§3).
+- [ ] **Sentry cron-failure alert** — the 5 unattended crons need a failure alert, not just error-spike (§3).
+- [ ] **Resend DNS** — SPF / DKIM / DMARC valid on the sending domain (§3).
+- [ ] **Uptime monitor** — external check on prod + `/api/health` (§3).
+- [ ] **Secrets rotation review** — nothing overdue per the `disaster-recovery.md` §3 table (§3).
+
+### Decisions / ratifications
+- [ ] **Ratify the DSAR export decisions** (PR #108, merged): staff notes (member_notes / coach scaling notes / outreach) ARE exported to the member; comms delivery logs + push endpoints + leads deliberately excluded — `data-inventory.md` §1 note + §7.
+- [ ] **Data-inventory §7 legal items** — retention periods, sub-processor DPAs, Supabase region, controller entity, DPO (pre-existing, restated for completeness).
+- [ ] **GitHub Pro for circle-mobile** (or make it public) — until then the new mobile CI (§2.15) is advisory, not a required check.
+
+### What the 2026-07-05 run ADDED beyond the original checklist (for the report)
+- **`e2e` became the 7th required check** on `main` (closed §2.10's remaining item).
+- **Automated a11y gate** (§2.12) — axe e2e specs; found + fixed ~15 real contrast failures (token-level, PR #109).
+- **§2.14 Supabase advisors** + **§2.15 circle-mobile** added as standing audit items (this run was the first to cover the mobile repo: first-ever CI there, gitleaks clean, bundle secret-scan clean).
+- **Mig 096** function hardening applied + probed on prod (advisor cleanup).
+- **PDPL export extended** to a complete DSAR response + `data-inventory.md` re-grounded (PR #108).
+- **`ARCHITECTURE.md` re-grounded** 2026-07-05 (mobile API, program store, skill bests).
 
 ---
 

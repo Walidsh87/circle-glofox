@@ -3,7 +3,7 @@
 **One consolidated checklist we run together whenever you want to check the health of the app.**
 It replaces the old scattered audit docs (see [Appendix](#appendix--what-this-replaced)). Tenant key: `box_id` (a gym = a "box").
 
-- **Baseline captured:** 2026-06-28 · **Last full run:** _(update when we run it)_
+- **Baseline captured:** 2026-06-28 · **Last full run:** 2026-07-05 (web + mobile)
 - **Repo:** `Walidsh87/circle-glofox` · **Prod:** `https://circle-glofox-rep.vercel.app` · **Supabase prod ref:** `qmhkmmonizkibxitcavs`
 
 ---
@@ -12,7 +12,7 @@ It replaces the old scattered audit docs (see [Appendix](#appendix--what-this-re
 
 You say **"run the audit."** Then:
 
-1. **§1 GATEs — glance, don't re-audit.** These are enforced continuously in CI; re-auditing them by hand every time is wasted effort. The check is: *are the 6 required checks still required on `main`, and is the latest run green?* Re-prove any one on demand with its command.
+1. **§1 GATEs — glance, don't re-audit.** These are enforced continuously in CI; re-auditing them by hand every time is wasted effort. The check is: *are the 7 required checks still required on `main`, and is the latest run green?* Re-prove any one on demand with its command.
 2. **§2 AUDIT — actually run these.** They drift silently (no gate catches them). I run the listed command / open the file, then report **PASS / WARN / FAIL** per item.
 3. **§3 Manual — you confirm.** Dashboard state outside the repo; I list what to check, you confirm the toggle/alert is live.
 4. **§4 N/A — skip** unless the named revive trigger has fired.
@@ -25,22 +25,22 @@ I report a verdict per item; runs are **ephemeral** (nothing committed) unless y
 
 ## §1 — Continuous GATEs 🔒 (glance)
 
-**Glance command — confirm the 6 gates are still required + the last run is green:**
+**Glance command — confirm the 7 gates are still required + the last run is green:**
 ```bash
 gh api repos/Walidsh87/circle-glofox/branches/main/protection/required_status_checks --jq '.checks[].context'
-# expect: ci  secret-scan  rls-isolation  supply-chain  access-control-table  verify-policy-roles
-gh run list --branch main --limit 1   # latest CI conclusion = success
+# expect: ci  secret-scan  rls-isolation  supply-chain  access-control-table  verify-policy-roles  e2e
+gh run list --branch main --limit 2   # latest CI + e2e conclusions = success
 ```
 A required check that has vanished from that list, or a red latest run, is itself a 🔴 finding (a gate silently regressed).
 
 | 🟢 | Your item | What the gate proves | Re-prove on demand |
 |---|---|---|---|
-| 🔴 | Multi-tenancy & data isolation | `rls-isolation` replays `schema.sql` + every migration on throwaway PG; asserts cross-box SELECT/UPDATE/DELETE→0, INSERT→`42501`, in-box writes pass, + W1/W2/W3 hardening probes | `npm run test:rls` *(27 checks)* |
+| 🔴 | Multi-tenancy & data isolation | `rls-isolation` replays `schema.sql` + every migration on throwaway PG; asserts cross-box SELECT/UPDATE/DELETE→0, INSERT→`42501`, in-box writes pass, + W1/W2/W3 hardening probes | `npm run test:rls` *(90 checks as of 2026-07-05)* |
 | 🔴 | Input sanitization / injection | Zod at every boundary (`_lib/validation.ts`); PostgREST filter escaping (e.g. `searchPeople` `.or()`); no raw SQL string-building — covered by `ci` + `rls-isolation` | `npm run lint && npm run type-check` |
 | 🔴 | Auth / authz / roles & permissions | `getUser()` on every action; page/action guards (`src/lib/auth/*-guards.ts`); RLS on every table; `verify-policy-roles` + `access-control-table` hold G⊆P | `npm run test` |
 | 🔴 | Dependency scanning & patching | `supply-chain` = `npm audit --audit-level=high` fails the build on high/critical advisories | `npm audit --audit-level=high` |
 | 🟡 | Secrets management | `secret-scan` (gitleaks, full history) + client-bundle scan + `src/env.ts` Zod validation (fail-loud on missing/`NEXT_PUBLIC_` misuse) | `npx gitleaks detect --no-banner` |
-| 🟡 | Unit / integration / regression tests | `ci` runs `npm run test:coverage` (261 test files) on every PR; merge blocked on red | `npm run test` |
+| 🟡 | Unit / integration / regression tests | `ci` runs `npm run test:coverage` (271 test files / 1892 tests as of 2026-07-05) on every PR; merge blocked on red | `npm run test` |
 | 🟡 | Coverage thresholds enforced in CI | `vitest.config.ts` thresholds (lines 70 / functions 70 / branches 60 / statements 70) over `src/**/_lib` + `src/lib/**`, enforced inside `ci` | `npm run test:coverage` |
 
 > The `ci` job is one job running **lint → type-check → test:coverage → build** in order; `build` also catches RSC-boundary / static-gen breaks `tsc` misses.
@@ -107,7 +107,7 @@ These have no standing gate and **can drift between runs**. Run each command / o
 ### 2.10 — End-to-end critical-path tests 🟢 🟡
 - **Run:** `npm run e2e:db` (once — boots a local Supabase stack + applies schema) then `npm run test:e2e` (see [`e2e/README.md`](../../e2e/README.md)).
 - **Check:** the named happy-paths exist + pass — login→book→check-in, buy pack→credit→book, and membership payment→invoice (shown on the member page). Magic-link auth bypassed via admin `generateLink` → the real `/auth/confirm`.
-- ✅ **Mostly closed 2026-06-28** — Playwright suite + a local Supabase stack + the 3 critical paths shipped (local-first; surfaced the prod booking-grant bug, mig 089). **Remaining:** wire `test:e2e` into CI (needs a CI Supabase stack / dedicated test project).
+- ✅ **Closed 2026-07-05** — Playwright suite + a local Supabase stack + the 3 critical paths shipped (local-first; surfaced the prod booking-grant bug, mig 089), and `e2e` is now a **required check on `main`** — this item is effectively a §1 gate; glance it there.
 
 ### 2.11 — Code-review process & standards 🟢 🟡
 - **Run:** `ls .husky/ .github/pull_request_template.md` + the §1 glance command.

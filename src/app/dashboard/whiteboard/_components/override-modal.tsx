@@ -88,6 +88,7 @@ export function OverrideModal({
       {selected === 'Other' && (
         <input
           type="text"
+          aria-label="Override reason"
           value={otherText}
           onChange={(e) => setOtherText(e.target.value)}
           placeholder="Describe the reason"

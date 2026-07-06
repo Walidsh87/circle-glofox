@@ -31,14 +31,27 @@ ALTER FUNCTION public.default_parq_questions()          SET search_path = public
 ALTER FUNCTION public.normalize_uae_phone(text)         SET search_path = public, pg_temp;
 
 -- ── (2) auth helpers: drop anon, keep authenticated ─────────────────────────
-REVOKE EXECUTE ON FUNCTION public.auth_box_id()         FROM anon;
-REVOKE EXECUTE ON FUNCTION public.auth_role()           FROM anon;
-REVOKE EXECUTE ON FUNCTION public.auth_is_staff()       FROM anon;
-REVOKE EXECUTE ON FUNCTION public.auth_is_manager()     FROM anon;
-REVOKE EXECUTE ON FUNCTION public.auth_is_programming() FROM anon;
+-- anon's EXECUTE rides the PUBLIC default grant, so PUBLIC must be revoked and
+-- the needed roles re-granted (REVOKE FROM anon alone is a no-op — proven on
+-- prod during the 2026-07-05 apply; same gotcha as the mig 091 waitlist RPC).
+REVOKE EXECUTE ON FUNCTION public.auth_box_id()         FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.auth_role()           FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.auth_is_staff()       FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.auth_is_manager()     FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.auth_is_programming() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.auth_box_id()         TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.auth_role()           TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.auth_is_staff()       TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.auth_is_manager()     TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.auth_is_programming() TO authenticated, service_role;
 
 -- ── (3) trigger functions: system-fired only, no RPC exposure ───────────────
-REVOKE EXECUTE ON FUNCTION public.create_default_waiver()  FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.create_default_terms()   FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.create_default_parq()    FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.handle_self_signup()     FROM anon, authenticated;
+-- Trigger execution does not require caller EXECUTE; service_role kept for ops.
+REVOKE EXECUTE ON FUNCTION public.create_default_waiver()  FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_default_terms()   FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_default_parq()    FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.handle_self_signup()     FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_default_waiver()  TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_default_terms()   TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_default_parq()    TO service_role;
+GRANT EXECUTE ON FUNCTION public.handle_self_signup()     TO service_role;

@@ -674,14 +674,15 @@ ALTER FUNCTION public.bump_gym_parq_updated_at()        RESET search_path;
 ALTER FUNCTION public.default_terms_content(text)       RESET search_path;
 ALTER FUNCTION public.default_parq_questions()          RESET search_path;
 ALTER FUNCTION public.normalize_uae_phone(text)         RESET search_path;
--- Re-grant the RPC exposure (only if something genuinely needs it):
-GRANT EXECUTE ON FUNCTION public.auth_box_id()         TO anon;
-GRANT EXECUTE ON FUNCTION public.auth_role()           TO anon;
-GRANT EXECUTE ON FUNCTION public.auth_is_staff()       TO anon;
-GRANT EXECUTE ON FUNCTION public.auth_is_manager()     TO anon;
-GRANT EXECUTE ON FUNCTION public.auth_is_programming() TO anon;
-GRANT EXECUTE ON FUNCTION public.create_default_waiver()  TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.create_default_terms()   TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.create_default_parq()    TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.handle_self_signup()     TO anon, authenticated;
+-- Re-grant the RPC exposure (only if something genuinely needs it) — the
+-- forward migration revoked PUBLIC, so restore the PUBLIC default grant:
+GRANT EXECUTE ON FUNCTION public.auth_box_id()         TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.auth_role()           TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.auth_is_staff()       TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.auth_is_manager()     TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.auth_is_programming() TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_default_waiver()  TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_default_terms()   TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_default_parq()    TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.handle_self_signup()     TO PUBLIC;
 ```

@@ -263,7 +263,7 @@ export default async function WhiteboardPage() {
                         {load && (
                           <span className={cn(
                             'whitespace-nowrap font-mono text-[15px] font-bold',
-                            oneRm !== null ? 'text-accent-ink' : 'text-ink-faint'
+                            oneRm !== null ? 'text-accent-ink' : 'text-ink-2'
                           )}>{load}</span>
                         )}
                       </div>

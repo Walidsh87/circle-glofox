@@ -1,6 +1,6 @@
 # Migration rollbacks
 
-Reverse procedures for migrations `008`–`094` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
+Reverse procedures for migrations `008`–`096` (referenced by the DR runbook, `docs/runbooks/disaster-recovery.md`).
 
 > **Before running any of these:**
 > - **Take a backup / prefer PITR.** For data loss, restoring from a backup is almost always safer than a `DROP`.
@@ -658,4 +658,30 @@ ALTER TABLE program_set_logs DROP COLUMN IF EXISTS duration_seconds;
 ALTER TABLE program_exercises DROP COLUMN IF EXISTS metric;
 ALTER TABLE program_exercises DROP COLUMN IF EXISTS video_url;
 -- (CHECK constraints drop with their columns.)
+```
+
+### 096_function_hardening
+**Avoid reverting — security hardening (advisor cleanup), no data involved.** Reverse:
+```sql
+-- Unpin search_path (restores the mutable-search_path advisor WARNs):
+ALTER FUNCTION public.consume_credit(uuid)              RESET search_path;
+ALTER FUNCTION public.refund_credit(uuid)               RESET search_path;
+ALTER FUNCTION public.next_invoice_sequence(uuid)       RESET search_path;
+ALTER FUNCTION public.next_credit_note_sequence(uuid)   RESET search_path;
+ALTER FUNCTION public.next_quote_sequence(uuid)         RESET search_path;
+ALTER FUNCTION public.bump_gym_terms_updated_at()       RESET search_path;
+ALTER FUNCTION public.bump_gym_parq_updated_at()        RESET search_path;
+ALTER FUNCTION public.default_terms_content(text)       RESET search_path;
+ALTER FUNCTION public.default_parq_questions()          RESET search_path;
+ALTER FUNCTION public.normalize_uae_phone(text)         RESET search_path;
+-- Re-grant the RPC exposure (only if something genuinely needs it):
+GRANT EXECUTE ON FUNCTION public.auth_box_id()         TO anon;
+GRANT EXECUTE ON FUNCTION public.auth_role()           TO anon;
+GRANT EXECUTE ON FUNCTION public.auth_is_staff()       TO anon;
+GRANT EXECUTE ON FUNCTION public.auth_is_manager()     TO anon;
+GRANT EXECUTE ON FUNCTION public.auth_is_programming() TO anon;
+GRANT EXECUTE ON FUNCTION public.create_default_waiver()  TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_default_terms()   TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_default_parq()    TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.handle_self_signup()     TO anon, authenticated;
 ```

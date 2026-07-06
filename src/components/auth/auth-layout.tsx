@@ -33,7 +33,7 @@ export function AuthLayout({
 
         <div className="w-full max-w-sm">{children}</div>
 
-        <footer className="flex items-center justify-between text-xs text-ink-3">
+        <footer className="flex items-center justify-between text-xs text-ink-2">
           <div className="font-mono">{t('login.copyright')}</div>
           <div className="flex gap-3.5">
             <span>{t('login.footerPrivacy')}</span>

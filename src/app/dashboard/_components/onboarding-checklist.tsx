@@ -13,7 +13,7 @@ export function OnboardingChecklist({ steps }: { steps: OnboardingStep[] }) {
           <div className="font-mono text-[11.5px] text-ink-3">{done}/{total} done</div>
         </div>
         <form action={dismissOnboarding}>
-          <button type="submit" className="text-[11.5px] text-ink-faint underline hover:text-ink-3">Dismiss</button>
+          <button type="submit" className="text-[11.5px] text-ink-3 underline hover:text-ink-2">Dismiss</button>
         </form>
       </div>
       <div className="flex flex-col gap-1.5">

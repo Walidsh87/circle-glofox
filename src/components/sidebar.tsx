@@ -195,7 +195,7 @@ export function Sidebar({
             <div className="truncate text-[13px] font-semibold text-ink">
               {boxName || 'My Gym'}
             </div>
-            <div className="font-mono text-xs capitalize text-ink-3">{userRole}</div>
+            <div className="font-mono text-xs capitalize text-ink-2">{userRole}</div>
           </div>
         </div>
 
@@ -246,7 +246,7 @@ export function Sidebar({
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12.5px] font-semibold text-ink">{userName}</div>
-            <div className="font-mono text-xs capitalize text-ink-3">{userRole}</div>
+            <div className="font-mono text-xs capitalize text-ink-2">{userRole}</div>
           </div>
           <ThemeToggle />
           <button

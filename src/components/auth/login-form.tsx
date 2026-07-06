@@ -74,7 +74,7 @@ export function LoginForm({
 
   return (
     <div className="c-stage-in">
-      <div className="mb-3.5 font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
+      <div className="mb-3.5 font-mono text-xs uppercase tracking-[0.12em] text-ink-2">
         {t('login.eyebrow')}
       </div>
       <h1 className="mb-2 font-display text-4xl font-semibold leading-[1.05] tracking-[-0.02em] text-ink">

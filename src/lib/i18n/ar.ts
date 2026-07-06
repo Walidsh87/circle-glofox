@@ -126,7 +126,7 @@ export const ar: typeof en = {
     trialEnds: 'ينتهي في {date}',
     monthlyPrice: 'AED {price}/شهرياً',
     lastPaid: 'آخر دفعة {date}',
-    consistency: { section: 'الانتظام', weekStreak: 'سلسلة أسابيع', checkIns: 'تسجيلات الحضور', club: '🏅 نادي {badge}', nextMilestone: '{remaining} للوصول إلى نادي {threshold}' },
+    consistency: { section: 'الانتظام', weekStreak: 'سلسلة أسابيع', checkIns: 'تسجيلات الحضور', lastVisit: 'آخر زيارة', club: '🏅 نادي {badge}', nextMilestone: '{remaining} للوصول إلى نادي {threshold}' },
     personalMedical: { section: 'المعلومات الشخصية والطبية', dob: 'تاريخ الميلاد', bloodType: 'فصيلة الدم', emergencyContact: 'جهة اتصال الطوارئ', idDocument: 'وثيقة الهوية', noId: 'لا توجد هوية مسجلة', allergies: 'الحساسية / ملاحظات طبية' },
     lifts: { section: 'أرقام 1RM القصوى', empty: 'لم تُسجَّل أي رفعات بعد.' },
     scores: { section: 'سجل نتائج WOD', empty: 'لم تُسجَّل أي نتائج بعد.' },

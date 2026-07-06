@@ -9,7 +9,7 @@ import { EditMemberForm } from './_components/edit-member-form'
 import { SellPackage } from './_components/sell-package'
 import { PtScheduler } from './_components/pt-scheduler'
 import { PtSessionsList, type PtSessionItem } from './_components/pt-sessions-list'
-import { currentStreakWeeks, totalCheckins, currentMilestone, nextMilestone } from '@/lib/consistency'
+import { currentStreakWeeks, totalCheckins } from '@/lib/consistency'
 import { MembershipLifecycle } from './_components/membership-lifecycle'
 import { ChangePlan } from './_components/change-plan'
 import { MemberTags } from './_components/member-tags'
@@ -53,20 +53,26 @@ function ageFromDob(dob: string, today: string): number | null {
   return Math.floor((t - b) / (365.25 * 86400000))
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function relDayLabel(date: string | null, today: string): string {
+  if (!date) return '—'
+  const days = Math.floor((Date.parse(today) - Date.parse(date)) / 86_400_000)
+  return days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days}d ago`
+}
+
+function Field({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
-    <div>
-      <div className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">{label}</div>
-      <div className="mt-0.5 text-[13.5px] text-ink">{value}</div>
+    <div className={className}>
+      <div className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-ink-3">{label}</div>
+      <div className="mt-0.5 text-[12.5px] text-ink">{value}</div>
     </div>
   )
 }
 
-/** Standard profile section: card + mono eyebrow. */
+/** Standard profile section: card + mono eyebrow. Spacing comes from the column gap. */
 function Section({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <Card className={cn('mb-4 p-4', className)}>
-      <div className="mb-3 font-mono text-xs uppercase tracking-[0.06em] text-ink-3">{label}</div>
+    <Card className={cn('p-4', className)}>
+      <div className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">{label}</div>
       {children}
     </Card>
   )
@@ -362,8 +368,8 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
     .filter((d): d is string => d !== null)
   const consistencyTotal = totalCheckins(checkInDates)
   const consistencyStreak = currentStreakWeeks(checkInDates, today)
-  const consistencyBadge = currentMilestone(consistencyTotal)
-  const consistencyNext = nextMilestone(consistencyTotal)
+  const lastCheckIn = checkInDates.length ? checkInDates.reduce((a, b) => (a > b ? a : b)) : null
+  const lastVisitLabel = relDayLabel(lastCheckIn, today)
   const goalsData = goalsDataPromise ? await goalsDataPromise : null
   const programs = programsPromise ? await programsPromise : []
   const programMembers = programMembersPromise
@@ -407,218 +413,211 @@ export default async function MemberProfilePage(ctx: { params: Promise<{ memberI
         ) : undefined
       }
     >
-      <div className="max-w-[800px]">
-        {/* Profile card */}
-        <ProfileHeaderCard member={member} activeMembership={activeMembership} />
+      <div className="mx-auto flex max-w-[1020px] flex-col gap-4">
+        <ProfileHeaderCard
+          member={member}
+          activeMembership={activeMembership}
+          status={member.role === 'athlete' ? memberStatus : null}
+          tags={isStaff ? memberTags : []}
+          streak={consistencyStreak}
+          checkins={consistencyTotal}
+          lastVisitLabel={lastVisitLabel}
+        />
 
-        {viewer.role === 'owner' && activeMembership && (
-          <Section label="Membership lifecycle">
-            <MembershipLifecycle membershipId={activeMembership.id} frozenFrom={activeMembership.frozen_from ?? null} frozenUntil={activeMembership.frozen_until ?? null} endDate={activeMembership.end_date ?? null} today={today} />
-            {!activeMembership.is_trial && (
-              <div className="mt-3 border-t border-line pt-3">
-                <ChangePlan
-                  membershipId={activeMembership.id}
-                  currentMonthly={activeMembership.monthly_price_aed ?? null}
-                  anchor={activeMembership.last_paid_date ?? activeMembership.start_date}
-                  today={today}
-                  plans={planList ?? []}
-                />
-              </div>
+        <div className="grid gap-3.5 lg:grid-cols-[300px_1fr] lg:items-start">
+          {/* ── Left column: glanceable facts ── */}
+          <div className="flex flex-col gap-3.5">
+            {viewer.role === 'owner' && activeMembership && (
+              <Section label="Membership">
+                <MembershipLifecycle membershipId={activeMembership.id} frozenFrom={activeMembership.frozen_from ?? null} frozenUntil={activeMembership.frozen_until ?? null} endDate={activeMembership.end_date ?? null} today={today} />
+                {!activeMembership.is_trial && (
+                  <div className="mt-3 border-t border-line pt-3">
+                    <ChangePlan
+                      membershipId={activeMembership.id}
+                      currentMonthly={activeMembership.monthly_price_aed ?? null}
+                      anchor={activeMembership.last_paid_date ?? activeMembership.start_date}
+                      today={today}
+                      plans={planList ?? []}
+                    />
+                  </div>
+                )}
+              </Section>
             )}
-          </Section>
-        )}
 
-        {/* Consistency (Committed Club) */}
-        <Section label={t('profile.consistency.section')}>
-          <div className="flex flex-wrap items-baseline gap-5">
-            <div>
-              <span className="font-mono text-xl font-bold text-ink">{consistencyStreak > 0 ? `🔥 ${consistencyStreak}` : '—'}</span>{' '}
-              <span className="text-xs text-ink-3">{t('profile.consistency.weekStreak')}</span>
-            </div>
-            <div>
-              <span className="font-mono text-xl font-bold text-ink">{consistencyTotal}</span>{' '}
-              <span className="text-xs text-ink-3">{t('profile.consistency.checkIns')}{consistencyBadge !== null ? ` · ${t('profile.consistency.club', { badge: consistencyBadge })}` : ''}</span>
-            </div>
+            {/* Personal & medical — staff or self only */}
+            {canSeePii && (
+              <Section label={t('profile.personalMedical.section')}>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Field label={t('profile.personalMedical.dob')} value={memberWithPii.date_of_birth ? `${memberWithPii.date_of_birth}${ageFromDob(memberWithPii.date_of_birth, today) !== null ? ` · ${ageFromDob(memberWithPii.date_of_birth, today)}y` : ''}` : '—'} />
+                  <Field label={t('profile.personalMedical.bloodType')} value={memberWithPii.blood_type ?? '—'} />
+                  <Field className="col-span-2" label={t('profile.personalMedical.emergencyContact')} value={memberWithPii.emergency_contact_name ? `${memberWithPii.emergency_contact_name}${memberWithPii.emergency_contact_phone ? ` · ${memberWithPii.emergency_contact_phone}` : ''}` : '—'} />
+                  <Field
+                    className="col-span-2"
+                    label={t('profile.personalMedical.idDocument')}
+                    value={memberWithPii.id_number
+                      ? `${ID_TYPE_LABELS[memberWithPii.id_type as IdType] ?? 'ID'} · ${formatIdNumber(memberWithPii.id_type ?? '', memberWithPii.id_number)}`
+                      : t('profile.personalMedical.noId')}
+                  />
+                </div>
+                <div className="mt-3">
+                  <div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.06em] text-ink-3">{t('profile.personalMedical.allergies')}</div>
+                  {memberWithPii.allergies
+                    ? <div className="rounded-lg bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn">⚠️ {memberWithPii.allergies}</div>
+                    : <div className="text-[12.5px] text-ink-3">—</div>}
+                </div>
+              </Section>
+            )}
+
+            {isStaff && (
+              <Section label="Tags">
+                <MemberTags athleteId={member.id} tags={memberTags} suggestions={tagSuggestions} />
+              </Section>
+            )}
+
+            {/* PT sessions (#95) — staff schedule; staff + member view */}
+            {(isStaff || isSelf) && (
+              <Section label="PT sessions">
+                {isStaff && <PtScheduler athleteId={params.memberId} coaches={(boxCoaches ?? []) as { id: string; full_name: string | null }[]} ptCreditsAvailable={ptCreditsAvailable} />}
+                <div className={isStaff ? 'mt-3' : ''}>
+                  <PtSessionsList sessions={ptSessions} timeZone={box.timezone ?? 'Asia/Dubai'} canCancel={isStaff} />
+                </div>
+              </Section>
+            )}
           </div>
-          {consistencyNext && (
-            <div className="mt-2 text-[11.5px] text-ink-3">{t('profile.consistency.nextMilestone', { remaining: consistencyNext.remaining, threshold: consistencyNext.threshold })}</div>
-          )}
-        </Section>
 
-        {isStaff && (
-          <Section label="Tags">
-            <MemberTags athleteId={member.id} tags={memberTags} suggestions={tagSuggestions} />
-          </Section>
-        )}
+          {/* ── Right column: the work ── */}
+          <div className="flex flex-col gap-3.5">
+            {isStaff && (
+              <Section label={checklistKind === 'offboarding' ? 'Offboarding' : 'Onboarding'}>
+                <ChecklistCard memberId={member.id} steps={checklist.steps} total={checklist.total} done={checklist.done} />
+              </Section>
+            )}
 
-        {goalsData && (
-          <Section label="Goals">
-            <GoalsCard athleteId={member.id} goals={goalsData.goals} canManage={isProgramming || isSelf} />
-          </Section>
-        )}
+            {isStaff && (
+              <Section label="Follow-ups">
+                <MemberFollowups memberId={member.id} tasks={followups} staff={boxStaffList} />
+              </Section>
+            )}
 
-        {goalsData && (
-          <Section label="Training plan">
-            <TrainingPlanCard athleteId={member.id} plans={goalsData.plans} canManage={isProgramming} />
-          </Section>
-        )}
+            {isStaff && (
+              <Section label="Notes">
+                <MemberNotes athleteId={member.id} notes={memberNotes} timeZone={box?.timezone ?? 'Asia/Dubai'} />
+              </Section>
+            )}
 
-        {(isStaff || isSelf) && (
-          <Section label="Program">
-            <ProgramCard
-              athleteId={member.id}
-              programs={programs}
-              canManage={isProgramming}
-              members={programMembers}
-            />
-          </Section>
-        )}
+            {isStaff && member.role === 'athlete' && (
+              <Section label="PAR-Q">
+                <ParqCard
+                  athleteId={member.id}
+                  response={parqResponse ? {
+                    parqVersion: parqResponse.parq_version,
+                    signedAt: parqResponse.signed_at,
+                    hasYes: parqResponse.has_yes,
+                    reviewedAt: parqResponse.reviewed_at,
+                    reviewedByName: parqResponse.reviewed_by ? (staffNameById.get(parqResponse.reviewed_by) ?? 'Staff') : null,
+                  } : null}
+                  flagged={parqResponse && parqDoc ? flaggedQuestions(parqDoc.questions, parqResponse.answers) : []}
+                  currentVersion={parqDoc?.version ?? 1}
+                />
+              </Section>
+            )}
 
-        {isManager && (
-          <Section label="Household">
-            <HouseholdCard
-              memberId={member.id}
-              household={household ? { id: household.id, name: household.name, primaryAthleteId: household.primary_athlete_id } : null}
-              members={householdMembers ?? []}
-              allHouseholds={(allHouseholds ?? []).filter((h) => h.id !== member.household_id)}
-            />
-          </Section>
-        )}
+            {/* 1RMs + Recent Scores */}
+            <LiftsScoresCards lifts={lifts} scores={scores} />
 
-        {isSelf && viewer.role === 'athlete' && referLink && (
-          <Section label={t('profile.refer.section')}>
-            <ReferCard link={referLink} referred={referredCount} joined={joinedCount} />
-          </Section>
-        )}
-
-        {isSelf && <div className="mb-4"><ChangePasswordCard /></div>}
-
-        {isSelf && (ALL_STAFF_ROLES as readonly string[]).includes(viewer.role) && (
-          <div className="mb-4"><MfaCard /></div>
-        )}
-
-        {isSelf && (
-          <Section label={t('profile.myDetails.section')}>
-            <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: memberWithPii.emergency_contact_name, emergencyContactPhone: memberWithPii.emergency_contact_phone, bloodType: memberWithPii.blood_type, allergies: memberWithPii.allergies }} />
-          </Section>
-        )}
-
-        {isSelf && viewer.role === 'athlete' && (
-          <Section label={t('profile.membership.section')}>
-            <MembershipCard
-              currentPlanName={activeMembership?.plan_name ?? null}
-              currentPriceAed={activeMembership?.monthly_price_aed ?? null}
-              plans={planCatalog}
-              pendingTo={planChangePendingTo}
-            />
-          </Section>
-        )}
-
-        {isSelf && viewer.role === 'athlete' && member.household_id && household && (
-          <Section label={t('profile.family.section')}>
-            <FamilyCard
-              householdName={household.name}
-              members={(householdMembers ?? []) as { id: string; full_name: string | null }[]}
-              primaryId={household.primary_athlete_id}
-              selfId={user.id}
-            />
-          </Section>
-        )}
-
-        {isSelf && viewer.role === 'athlete' && (
-          <Section label={t('profile.agreements.section')}>
-            <SelfAgreementsCard waiverSig={waiverSig} termsSig={termsSig} waiverText={waiverText} termsDoc={termsDoc}
-              parqResponse={parqResponse ? { parq_version: parqResponse.parq_version, answers: parqResponse.answers, signed_at: parqResponse.signed_at } : null}
-              parqDoc={parqDoc} />
-          </Section>
-        )}
-
-        {isStaff && (
-          <Section label={checklistKind === 'offboarding' ? 'Offboarding' : 'Onboarding'}>
-            <ChecklistCard memberId={member.id} steps={checklist.steps} total={checklist.total} done={checklist.done} />
-          </Section>
-        )}
-
-        {isStaff && (
-          <Section label="Follow-ups">
-            <MemberFollowups memberId={member.id} tasks={followups} staff={boxStaffList} />
-          </Section>
-        )}
-
-        {isStaff && (
-          <Section label="Notes">
-            <MemberNotes athleteId={member.id} notes={memberNotes} timeZone={box?.timezone ?? 'Asia/Dubai'} />
-          </Section>
-        )}
-
-        {/* Personal & medical — staff or self only */}
-        {canSeePii && (
-          <Section label={t('profile.personalMedical.section')}>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
-              <Field label={t('profile.personalMedical.dob')} value={memberWithPii.date_of_birth ? `${memberWithPii.date_of_birth}${ageFromDob(memberWithPii.date_of_birth, today) !== null ? ` · ${ageFromDob(memberWithPii.date_of_birth, today)}y` : ''}` : '—'} />
-              <Field label={t('profile.personalMedical.bloodType')} value={memberWithPii.blood_type ?? '—'} />
-              <Field label={t('profile.personalMedical.emergencyContact')} value={memberWithPii.emergency_contact_name ? `${memberWithPii.emergency_contact_name}${memberWithPii.emergency_contact_phone ? ` · ${memberWithPii.emergency_contact_phone}` : ''}` : '—'} />
-              <Field
-                label={t('profile.personalMedical.idDocument')}
-                value={memberWithPii.id_number
-                  ? `${ID_TYPE_LABELS[memberWithPii.id_type as IdType] ?? 'ID'} · ${formatIdNumber(memberWithPii.id_type ?? '', memberWithPii.id_number)}`
-                  : t('profile.personalMedical.noId')}
-              />
+            {/* Recent bookings + Invoices side-by-side */}
+            <div className="grid gap-3.5 md:grid-cols-2">
+              <RecentBookingsCard bookings={bookings} />
+              <InvoicesCard invoices={invoices} />
             </div>
-            <div className="mt-3">
-              <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">{t('profile.personalMedical.allergies')}</div>
-              {memberWithPii.allergies
-                ? <div className="rounded-lg bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn">⚠️ {memberWithPii.allergies}</div>
-                : <div className="text-[13px] text-ink-3">—</div>}
-            </div>
-          </Section>
-        )}
 
-        {isStaff && member.role === 'athlete' && (
-          <Section label="PAR-Q">
-            <ParqCard
-              athleteId={member.id}
-              response={parqResponse ? {
-                parqVersion: parqResponse.parq_version,
-                signedAt: parqResponse.signed_at,
-                hasYes: parqResponse.has_yes,
-                reviewedAt: parqResponse.reviewed_at,
-                reviewedByName: parqResponse.reviewed_by ? (staffNameById.get(parqResponse.reviewed_by) ?? 'Staff') : null,
-              } : null}
-              flagged={parqResponse && parqDoc ? flaggedQuestions(parqDoc.questions, parqResponse.answers) : []}
-              currentVersion={parqDoc?.version ?? 1}
-            />
-          </Section>
-        )}
+            {goalsData && (
+              <Section label="Goals">
+                <GoalsCard athleteId={member.id} goals={goalsData.goals} canManage={isProgramming || isSelf} />
+              </Section>
+            )}
 
-        {/* 1RMs + Recent Scores */}
-        <LiftsScoresCards lifts={lifts} scores={scores} />
+            {goalsData && (
+              <Section label="Training plan">
+                <TrainingPlanCard athleteId={member.id} plans={goalsData.plans} canManage={isProgramming} />
+              </Section>
+            )}
 
-        {/* Recent Bookings */}
-        <RecentBookingsCard bookings={bookings} />
+            {(isStaff || isSelf) && (
+              <Section label="Program">
+                <ProgramCard
+                  athleteId={member.id}
+                  programs={programs}
+                  canManage={isProgramming}
+                  members={programMembers}
+                />
+              </Section>
+            )}
 
-        {/* Invoices */}
-        <InvoicesCard invoices={invoices} />
+            {isManager && (
+              <Section label="Household">
+                <HouseholdCard
+                  memberId={member.id}
+                  household={household ? { id: household.id, name: household.name, primaryAthleteId: household.primary_athlete_id } : null}
+                  members={householdMembers ?? []}
+                  allHouseholds={(allHouseholds ?? []).filter((h) => h.id !== member.household_id)}
+                />
+              </Section>
+            )}
 
-        {/* Packages & credits — owner only */}
-        {isOwner && (
-          <div className="mt-5">
-            <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} />
+            {/* Self-view-only sections, in their existing order */}
+            {isSelf && viewer.role === 'athlete' && referLink && (
+              <Section label={t('profile.refer.section')}>
+                <ReferCard link={referLink} referred={referredCount} joined={joinedCount} />
+              </Section>
+            )}
+
+            {isSelf && <ChangePasswordCard />}
+
+            {isSelf && (ALL_STAFF_ROLES as readonly string[]).includes(viewer.role) && <MfaCard />}
+
+            {isSelf && (
+              <Section label={t('profile.myDetails.section')}>
+                <MyDetailsCard initial={{ phone: member.phone, emergencyContactName: memberWithPii.emergency_contact_name, emergencyContactPhone: memberWithPii.emergency_contact_phone, bloodType: memberWithPii.blood_type, allergies: memberWithPii.allergies }} />
+              </Section>
+            )}
+
+            {isSelf && viewer.role === 'athlete' && (
+              <Section label={t('profile.membership.section')}>
+                <MembershipCard
+                  currentPlanName={activeMembership?.plan_name ?? null}
+                  currentPriceAed={activeMembership?.monthly_price_aed ?? null}
+                  plans={planCatalog}
+                  pendingTo={planChangePendingTo}
+                />
+              </Section>
+            )}
+
+            {isSelf && viewer.role === 'athlete' && member.household_id && household && (
+              <Section label={t('profile.family.section')}>
+                <FamilyCard
+                  householdName={household.name}
+                  members={(householdMembers ?? []) as { id: string; full_name: string | null }[]}
+                  primaryId={household.primary_athlete_id}
+                  selfId={user.id}
+                />
+              </Section>
+            )}
+
+            {isSelf && viewer.role === 'athlete' && (
+              <Section label={t('profile.agreements.section')}>
+                <SelfAgreementsCard waiverSig={waiverSig} termsSig={termsSig} waiverText={waiverText} termsDoc={termsDoc}
+                  parqResponse={parqResponse ? { parq_version: parqResponse.parq_version, answers: parqResponse.answers, signed_at: parqResponse.signed_at } : null}
+                  parqDoc={parqDoc} />
+              </Section>
+            )}
+
+            {/* Owner-only, at the bottom */}
+            {isOwner && <SellPackage athleteId={params.memberId} packages={activePackages ?? []} credits={memberCredits ?? []} />}
+
+            {viewer.role === 'owner' && <PdplExportCard memberId={params.memberId} exports={pdplExports} />}
           </div>
-        )}
-
-        {/* PT sessions (#95) — staff schedule; staff + member view */}
-        {(isStaff || isSelf) && (
-          <Section label="PT sessions">
-            {isStaff && <PtScheduler athleteId={params.memberId} coaches={(boxCoaches ?? []) as { id: string; full_name: string | null }[]} ptCreditsAvailable={ptCreditsAvailable} />}
-            <div className={isStaff ? 'mt-3' : ''}>
-              <PtSessionsList sessions={ptSessions} timeZone={box.timezone ?? 'Asia/Dubai'} canCancel={isStaff} />
-            </div>
-          </Section>
-        )}
-
-        {/* PDPL Data Export — owner only */}
-        {viewer.role === 'owner' && <PdplExportCard memberId={params.memberId} exports={pdplExports} />}
+        </div>
       </div>
     </DashboardShell>
   )

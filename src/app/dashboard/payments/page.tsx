@@ -2,33 +2,37 @@ import { requireOwnerPage } from '@/lib/auth/page-guards'
 import { createServiceClient } from '@/lib/supabase/service'
 import { signPortalToken } from '@/lib/portal-token'
 import { env } from '@/env'
+import Link from 'next/link'
 import { DashboardShell } from '@/components/shell/dashboard-shell'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Table, Th, Td } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { formatShortDate } from '@/lib/date-utils'
 import { AddMembershipForm } from './_components/add-membership-form'
 import { PaymentActions } from './_components/payment-actions'
 import { CreateStripePlanForm } from './_components/create-stripe-plan-form'
 import { AddMembershipPlanForm } from './_components/add-membership-plan-form'
-import { MembershipPlanRow } from './_components/membership-plan-row'
+import { PlanRailRow } from './_components/plan-rail-row'
+import { PlansRailCard } from './_components/plans-rail-card'
 import { RemindersToggle } from './_components/reminders-toggle'
+import { PaymentsHeader } from './_components/payments-header'
 import { DownloadCsvButton } from '@/components/download-csv-button'
 import { isFrozenOn } from '@/lib/membership-status'
 
-const STATUS_TONES: Record<string, 'ok' | 'warn' | 'danger'> = {
-  paid: 'ok',
-  unpaid: 'warn',
-  overdue: 'danger',
+const STATUS_PILL: Record<string, string> = {
+  paid: 'bg-ok-soft text-ok',
+  unpaid: 'bg-warn-soft text-warn',
+  overdue: 'bg-danger-soft text-danger',
 }
 
-export default async function PaymentsPage() {
+type StatusFilter = 'all' | 'paid' | 'unpaid' | 'overdue'
+
+export default async function PaymentsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const sp = await searchParams
+  const statusFilter: StatusFilter = (['paid', 'unpaid', 'overdue'] as const).includes(sp.status as never)
+    ? (sp.status as StatusFilter)
+    : 'all'
   const { supabase, profile, boxName } = await requireOwnerPage()
 
   // Service client for the one read that touches a secret column (stripe_secret_key).
-  // RLS-client SELECT on that column is revoked from members by migration 019; only
-  // the derived `stripeConnected` boolean is ever exposed to the page.
   const service = createServiceClient()
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
@@ -51,8 +55,8 @@ export default async function PaymentsPage() {
       .select('stripe_secret_key, reminders_enabled')
       .eq('id', profile.box_id)
       .single(),
-    // Override-audit columns (overridden_*) are revoked from the RLS client by mig 093 (they leak
-    // another member's payment trouble); read them via the service client, box-scoped by session.
+    // Override-audit columns (overridden_*) are revoked from the RLS client by mig 093; read
+    // them via the service client, box-scoped by session.
     service
       .from('bookings')
       .select(`
@@ -86,22 +90,45 @@ export default async function PaymentsPage() {
   const stripeConnected = !!(box?.stripe_secret_key)
   const remindersEnabled = box?.reminders_enabled ?? true
 
-  const unpaidCount = memberships?.filter((m) => m.payment_status !== 'paid').length ?? 0
-  const paidCount = memberships?.filter((m) => m.payment_status === 'paid').length ?? 0
-  const overdueCount = memberships?.filter((m) => m.payment_status === 'overdue').length ?? 0
+  const all = memberships ?? []
+  const totalCount = all.length
+  const unpaidCount = all.filter((m) => m.payment_status !== 'paid').length
+  const paidCount = all.filter((m) => m.payment_status === 'paid').length
+  const overdueCount = all.filter((m) => m.payment_status === 'overdue').length
+
+  const shown = all.filter((m) =>
+    statusFilter === 'paid' ? m.payment_status === 'paid'
+      : statusFilter === 'unpaid' ? m.payment_status !== 'paid'
+      : statusFilter === 'overdue' ? m.payment_status === 'overdue'
+      : true
+  )
 
   const todayIso = new Date().toISOString().slice(0, 10)
-  const athletesWithTrials = [...new Set((memberships ?? []).filter((m) => m.is_trial).map((m) => m.athlete_id as string))]
-  const active = memberships?.filter((m) => !m.end_date && !isFrozenOn(m, todayIso)) ?? []
+  const athletesWithTrials = [...new Set(all.filter((m) => m.is_trial).map((m) => m.athlete_id as string))]
+  const active = all.filter((m) => !m.end_date && !isFrozenOn(m, todayIso))
   const mrr = active.reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
   const collected = active.filter((m) => m.payment_status === 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
   const outstanding = active.filter((m) => m.payment_status !== 'paid').reduce((sum, m) => sum + (Number(m.monthly_price_aed) || 0), 0)
 
-  // CSV export of the memberships table (#54)
-  const membershipCsvRows = (memberships ?? []).map((m) => {
+  // CSV export of the full memberships table (#54) — unfiltered.
+  const membershipCsvRows = all.map((m) => {
     const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
     return [p?.full_name ?? '', m.plan_name, m.monthly_price_aed, m.start_date, m.last_paid_date, m.payment_status]
   })
+
+  const CHIPS: { key: StatusFilter; label: string; count: number }[] = [
+    { key: 'all', label: 'All', count: totalCount },
+    { key: 'paid', label: 'Paid', count: paidCount },
+    { key: 'unpaid', label: 'Unpaid', count: unpaidCount },
+    { key: 'overdue', label: 'Overdue', count: overdueCount },
+  ]
+  const chipHref = (k: StatusFilter) => (k === 'all' ? '/dashboard/payments' : `/dashboard/payments?status=${k}`)
+  const chipClass = (c: { key: StatusFilter; count: number }) => {
+    const on = statusFilter === c.key
+    if (c.key === 'all') return cn('rounded-full px-3 py-1 text-xs font-semibold transition-colors', on ? 'bg-ink text-surface' : 'bg-surface-2 text-ink-3 hover:text-ink')
+    const tone = c.key === 'paid' ? 'bg-ok-soft text-ok' : c.key === 'unpaid' ? 'bg-warn-soft text-warn' : 'bg-danger-soft text-danger'
+    return cn('rounded-full px-3 py-1 text-xs font-semibold transition-colors', tone, on && 'ring-2 ring-current ring-offset-1 ring-offset-canvas')
+  }
 
   return (
     <DashboardShell
@@ -110,258 +137,188 @@ export default async function PaymentsPage() {
       userRole={profile.role}
       boxName={boxName}
       title="Payments"
-      actions={
-        <>
-          {unpaidCount > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-warn-soft px-2.5 py-0.5 text-xs font-semibold text-warn">
-              <span className="h-1.5 w-1.5 rounded-full bg-current" />
-              {unpaidCount} unpaid
-            </span>
-          )}
-          <DownloadCsvButton
-            filename="memberships.csv"
-            headers={['Athlete', 'Plan', 'Price (AED)', 'Start', 'Last paid', 'Status']}
-            rows={membershipCsvRows}
-          />
-        </>
-      }
     >
-      {/* Revenue summary — brand-dark hero in both themes */}
-      <div className="relative mb-4 overflow-hidden rounded-2xl bg-[#0A0A0A] p-5">
-        <div className="absolute -right-14 -top-14 h-[200px] w-[200px] rounded-full border-2 border-[#C8F135] opacity-15" />
-        <div className="mb-4 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#C8F135]">
-          Revenue Summary
-        </div>
-        <div className="relative grid grid-cols-2 gap-4 md:grid-cols-4">
-          <RevenueKpi label="MRR" value={mrr} />
-          <RevenueKpi label="Collected" value={collected} accent />
-          <RevenueKpi label="Outstanding" value={outstanding} warn />
-          <div>
-            <div className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-[#FAFAFA]/50">Active</div>
-            <div className="font-mono text-2xl font-bold tracking-[-0.02em] text-[#FAFAFA]">{active.length}</div>
-            <div className="mt-0.5 text-[11px] text-[#FAFAFA]/40">members</div>
+      <div className="mx-auto flex max-w-[1060px] flex-col gap-[18px]">
+        <PaymentsHeader
+          boxName={boxName}
+          count={totalCount}
+          unpaidCount={unpaidCount}
+          exportSlot={
+            <DownloadCsvButton
+              filename="memberships.csv"
+              headers={['Athlete', 'Plan', 'Price (AED)', 'Start', 'Last paid', 'Status']}
+              rows={membershipCsvRows}
+            />
+          }
+          addForm={<AddMembershipForm athletes={athletes ?? []} stripeConnected={stripeConnected} plans={(plans ?? []).filter((p) => p.active)} athletesWithTrials={athletesWithTrials} />}
+        />
+
+        {/* Revenue summary — brand-dark hero in both themes */}
+        <div className="relative overflow-hidden rounded-2xl bg-[#0A0A0A] p-5">
+          <div className="absolute -right-14 -top-14 h-[200px] w-[200px] rounded-full border-2 border-[#C8F135] opacity-15" />
+          <div className="mb-4 font-mono text-[10.5px] uppercase tracking-[0.1em] text-[#C8F135]">Revenue Summary</div>
+          <div className="relative grid grid-cols-2 gap-4 md:grid-cols-4">
+            <RevenueKpi label="MRR" value={mrr} />
+            <RevenueKpi label="Collected" value={collected} accent />
+            <RevenueKpi label="Outstanding" value={outstanding} warn />
+            <div>
+              <div className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-[#FAFAFA]/50">Active</div>
+              <div className="font-mono text-2xl font-bold tracking-[-0.02em] text-[#FAFAFA]">{active.length}</div>
+              <div className="mt-0.5 text-[11px] text-[#FAFAFA]/40">members</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Status KPI strip */}
-      <div className="mb-5 grid max-w-[500px] grid-cols-3 gap-3">
-        <KpiCard label="Paid" value={paidCount} variant="ok" />
-        <KpiCard label="Unpaid" value={unpaidCount} variant="warn" />
-        <KpiCard label="Overdue" value={overdueCount} variant="danger" />
-      </div>
-
-      {/* Stripe plan creation */}
-      {stripeConnected && (
-        <Card className="mb-4 p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <p className="m-0 text-[13px] font-semibold text-ink">Create Stripe plan</p>
-            <Badge tone="ok">Stripe connected</Badge>
-          </div>
-          <p className="mb-3 text-xs text-ink-3">
-            Creates a recurring monthly plan in your Stripe account. Copy the Price ID and paste it when adding a membership.
-          </p>
-          <CreateStripePlanForm />
-        </Card>
-      )}
-
-      {/* Membership plans catalog */}
-      <Card className="mb-4 p-5">
-        <p className="mb-3 text-[13px] font-semibold text-ink">Membership plans</p>
-        <AddMembershipPlanForm />
-        {(plans?.length ?? 0) > 0 && (
-          <table className="mt-3.5 w-full">
-            <thead>
-              <tr className="text-left text-[11px] uppercase tracking-[0.06em] text-ink-3">
-                <th className="px-3.5 py-1.5 font-medium">Plan</th>
-                <th className="px-3.5 py-1.5 font-medium">Price</th>
-                <th className="px-3.5 py-1.5 font-medium">Stripe ID</th>
-                <th className="px-3.5 py-1.5 font-medium">Status</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {plans!.map((p) => <MembershipPlanRow key={p.id} plan={p} />)}
-            </tbody>
-          </table>
-        )}
-      </Card>
-
-      {/* Add membership */}
-      <Card className="mb-5 p-5">
-        <p className="mb-3 text-[13px] font-semibold text-ink">Add membership</p>
-        <AddMembershipForm athletes={athletes ?? []} stripeConnected={stripeConnected} plans={(plans ?? []).filter((p) => p.active)} athletesWithTrials={athletesWithTrials} />
-      </Card>
-
-      {/* Recent overrides (30 days) */}
-      <Card className="mb-5 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-          <span className="text-[13px] font-semibold text-ink">Recent overrides (30 days)</span>
-          <span className="text-[11px] text-ink-3">
-            {(overrides ?? []).length} {(overrides ?? []).length === 1 ? 'override' : 'overrides'}
-          </span>
+        {/* Status filter chips */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {CHIPS.map((c) => (
+            <Link key={c.key} href={chipHref(c.key)} className={chipClass(c)}>
+              {c.label} · {c.count}
+            </Link>
+          ))}
+          <span className="flex-1" />
+          <span className="font-mono text-[11px] text-ink-3">click a status to filter</span>
         </div>
-        {(overrides ?? []).length === 0 ? (
-          <div className="p-5 text-center text-[13px] text-ink-3">No overrides in the last 30 days.</div>
-        ) : (
-          (overrides ?? []).map((o, i) => {
-            const athlete = (Array.isArray(o.athlete) ? o.athlete[0] : o.athlete) as { full_name?: string } | null
-            const coach   = (Array.isArray(o.coach)   ? o.coach[0]   : o.coach)   as { full_name?: string } | null
-            return (
-              <div
-                key={i}
-                className={cn(
-                  'grid grid-cols-[1fr_auto] items-center gap-2.5 px-5 py-3',
-                  i < (overrides ?? []).length - 1 && 'border-b border-line'
-                )}
-              >
-                <div>
-                  <div className="text-[13.5px] font-medium text-ink">{athlete?.full_name ?? 'Athlete'}</div>
-                  <div className="mt-0.5 text-[11.5px] text-ink-3">
-                    {o.overridden_reason} · by {coach?.full_name ?? 'Coach'}
+
+        {/* Main memberships table + right rail */}
+        <div className="grid gap-3.5 lg:grid-cols-[1.9fr_1fr] lg:items-start">
+          {/* Memberships table */}
+          <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+            <div className="grid grid-cols-[1.6fr_1.2fr_0.7fr_0.9fr_0.9fr_auto] items-center gap-3 border-b border-line bg-surface-2 px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
+              <span>Athlete</span>
+              <span>Plan</span>
+              <span className="text-right">AED</span>
+              <span>Last paid</span>
+              <span>Status</span>
+              <span />
+            </div>
+            {shown.map((m, i) => {
+              const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+              const frozen = isFrozenOn(m, todayIso)
+              return (
+                <div
+                  key={m.id}
+                  className={cn('grid grid-cols-[1.6fr_1.2fr_0.7fr_0.9fr_0.9fr_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-2', i < shown.length - 1 && 'border-b border-line')}
+                >
+                  <div className="min-w-0">
+                    <Link href={`/dashboard/members/${m.athlete_id}`} className="text-[13.5px] font-semibold text-ink transition-colors hover:text-accent-ink">
+                      {p?.full_name ?? '—'}
+                    </Link>
+                    {(m.failed_charge_attempts ?? 0) > 0 && (
+                      <div className="mt-0.5 text-[10.5px] text-warn">
+                        {m.failed_charge_attempts} card {m.failed_charge_attempts === 1 ? 'failure' : 'failures'} ·{' '}
+                        <a
+                          href={`/portal/${signPortalToken(m.id, env.PORTAL_SIGN_SECRET)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline transition-colors hover:text-ink"
+                        >
+                          copy update link
+                        </a>
+                      </div>
+                    )}
+                    {frozen && <div className="mt-0.5 font-mono text-[10.5px] font-bold text-warn">❄️ Frozen{m.frozen_until ? ` until ${m.frozen_until}` : ''}</div>}
+                    {m.is_trial && <div className="mt-0.5 font-mono text-[10.5px] font-bold text-accent-ink">Trial{m.end_date ? ` · ends ${m.end_date}` : ''}</div>}
+                    {m.end_date && m.end_date >= todayIso && <div className="mt-0.5 font-mono text-[10.5px] font-bold text-danger">Cancels {m.end_date}</div>}
                   </div>
-                </div>
-                <div className="font-mono text-[11px] text-ink-faint">
-                  {o.overridden_at ? formatShortDate(o.overridden_at) : ''}
-                </div>
-              </div>
-            )
-          })
-        )}
-      </Card>
-
-      {/* Automated reminders toggle */}
-      <Card className="mb-5 flex items-center justify-between px-5 py-3.5">
-        <div>
-          <div className="text-[13px] font-semibold text-ink">Automated billing reminders</div>
-          <div className="mt-0.5 text-[11.5px] text-ink-3">Sends 3 days before, on due, and 3 days overdue</div>
-        </div>
-        <RemindersToggle initialEnabled={remindersEnabled} />
-      </Card>
-
-      {/* Recent reminders sent */}
-      <Card className="mb-5 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-          <span className="text-[13px] font-semibold text-ink">Reminders sent</span>
-          <span className="text-[11px] text-ink-3">last 10</span>
-        </div>
-        {(reminders ?? []).length === 0 ? (
-          <div className="p-5 text-center text-[13px] text-ink-3">No reminders sent yet.</div>
-        ) : (
-          (reminders ?? []).map((r, i) => {
-            const membership = (Array.isArray(r.membership) ? r.membership[0] : r.membership) as { profiles?: { full_name?: string } | { full_name?: string }[] } | null
-            const athleteProfile = membership ? (Array.isArray(membership.profiles) ? membership.profiles[0] : membership.profiles) : null
-            const stageTone = r.stage === 'pre' ? 'ok' : r.stage === 'due' ? 'warn' : 'danger'
-            return (
-              <div
-                key={i}
-                className={cn(
-                  'grid grid-cols-[1fr_auto_auto] items-center gap-3 px-5 py-3',
-                  i < (reminders ?? []).length - 1 && 'border-b border-line'
-                )}
-              >
-                <div className="text-[13.5px] text-ink">{athleteProfile?.full_name ?? 'Member'}</div>
-                <Badge tone={stageTone} className="font-mono uppercase">{r.stage}</Badge>
-                <div className="font-mono text-[11px] text-ink-faint">
-                  {formatShortDate(r.sent_at)}
-                </div>
-              </div>
-            )
-          })
-        )}
-      </Card>
-
-      {/* Memberships table */}
-      <Table>
-        <thead>
-          <tr className="bg-surface-2">
-            <Th>Athlete</Th>
-            <Th>Plan</Th>
-            <Th className="text-right">Price (AED)</Th>
-            <Th>Start</Th>
-            <Th>Last paid</Th>
-            <Th>Status</Th>
-            <Th />
-          </tr>
-        </thead>
-        <tbody>
-          {memberships?.map((m) => {
-            const athleteProfile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
-            return (
-              <tr key={m.id} className="last:[&>td]:border-0">
-                <Td className="font-semibold">{athleteProfile?.full_name ?? '—'}</Td>
-                <Td className="text-ink-2">{m.plan_name}</Td>
-                <Td className="text-right">
-                  <span className="font-mono text-ink-2">{m.monthly_price_aed ? `${m.monthly_price_aed}` : '—'}</span>
-                </Td>
-                <Td><span className="font-mono text-xs text-ink-3">{m.start_date}</span></Td>
-                <Td><span className="font-mono text-xs text-ink-3">{m.last_paid_date ?? '—'}</span></Td>
-                <Td>
-                  <Badge tone={STATUS_TONES[m.payment_status] ?? 'warn'} className="capitalize">
-                    <span className="mr-1 h-[5px] w-[5px] rounded-full bg-current" />
-                    {m.payment_status}
-                  </Badge>
-                  {m.is_trial && (
-                    <span className="ml-1.5 font-mono text-[10.5px] font-bold text-accent-ink">
-                      Trial{m.end_date ? ` · ends ${m.end_date}` : ''}
+                  <span className="truncate text-[13px] text-ink-2">{m.plan_name}</span>
+                  <span className="text-right font-mono text-[12.5px] text-ink-2">{m.monthly_price_aed ?? '—'}</span>
+                  <span className="font-mono text-[11.5px] text-ink-3">{m.last_paid_date ?? '—'}</span>
+                  <span>
+                    <span className={cn('inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11.5px] font-semibold capitalize', STATUS_PILL[m.payment_status] ?? 'bg-warn-soft text-warn')}>
+                      {m.payment_status}
                     </span>
-                  )}
-                  {isFrozenOn(m, todayIso) && (
-                    <span className="ml-1.5 font-mono text-[10.5px] font-bold text-warn">❄️ Frozen</span>
-                  )}
-                  {m.end_date && m.end_date >= todayIso && (
-                    <span className="ml-1.5 font-mono text-[10.5px] font-bold text-danger">Cancels {m.end_date}</span>
-                  )}
-                  {(m.failed_charge_attempts ?? 0) > 0 && (
-                    <div className="mt-1 text-[10.5px] text-warn">
-                      {m.failed_charge_attempts} card {m.failed_charge_attempts === 1 ? 'failure' : 'failures'}
-                      {' · '}
-                      <a
-                        href={`/portal/${signPortalToken(m.id, env.PORTAL_SIGN_SECRET)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-ink underline transition-colors hover:text-accent-ink"
-                      >
-                        copy update link
-                      </a>
-                    </div>
-                  )}
-                </Td>
-                <Td className="text-right">
+                  </span>
                   <PaymentActions
                     membershipId={m.id}
                     currentStatus={m.payment_status}
                     hasStripePlan={!!m.provider_plan_ref}
                     stripeConnected={stripeConnected}
                   />
-                </Td>
-              </tr>
-            )
-          })}
-          {(!memberships || memberships.length === 0) && (
-            <tr>
-              <td colSpan={7} className="px-4 py-10 text-center text-[13px] text-ink-3">
-                No memberships yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
-    </DashboardShell>
-  )
-}
+                </div>
+              )
+            })}
+            {shown.length === 0 && (
+              <div className="px-4 py-10 text-center text-[13px] text-ink-3">
+                {totalCount === 0 ? 'No memberships yet.' : 'No memberships match this filter.'}
+              </div>
+            )}
+          </div>
 
-function KpiCard({ label, value, variant }: { label: string; value: number; variant: 'ok' | 'warn' | 'danger' }) {
-  const styles = {
-    ok: 'bg-ok-soft text-ok',
-    warn: 'bg-warn-soft text-warn',
-    danger: 'bg-danger-soft text-danger',
-  }[variant]
-  return (
-    <div className={cn('rounded-xl p-4', styles)}>
-      <div className="font-mono text-[10.5px] uppercase tracking-[0.06em]">{label}</div>
-      <div className="mt-1 font-display text-2xl font-bold tracking-[-0.02em]">{value}</div>
-    </div>
+          {/* Right rail */}
+          <div className="flex flex-col gap-3.5">
+            <PlansRailCard
+              addForm={<AddMembershipPlanForm />}
+              stripeForm={stripeConnected ? <CreateStripePlanForm /> : null}
+            >
+              {(plans?.length ?? 0) === 0 ? (
+                <div className="px-4 py-6 text-center text-[13px] text-ink-3">No plans yet.</div>
+              ) : (
+                plans!.map((p) => <PlanRailRow key={p.id} plan={p} />)
+              )}
+            </PlansRailCard>
+
+            <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-4 shadow-card">
+              <div className="flex-1">
+                <div className="text-[13px] font-semibold text-ink">Automated billing reminders</div>
+                <div className="mt-0.5 text-[11.5px] text-ink-3">3 days before, on due, 3 days overdue</div>
+              </div>
+              <RemindersToggle initialEnabled={remindersEnabled} />
+            </div>
+
+            <div className="rounded-xl border border-line bg-surface shadow-card">
+              <div className="flex items-center justify-between border-b border-line px-4 py-3">
+                <span className="text-[13.5px] font-semibold text-ink">Reminders sent</span>
+                <span className="font-mono text-[10.5px] text-ink-3">last 10</span>
+              </div>
+              {(reminders ?? []).length === 0 ? (
+                <div className="px-4 py-6 text-center text-[13px] text-ink-3">No reminders sent yet.</div>
+              ) : (
+                (reminders ?? []).map((r, i) => {
+                  const membership = (Array.isArray(r.membership) ? r.membership[0] : r.membership) as { profiles?: { full_name?: string } | { full_name?: string }[] } | null
+                  const athleteProfile = membership ? (Array.isArray(membership.profiles) ? membership.profiles[0] : membership.profiles) : null
+                  const stageTone = r.stage === 'pre' ? 'bg-ok-soft text-ok' : r.stage === 'due' ? 'bg-warn-soft text-warn' : 'bg-danger-soft text-danger'
+                  return (
+                    <div key={i} className={cn('flex items-center gap-2.5 px-4 py-2.5', i < (reminders ?? []).length - 1 && 'border-b border-line')}>
+                      <span className="flex-1 truncate text-[13px] text-ink">{athleteProfile?.full_name ?? 'Member'}</span>
+                      <span className={cn('font-mono text-[10px] font-semibold uppercase rounded px-1.5 py-px', stageTone)}>{r.stage}</span>
+                      <span className="font-mono text-[10.5px] text-ink-faint">{formatShortDate(r.sent_at)}</span>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent overrides (30 days) — full width, below the grid */}
+        <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+          <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+            <span className="text-[13px] font-semibold text-ink">Recent overrides (30 days)</span>
+            <span className="text-[11px] text-ink-3">
+              {(overrides ?? []).length} {(overrides ?? []).length === 1 ? 'override' : 'overrides'}
+            </span>
+          </div>
+          {(overrides ?? []).length === 0 ? (
+            <div className="p-5 text-center text-[13px] text-ink-3">No overrides in the last 30 days.</div>
+          ) : (
+            (overrides ?? []).map((o, i) => {
+              const athlete = (Array.isArray(o.athlete) ? o.athlete[0] : o.athlete) as { full_name?: string } | null
+              const coach = (Array.isArray(o.coach) ? o.coach[0] : o.coach) as { full_name?: string } | null
+              return (
+                <div key={i} className={cn('grid grid-cols-[1fr_auto] items-center gap-2.5 px-5 py-3', i < (overrides ?? []).length - 1 && 'border-b border-line')}>
+                  <div>
+                    <div className="text-[13.5px] font-medium text-ink">{athlete?.full_name ?? 'Athlete'}</div>
+                    <div className="mt-0.5 text-[11.5px] text-ink-3">{o.overridden_reason} · by {coach?.full_name ?? 'Coach'}</div>
+                  </div>
+                  <div className="font-mono text-[11px] text-ink-faint">{o.overridden_at ? formatShortDate(o.overridden_at) : ''}</div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </DashboardShell>
   )
 }
 
@@ -370,9 +327,7 @@ function RevenueKpi({ label, value, accent, warn }: { label: string; value: numb
   return (
     <div>
       <div className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-[#FAFAFA]/50">{label}</div>
-      <div className={cn('font-mono text-2xl font-bold tracking-[-0.02em]', color)}>
-        {Math.round(value).toLocaleString('en-US')}
-      </div>
+      <div className={cn('font-mono text-2xl font-bold tracking-[-0.02em]', color)}>{Math.round(value).toLocaleString('en-US')}</div>
       <div className="mt-0.5 text-[11px] text-[#FAFAFA]/40">AED / mo</div>
     </div>
   )

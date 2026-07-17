@@ -187,7 +187,7 @@ flowchart TB
     cls["class_templates · class_instances<br/>bookings · class_waitlist"]
   end
   subgraph prog["Programming & performance"]
-    pr["workouts(+templates) · workout_scores · score_reactions<br/>athlete_lifts(+history) · member_programs (incl. published<br/>Program Store templates) · program_sessions · program_exercises<br/>program_set_logs · goals · training_plans · movement_videos<br/>athlete_skill_bests · achievements · class_debriefs"]
+    pr["workouts(+templates) · workout_scores · score_reactions<br/>athlete_lifts(+history) · member_programs (incl. published<br/>Program Store templates) · program_sessions · program_exercises<br/>program_set_logs · goals · training_plans · movement_videos<br/>athlete_skill_bests · athlete_bar_speed_sets (camera VBT —<br/>analyzed on-device in circle-mobile; video never leaves the<br/>phone, only derived numbers are stored)<br/>achievements · class_debriefs"]
   end
   subgraph ops["Coaching & ops"]
     op["coach_availability · coach_time_off · pay_rates · pay_adjustments<br/>timecards · pt_sessions · sub_requests · member_notes · coach_notes"]

@@ -3,7 +3,7 @@
 **One consolidated checklist we run together whenever you want to check the health of the app.**
 It replaces the old scattered audit docs (see [Appendix](#appendix--what-this-replaced)). Tenant key: `box_id` (a gym = a "box").
 
-- **Baseline captured:** 2026-06-28 · **Last full run:** 2026-07-05 (web + mobile)
+- **Baseline captured:** 2026-06-28 · **Last full run:** 2026-07-17 (web + mobile) — previous: 2026-07-05
 - **Repo:** `Walidsh87/circle-glofox` · **Prod:** `https://circle-glofox-rep.vercel.app` · **Supabase prod ref:** `qmhkmmonizkibxitcavs`
 
 ---
@@ -128,7 +128,8 @@ These have no standing gate and **can drift between runs**. Run each command / o
 
 ### 2.14 — Supabase security advisors 🟢 🟡 *(added 2026-07-05 — was not in the original checklist)*
 - **Run:** the Supabase MCP `get_advisors` (type `security`, then `performance`) against prod — or Dashboard → Advisors.
-- **Check:** every WARN is either fixed or known-by-design. Known-by-design as of 2026-07-05: `rls_enabled_no_policy` on the 7 deliberate service-role-only tables (`api_keys`, `api_idempotency_keys`, `payment_events`, `portal_access_log`, `push_subscriptions`, `webhook_subscriptions`, `webhook_deliveries`); `waitlist_my_positions` authenticated-EXECUTE (mig 091 design).
+- **Check:** every WARN is either fixed or known-by-design. Known-by-design as of 2026-07-17: `rls_enabled_no_policy` on the 7 deliberate service-role-only tables (`api_keys`, `api_idempotency_keys`, `payment_events`, `portal_access_log`, `push_subscriptions`, `webhook_subscriptions`, `webhook_deliveries`); `waitlist_my_positions` authenticated-EXECUTE (mig 091 design); **`authenticated_security_definer_function_executable` on `auth_box_id` / `auth_role` / `auth_is_staff` / `auth_is_manager` / `auth_is_programming`** — a NEW linter rule (first seen 2026-07-17), **not a regression**. These are the RLS helpers themselves: every policy calls them, so revoking `authenticated` EXECUTE would break RLS evaluation for every signed-in user. Each returns only a value derived from the *caller's own* session (their `box_id`/`role`), and takes no arguments to pivot on — calling the RPC directly tells you nothing you can't read off your own profile. Known-by-design.
+- **Performance advisors (informational — tracked, not fixed):** as of 2026-07-17, 41 `auth_rls_initplan` (policies calling `auth.<fn>()` per row instead of `(select auth.<fn>())`), 260 `multiple_permissive_policies`, 110 unindexed FKs. All are **scale** debt, not correctness — harmless at ~1 gym, worth one batch pass **before gym #5** (same trigger as the load-testing item in §4).
 - **Pass:** no NEW advisor findings vs. that known-by-design list. *(Mig 096 cleared the 2026-07-05 batch: search_path pins + anon-EXECUTE revokes. Gotcha proven on prod: `REVOKE FROM anon` alone is a no-op — anon rides the PUBLIC default grant; revoke PUBLIC + re-grant.)*
 
 ### 2.15 — circle-mobile (sibling repo) 📱 *(added 2026-07-05 — this checklist previously covered the web repo only)*
@@ -176,9 +177,20 @@ Kept for honesty — not dropped, just not warranted at ~1 gym. Revive when the 
 
 ---
 
-## §5 — Pending on owner 🙋 (from the 2026-07-05 full run)
+## §5 — Pending on owner 🙋 (carried forward to the 2026-07-17 full run)
 
 Everything the run left open that only Walid can close. Tick + date each; when all are ticked, fold the durable ones back into §3 and delete this section.
+
+> **Every item below was still open on 2026-07-17** — the 2026-07-05 list carries forward unchanged, because each needs a dashboard/billing decision rather than a code change. The 🔴 backup pair (PITR + a restore drill) is the oldest and highest-stakes: the platform holds payments + PII and has never had a restore rehearsed.
+
+### The 2026-07-17 run's code findings (fixed — not pending on you)
+- **PDPL export was missing `athlete_bar_speed_sets`** (mig 097 landed the day *after* the export was declared a complete DSAR response) → fixed, PR #126. Same PR: the e2e class seed was midnight-flaky and could red the **required** `e2e` check (~30 min/day window).
+- **7 a11y defects + a mobile-nav regression** from the dashboard redesign → fixed, PR #127. Root cause worth remembering: the axe gate scanned 4 surfaces while the redesign touched 7, so it stayed green throughout. It now scans the redesigned pages too — and immediately caught a 21-node contrast bug the review had missed.
+- **Bar Speed calibrated the whole set from one Hough frame** (±4% radius error = ±4% on *every* velocity) → fixed, mobile PR #27, ahead of gym validation. Family flags stay OFF.
+- **Verified clean, no action:** cross-tenant isolation and the client/server trust boundary returned **zero findings** across the entire un-audited delta (web #111–#119, mobile #26).
+
+### Open for your call (product decision, not a bug)
+- [ ] **Desk `/` shortcut** (WCAG 2.1.4 Level A) — every compliant option is a product call: delete a designed affordance (`autoFocus` already covers the main flow), or build a preferences system to disable it. Left as-is; see PR #127.
 
 ### Dashboard toggles / checks
 - [ ] **Supabase Auth → enable leaked-password protection** (HaveIBeenPwned check; staff accounts have passwords) — advisor WARN from §2.14.
@@ -195,6 +207,12 @@ Everything the run left open that only Walid can close. Tick + date each; when a
 - [ ] **Ratify the DSAR export decisions** (PR #108, merged): staff notes (member_notes / coach scaling notes / outreach) ARE exported to the member; comms delivery logs + push endpoints + leads deliberately excluded — `data-inventory.md` §1 note + §7.
 - [ ] **Data-inventory §7 legal items** — retention periods, sub-processor DPAs, Supabase region, controller entity, DPO (pre-existing, restated for completeness).
 - [ ] **GitHub Pro for circle-mobile** (or make it public) — until then the new mobile CI (§2.15) is advisory, not a required check.
+
+### What the 2026-07-17 run ADDED
+- **§2.14** — the 5 new `auth_*` SECURITY DEFINER advisor WARNs dispositioned as known-by-design (new linter rule, not a regression); performance-advisor debt quantified with a "before gym #5" trigger.
+- **`verify-policy-roles` seed recipe** for `athlete_bar_speed_sets` — the gate can now *measure* that table's role access instead of trusting a PR body. It earned its keep immediately: it **rejected a wrong P claim in PR #126** (claimed `{athlete}`, measured `{owner, admin, coach, receptionist}`).
+- **axe gate widened** 4 → 8 surfaces + a mobile-viewport nav test (§2.12).
+- **`data-inventory.md` + `ARCHITECTURE.md`** re-grounded for the bar-speed data domain.
 
 ### What the 2026-07-05 run ADDED beyond the original checklist (for the report)
 - **`e2e` became the 7th required check** on `main` (closed §2.10's remaining item).

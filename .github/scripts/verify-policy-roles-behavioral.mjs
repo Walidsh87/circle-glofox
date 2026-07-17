@@ -72,6 +72,20 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  athlete_bar_speed_sets: async () => {
+    // Owned by a NON-athlete profile so bar_speed_self_manage can't match →
+    // the probe reflects pure ROLE access (bar_speed_staff_read = all staff),
+    // same reasoning as member_goals above. Every NOT NULL column carries a
+    // value satisfying its mig-097 CHECK (positive integers, reps = array).
+    const r = await client.query(
+      `insert into athlete_bar_speed_sets
+         (box_id, athlete_id, lift_name, load_grams, rep_count,
+          best_mcv_mm_s, mean_mcv_mm_s, peak_v_mm_s, velocity_loss_pct, reps)
+       values ($1, $2, 'back_squat', 100000, 3, 780, 690, 1240, 12, '[]'::jsonb) returning id`,
+      [BOX_T, roleProfile.owner]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   member_programs: async () => {
     // Owned by a NON-athlete profile → probe reflects pure role access (staff_read).
     const r = await client.query(

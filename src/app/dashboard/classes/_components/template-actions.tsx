@@ -66,11 +66,13 @@ export function TemplateActions({
         ref={triggerRef}
         type="button"
         onClick={() => setMenuOpen((o) => !o)}
-        // A disclosure, deliberately NOT role="menu": the ARIA menu pattern
-        // promises arrow-key roving focus we don't implement, and announcing a
-        // contract the widget doesn't honor is worse than plain buttons — which
-        // Tab reaches natively, in DOM order, right after the trigger.
-        aria-haspopup="true"
+        // A disclosure, deliberately NOT a menu: the ARIA menu pattern promises
+        // arrow-key roving focus we don't implement, and announcing a contract
+        // the widget doesn't honor is worse than plain buttons — which Tab
+        // reaches natively, in DOM order, right after the trigger. No
+        // aria-haspopup either: "true" maps to "menu" per the spec, which would
+        // re-announce exactly the pattern we removed. aria-expanded alone is
+        // the disclosure signal.
         aria-expanded={menuOpen}
         aria-label={`Actions for ${name}`}
         className="grid h-7 w-7 place-items-center rounded-md text-[16px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"

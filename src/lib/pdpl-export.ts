@@ -185,6 +185,23 @@ export type WaitlistRow = {
   created_at: string
 }
 
+/** One camera-VBT set the athlete logged from the phone (mig 097). Velocities in
+ *  mm/s, load in grams (house integer rule). `capture` is deliberately NOT
+ *  exported — schema-free device diagnostics (achieved fps, gate outcome, app
+ *  version), not data about the member; same call as the excluded comms
+ *  delivery logs / push endpoints (see docs/compliance/data-inventory.md §1). */
+export type BarSpeedSetRow = {
+  lift_name: string
+  load_grams: number
+  rep_count: number
+  best_mcv_mm_s: number
+  mean_mcv_mm_s: number
+  peak_v_mm_s: number
+  velocity_loss_pct: number
+  reps: unknown[]
+  logged_at: string
+}
+
 export type PdplExportInput = {
   profile: ProfileRow
   memberships: MembershipRow[]
@@ -195,6 +212,7 @@ export type PdplExportInput = {
   billingReminders: BillingReminderRow[]
   parqResponses?: ParqResponseRow[]
   skillBests?: SkillBestRow[]
+  barSpeedSets?: BarSpeedSetRow[]
   invoices?: InvoiceRow[]
   creditNotes?: CreditNoteRow[]
   termsSignatures?: TermsSignatureRow[]
@@ -229,6 +247,7 @@ export type PdplExportOutput = {
     billing_reminders: BillingReminderRow[]
     parq_responses: ParqResponseRow[]
     skill_bests: SkillBestRow[]
+    bar_speed_sets: BarSpeedSetRow[]
     invoices: InvoiceRow[]
     credit_notes: CreditNoteRow[]
     terms_signatures: TermsSignatureRow[]
@@ -265,6 +284,7 @@ export function buildPdplExport(input: PdplExportInput): PdplExportOutput {
       billing_reminders: input.billingReminders,
       parq_responses: input.parqResponses ?? [],
       skill_bests: input.skillBests ?? [],
+      bar_speed_sets: input.barSpeedSets ?? [],
       invoices: input.invoices ?? [],
       credit_notes: input.creditNotes ?? [],
       terms_signatures: input.termsSignatures ?? [],

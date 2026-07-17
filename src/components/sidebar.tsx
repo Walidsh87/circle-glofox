@@ -189,6 +189,7 @@ const ICON_PATHS: Record<string, React.ReactNode> = {
   swap: <><path d="M7 4 3 8l4 4" /><path d="M3 8h14" /><path d="M17 20l4-4-4-4" /><path d="M21 16H7" /></>,
   play: <path d="M8 5v14l11-7z" />,
   help: <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zM9.6 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1.1.9-1.1 1.7M12 17h.01" />,
+  menu: <><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></>,
 }
 
 function CIcon({ name, size = 15 }: { name: string; size?: number }) {
@@ -237,6 +238,7 @@ export function Sidebar({
   const userInitials = initials(userName)
   const boxInitial = boxName ? boxName[0].toUpperCase() : 'C'
   const [collapsed, setCollapsed] = useCollapsed()
+  const [moreOpen, setMoreOpen] = useState(false)
 
   function isOpen(g: NavGroup) {
     if (g.section === null) return true
@@ -252,9 +254,13 @@ export function Sidebar({
     router.push('/')
   }
 
-  // Flatten nav items for mobile bottom bar (first 4 most relevant)
+  // Mobile bottom bar: 4 quick slots + "More". The 4 slots can only ever hold
+  // the first flattened items, so anything further down the sidebar (Reports,
+  // Retention, Lifecycle…) is unreachable on a phone without an overflow —
+  // the pinned Desk/Inbox group made that bite for every staff role.
   const allItems = groups.flatMap((g) => g.items)
   const mobileItems = allItems.slice(0, 4)
+  const hasOverflow = allItems.length > mobileItems.length
 
   return (
     <>
@@ -385,7 +391,70 @@ export function Sidebar({
             </Link>
           )
         })}
+
+        {hasOverflow && (
+          <button
+            type="button"
+            onClick={() => setMoreOpen((o) => !o)}
+            aria-expanded={moreOpen}
+            aria-haspopup="true"
+            className={cn(
+              'flex flex-col items-center gap-[3px] rounded-lg px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              moreOpen ? 'text-accent-ink' : 'text-ink-3'
+            )}
+          >
+            <CIcon name="menu" size={22} />
+            <span className={cn('text-[11px]', moreOpen ? 'font-bold' : 'font-medium')}>
+              {t('nav.more')}
+            </span>
+          </button>
+        )}
       </nav>
+
+      {/* Overflow sheet — every nav item the 4 slots can't hold. A disclosure,
+          not a dialog: no focus trap is implemented, so we don't claim one. */}
+      {moreOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden" onKeyDown={(e) => e.key === 'Escape' && setMoreOpen(false)}>
+          <button
+            type="button"
+            aria-label={t('nav.closeMenu')}
+            onClick={() => setMoreOpen(false)}
+            className="absolute inset-0 bg-[rgba(0,0,0,0.4)]"
+          />
+          <div className="absolute inset-x-0 bottom-0 max-h-[75vh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface pb-[env(safe-area-inset-bottom,16px)] pt-2 shadow-pop">
+            <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-line-strong" aria-hidden="true" />
+            <nav aria-label={t('nav.more')} className="flex flex-col px-2 pb-2">
+              {groups.map((g) => (
+                <div key={g.id} className="py-1">
+                  {g.section && (
+                    <div className="px-3 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3">
+                      {g.sectionKey ? t(g.sectionKey) : g.section}
+                    </div>
+                  )}
+                  {g.items.map((item) => {
+                    const on = item.key === active
+                    return (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        aria-current={on ? 'page' : undefined}
+                        onClick={() => setMoreOpen(false)}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                          on ? 'bg-surface-2 font-bold text-accent-ink' : 'font-medium text-ink-2'
+                        )}
+                      >
+                        <CIcon name={item.icon} size={20} />
+                        <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
     </>
   )
 }

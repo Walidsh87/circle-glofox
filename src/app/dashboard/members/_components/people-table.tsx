@@ -189,8 +189,10 @@ export function PeopleTable({
         </tbody>
       </Table>
 
+      {/* The as-you-type filter silently rewrites the table; role="status" makes
+          the count the announcement of what changed (WCAG 4.1.3). */}
       {rows.length > 0 && (
-        <div className="text-center font-mono text-[11px] text-ink-3">
+        <div role="status" aria-live="polite" className="text-center font-mono text-[11px] text-ink-3">
           Showing {filtered.length} of {rows.length}
         </div>
       )}

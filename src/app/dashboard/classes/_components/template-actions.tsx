@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toggleTemplate } from '../_actions/toggle-template'
 import { deleteTemplate } from '../_actions/delete-template'
 import { EditTemplateForm } from './edit-template-form'
@@ -31,6 +31,14 @@ export function TemplateActions({
   const [loading, setLoading] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  // Close and hand focus back to the trigger — otherwise focus falls to <body>
+  // and a keyboard user restarts from the top of the page after every action.
+  function closeMenu() {
+    setMenuOpen(false)
+    triggerRef.current?.focus()
+  }
 
   async function handleToggle() {
     setLoading(true)
@@ -51,11 +59,18 @@ export function TemplateActions({
     'block w-full px-3 py-1.5 text-left text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink disabled:opacity-50'
 
   return (
-    <div className="relative flex justify-center">
+    // Escape lives on the wrapper so it also fires while focus is still on the
+    // trigger (the popup opens without moving focus).
+    <div className="relative flex justify-center" onKeyDown={(e) => { if (e.key === 'Escape' && menuOpen) closeMenu() }}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setMenuOpen((o) => !o)}
-        aria-haspopup="menu"
+        // A disclosure, deliberately NOT role="menu": the ARIA menu pattern
+        // promises arrow-key roving focus we don't implement, and announcing a
+        // contract the widget doesn't honor is worse than plain buttons — which
+        // Tab reaches natively, in DOM order, right after the trigger.
+        aria-haspopup="true"
         aria-expanded={menuOpen}
         aria-label={`Actions for ${name}`}
         className="grid h-7 w-7 place-items-center rounded-md text-[16px] leading-none text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -72,18 +87,14 @@ export function TemplateActions({
             onClick={() => setMenuOpen(false)}
             className="fixed inset-0 z-40 cursor-default"
           />
-          <div
-            role="menu"
-            onKeyDown={(e) => e.key === 'Escape' && setMenuOpen(false)}
-            className="absolute right-0 top-8 z-50 w-40 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-pop"
-          >
-            <button role="menuitem" className={itemClass} disabled={loading} onClick={() => { setMenuOpen(false); setShowEdit(true) }}>
+          <div className="absolute right-0 top-8 z-50 w-40 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-pop">
+            <button className={itemClass} disabled={loading} onClick={() => { closeMenu(); setShowEdit(true) }}>
               Edit
             </button>
-            <button role="menuitem" className={itemClass} disabled={loading} onClick={() => { setMenuOpen(false); handleToggle() }}>
+            <button className={itemClass} disabled={loading} onClick={() => { closeMenu(); handleToggle() }}>
               {active ? 'Deactivate' : 'Activate'}
             </button>
-            <button role="menuitem" className={cn(itemClass, 'text-danger hover:bg-danger-soft hover:text-danger')} disabled={loading} onClick={() => { setMenuOpen(false); handleDelete() }}>
+            <button className={cn(itemClass, 'text-danger hover:bg-danger-soft hover:text-danger')} disabled={loading} onClick={() => { closeMenu(); handleDelete() }}>
               Delete
             </button>
           </div>

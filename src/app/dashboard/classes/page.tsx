@@ -107,8 +107,14 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
                       <span className="font-mono text-[13px] text-ink">{formatTime(t.start_time)}</span>
                       <span className="truncate text-[13.5px] font-semibold text-ink">{t.name}</span>
                       <span className="font-mono text-xs text-ink-3">{t.duration_minutes} min</span>
-                      <span className="font-mono text-xs text-ink-3">{t.capacity}</span>
-                      <span className="truncate text-[13px] text-ink-3">{coachName ?? '—'}</span>
+                      {/* The weekday-grouped grid has no header row, so a bare
+                          "14" is unreadable out of context — name the value. */}
+                      <span className="font-mono text-xs text-ink-3">
+                        <span className="sr-only">Capacity </span>{t.capacity}
+                      </span>
+                      <span className="truncate text-[13px] text-ink-3">
+                        <span className="sr-only">Coach </span>{coachName ?? '—'}
+                      </span>
                       <span>
                         <span className={cn('inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11.5px] font-semibold', t.active ? 'bg-ok-soft text-ok' : 'border border-line bg-surface-2 text-ink-3')}>
                           {t.active ? 'Active' : 'Inactive'}

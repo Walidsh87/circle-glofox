@@ -396,8 +396,10 @@ export function Sidebar({
           <button
             type="button"
             onClick={() => setMoreOpen((o) => !o)}
+            // Disclosure, not a menu: aria-haspopup="true" would announce
+            // "menu" (spec synonym) and promise the menu keyboard pattern the
+            // sheet deliberately doesn't implement.
             aria-expanded={moreOpen}
-            aria-haspopup="true"
             className={cn(
               'flex flex-col items-center gap-[3px] rounded-lg px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               moreOpen ? 'text-accent-ink' : 'text-ink-3'

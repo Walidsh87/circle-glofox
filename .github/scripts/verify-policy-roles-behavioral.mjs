@@ -72,6 +72,17 @@ const SEED = {
     );
     return { pk: "id", id: r.rows[0].id };
   },
+  class_templates: async () => {
+    // box_isolation_select (schema.sql) — ANY box member reads templates (the
+    // schedule page depends on it), so empirical P = all five roles; only the
+    // write policies are programming-tier. Don't claim the write tier as P.
+    const r = await client.query(
+      `insert into class_templates (box_id, name, weekday, start_time, capacity)
+       values ($1, 'PROBE-TEMPLATE', 1, '18:00', 12) returning id`,
+      [BOX_T]
+    );
+    return { pk: "id", id: r.rows[0].id };
+  },
   athlete_bar_speed_sets: async () => {
     // Owned by a NON-athlete profile so bar_speed_self_manage can't match →
     // the probe reflects pure ROLE access (bar_speed_staff_read = all staff),

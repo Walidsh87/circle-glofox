@@ -6,7 +6,12 @@ import { seed, magicTokenFor, USERS, authFile, type RoleKey } from './setup/fixt
 // then logs each role in via admin generateLink → the real /auth/confirm route,
 // and saves a reusable storageState per role.
 setup('seed data + authenticate all roles', async ({ browser }) => {
-  setup.setTimeout(120_000)
+  // Must exceed the seed's midnight guard: within the last 5 min of the gym day
+  // the seed deliberately sleeps to the next day (fixtures.ts MIN_WINDOW_MS),
+  // so worst case is ~5min sleep + seeding + 4 role logins. At 120s the guard
+  // itself timed this test out in that window — trading one nightly red for
+  // another.
+  setup.setTimeout(10 * 60_000)
   mkdirSync('e2e/.auth', { recursive: true })
 
   await seed()

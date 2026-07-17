@@ -22,6 +22,46 @@ I report a verdict per item; runs are **ephemeral** (nothing committed) unless y
 
 **Severity:** 🔴 could sink the business · 🟡 needed before scaling up · 🟢 hardening.
 
+### §0.1 — FULL-audit procedure (as executed 2026-07-17)
+
+"Full audit" upgrades the run: **§1 gates get re-executed locally, not glanced**, and the
+delta since the last run gets an adversarial multi-agent review. The generic, portable
+version of this procedure lives at `My WorkSpace/saas-starter/docs/FULL-AUDIT-PLAYBOOK.md`
+(copy it into any new project); the circle-specific steps:
+
+1. **Ground truth** — `git fetch` both repos (web + `../circle-mobile`), confirm origin/main
+   parity + clean trees; `git log --since="⟨last run date⟩"` per repo = the review scope;
+   read §5 first (unticked = carries forward as a finding).
+2. **Re-execute §1** — the ci chain (lint/type-check/test:coverage/build); the RLS harness on
+   a throwaway PG (`open -a Docker`, `docker run -d --rm -e POSTGRES_PASSWORD=postgres -p 55432:5432 postgres:16`,
+   `DATABASE_URL=… npm run test:rls`); `npm audit --audit-level=high` both repos; gitleaks via
+   `docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source=/repo` both
+   repos (**inspect matches before judging** — our history has 2 dummy-value false positives);
+   built-bundle greps (`.next/static/chunks`, exported `.hbc`) for `service_role|sk_live|whsec_`;
+   the e2e suite on the local stack (**diagnose any failure to root cause** — a red spec may be
+   fixture, not product; prove it with data before dismissing); `verify-policy-roles`
+   behavioral script on a second throwaway PG.
+3. **Run §2** as written, plus: schema-probe prod for every migration merged since the last
+   run (merged ≠ applied; probe `column_privileges` filtered by `privilege_type='SELECT'`),
+   and diff the PDPL export's table list against tables added since it was last extended.
+4. **Adversarial delta review** — finder agents per dimension (tenant isolation, client/server
+   boundary, regression blast radius, a11y of changed surfaces, + domain deep-dives for
+   whatever the delta contains), then 2–3 refuter lenses per finding. **A dead verify agent
+   is NOT a refutation** — cross-check the failure list against "rejected" and hand-verify
+   survivors (bit us 2026-07-10 AND 2026-07-17). **If a gate stayed green through a change
+   that should have tripped it, audit the gate's coverage first** — the a11y gate scanned 4 of
+   7 redesigned pages and was green while 7 defects landed; widening it found an 8th.
+5. **Fix protocol** (when asked): branch per concern, failing test first, prove
+   boundary/time fixes over simulated clocks **and model the runner's environment in the
+   proof** (a "proven" fix still blew the Playwright setup timeout), full gates per branch,
+   merge on green, **re-verify on main**, then a **fresh-eyes review of the fix batch
+   itself** (that pass caught 2 escapes on 2026-07-17). Alignment-table gotchas are in the
+   agent memory: role-words-only cells, state SELECT-measured P (not the write tier), new
+   tables need a `SEED` recipe in `verify-policy-roles-behavioral.mjs`.
+6. **Record** — dispositions with reasoning into §2.14, carry-forwards into §5, new data
+   domains into `ARCHITECTURE.md` + `data-inventory.md`, build-log entry, update the "Last
+   full run" date at the top.
+
 ---
 
 ## §1 — Continuous GATEs 🔒 (glance)

@@ -4,6 +4,9 @@
 // the box + users + signatures stable.
 import { createClient } from '@supabase/supabase-js'
 import { createHmac } from 'node:crypto'
+// The app's own gym-day helpers — the seed must agree with the whiteboard by
+// construction, not by a second copy of the offset math.
+import { dayBoundaries, todayInTimezone } from '../../src/lib/timezone'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -167,9 +170,27 @@ export async function seed(): Promise<SeedResult> {
     if (error || !data) throw new Error(`seed template: ${error?.message}`)
     templateId = data.id as string
   }
-  // 30 min out: future (bookable) and still today in the gym tz so it shows on
-  // the whiteboard (which lists only today's classes).
-  const startsAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+  // The class must be BOTH bookable (starts_at in the future) and on today's
+  // whiteboard (which lists only the gym-TZ calendar day). A naive now+30min
+  // satisfies both all day EXCEPT near midnight, where it silently rolls onto
+  // tomorrow's date and the whiteboard leg fails — proven 2026-07-17 (seeded
+  // 00:21 gym-local while the whiteboard was still on the 16th), which would
+  // red the REQUIRED e2e check for any push in that window.
+  // So: clamp into today, and when today has almost run out, wait it out —
+  // a fresh gym day gives the run the full window back. The threshold must
+  // exceed the SPEC's runtime, not just the seed's: a class seeded at 23:58:59
+  // is same-day at seed time but the whiteboard leg would run after midnight
+  // and show the next day. 5 min >> the ~20s booking spec; the wait is bounded
+  // by it and only reachable in the last sliver of the gym day.
+  const MIN_WINDOW_MS = 5 * 60 * 1000
+  const endOfGymDay = () => Date.parse(dayBoundaries(todayInTimezone(GYM.timezone), GYM.timezone).end)
+  if (endOfGymDay() - Date.now() < MIN_WINDOW_MS) {
+    await new Promise((r) => setTimeout(r, endOfGymDay() + 5_000 - Date.now()))
+  }
+  // 30 min out, but never past the last minute of the gym's today.
+  const startsAt = new Date(
+    Math.min(Date.now() + 30 * 60 * 1000, endOfGymDay() - 60 * 1000)
+  ).toISOString()
   const { error: ciErr } = await admin.from('class_instances').insert({
     box_id: boxId, template_id: templateId, coach_id: ids.coach,
     starts_at: startsAt, capacity: 12, status: 'scheduled', duration_minutes: 60,

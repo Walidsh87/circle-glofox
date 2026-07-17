@@ -68,6 +68,31 @@ describe('buildPdplExport', () => {
     expect(without.athlete.skill_bests).toEqual([])
   })
 
+  test('includes bar speed sets when provided (defaults to empty)', () => {
+    const withRows = buildPdplExport({
+      profile: baseProfile,
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+      barSpeedSets: [{
+        lift_name: 'back_squat', load_grams: 100000, rep_count: 5,
+        best_mcv_mm_s: 780, mean_mcv_mm_s: 690, peak_v_mm_s: 1240,
+        velocity_loss_pct: 18,
+        reps: [{ mcv_mm_s: 780, peak_mm_s: 1240, rom_mm: 620, dur_ms: 800 }],
+        logged_at: '2026-07-10T08:00:00Z',
+      }],
+    })
+    expect(withRows.athlete.bar_speed_sets).toHaveLength(1)
+    expect(withRows.athlete.bar_speed_sets[0].best_mcv_mm_s).toBe(780)
+    expect(withRows.athlete.bar_speed_sets[0].reps).toHaveLength(1)
+
+    const without = buildPdplExport({
+      profile: baseProfile,
+      memberships: [], bookings: [], lifts: [], scores: [],
+      waiverSignature: null, billingReminders: [],
+    })
+    expect(without.athlete.bar_speed_sets).toEqual([])
+  })
+
   test('parq_responses defaults to empty when omitted', () => {
     const out = buildPdplExport({
       profile: baseProfile,

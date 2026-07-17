@@ -57,6 +57,7 @@ export async function GET(
     { data: billingReminders },
     { data: parqRows },
     { data: skillBestRows },
+    { data: barSpeedRows },
   ] = await Promise.all([
     service.from('bookings')
       .select('class_instance_id, checked_in, checked_in_at, overridden_at, overridden_reason')
@@ -88,6 +89,13 @@ export async function GET(
       .order('parq_version', { ascending: true }),
     service.from('athlete_skill_bests')
       .select('skill_key, value, logged_at')
+      .eq('athlete_id', params.athleteId)
+      .eq('box_id', viewer.box_id)
+      .order('logged_at', { ascending: true }),
+    // Camera-VBT sets (mig 097). `capture` omitted — device diagnostics, not
+    // member data (see BarSpeedSetRow).
+    service.from('athlete_bar_speed_sets')
+      .select('lift_name, load_grams, rep_count, best_mcv_mm_s, mean_mcv_mm_s, peak_v_mm_s, velocity_loss_pct, reps, logged_at')
       .eq('athlete_id', params.athleteId)
       .eq('box_id', viewer.box_id)
       .order('logged_at', { ascending: true }),
@@ -198,6 +206,7 @@ export async function GET(
     billingReminders: (billingReminders ?? []) as never,
     parqResponses: (parqRows ?? []) as never,
     skillBests: (skillBestRows ?? []) as never,
+    barSpeedSets: (barSpeedRows ?? []) as never,
     invoices: (invoices ?? []) as never,
     creditNotes: (creditNotes ?? []) as never,
     termsSignatures: (termsSignatures ?? []) as never,

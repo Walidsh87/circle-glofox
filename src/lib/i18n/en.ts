@@ -63,6 +63,8 @@ export const en = {
     athletesSection: 'Athletes',
     signOut: 'Sign out',
     programStore: 'Program Store',
+    more: 'More',
+    closeMenu: 'Close menu',
   },
   common: { kg: 'kg', saving: 'Saving…', rx: 'RX', dash: '—' },
   timer: {

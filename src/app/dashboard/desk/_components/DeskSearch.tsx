@@ -61,8 +61,17 @@ export function DeskSearch() {
         />
         <kbd className="shrink-0 rounded-[5px] border border-line px-[7px] py-px font-mono text-[11px] text-ink-3">/</kbd>
       </div>
-      {loading && <p className="text-[13px] text-ink-3">Searching…</p>}
-      {!loading && q.trim() && hits.length === 0 && <p className="text-[13px] text-ink-3">No match.</p>}
+      {/* The whole desk flow starts here, and results arrive asynchronously —
+          without a live region a screen-reader user gets no cue that anything
+          happened (WCAG 4.1.3). aria-live sits on a permanently-rendered node:
+          a region that only mounts with its message is often missed. */}
+      <div role="status" aria-live="polite">
+        {loading && <p className="text-[13px] text-ink-3">Searching…</p>}
+        {!loading && q.trim() && hits.length === 0 && <p className="text-[13px] text-ink-3">No match.</p>}
+        {!loading && hits.length > 0 && (
+          <p className="sr-only">{hits.length} {hits.length === 1 ? 'result' : 'results'} found.</p>
+        )}
+      </div>
       <div className="flex flex-col gap-2">
         {hits.map((h) => <ResultRow key={`${h.kind}:${h.id}`} hit={h} />)}
       </div>

@@ -164,7 +164,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
             <div>
               <div className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-[#FAFAFA]/50">Active</div>
               <div className="font-mono text-2xl font-bold tracking-[-0.02em] text-[#FAFAFA]">{active.length}</div>
-              <div className="mt-0.5 text-[11px] text-[#FAFAFA]/40">members</div>
+              {/* /40 composites to 3.66:1 on the #0A0A0A hero — fails AA for 11px text
+          (the hero is dark in BOTH themes, so no token covers it). /55 = 6.0:1. */}
+      <div className="mt-0.5 text-[11px] text-[#FAFAFA]/55">members</div>
             </div>
           </div>
         </div>
@@ -183,14 +185,17 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         {/* Main memberships table + right rail */}
         <div className="grid gap-3.5 lg:grid-cols-[1.9fr_1fr] lg:items-start">
           {/* Memberships table */}
-          <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
-            <div className="grid grid-cols-[1.6fr_1.2fr_0.7fr_0.9fr_0.9fr_auto] items-center gap-3 border-b border-line bg-surface-2 px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
-              <span>Athlete</span>
-              <span>Plan</span>
-              <span className="text-right">AED</span>
-              <span>Last paid</span>
-              <span>Status</span>
-              <span />
+          {/* CSS-grid table: the ARIA roles keep the header↔cell association a
+              <table> gives for free — without them a screen reader reads the
+              row as a bare list of values. */}
+          <div role="table" aria-label="Memberships" className="overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+            <div role="row" className="grid grid-cols-[1.6fr_1.2fr_0.7fr_0.9fr_0.9fr_auto] items-center gap-3 border-b border-line bg-surface-2 px-4 py-2 font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
+              <span role="columnheader">Athlete</span>
+              <span role="columnheader">Plan</span>
+              <span role="columnheader" className="text-right">AED</span>
+              <span role="columnheader">Last paid</span>
+              <span role="columnheader">Status</span>
+              <span role="columnheader"><span className="sr-only">Actions</span></span>
             </div>
             {shown.map((m, i) => {
               const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
@@ -198,9 +203,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
               return (
                 <div
                   key={m.id}
+                  role="row"
                   className={cn('grid grid-cols-[1.6fr_1.2fr_0.7fr_0.9fr_0.9fr_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-2', i < shown.length - 1 && 'border-b border-line')}
                 >
-                  <div className="min-w-0">
+                  <div role="cell" className="min-w-0">
                     <Link href={`/dashboard/members/${m.athlete_id}`} className="text-[13.5px] font-semibold text-ink transition-colors hover:text-accent-ink">
                       {p?.full_name ?? '—'}
                     </Link>
@@ -221,20 +227,22 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
                     {m.is_trial && <div className="mt-0.5 font-mono text-[10.5px] font-bold text-accent-ink">Trial{m.end_date ? ` · ends ${m.end_date}` : ''}</div>}
                     {m.end_date && m.end_date >= todayIso && <div className="mt-0.5 font-mono text-[10.5px] font-bold text-danger">Cancels {m.end_date}</div>}
                   </div>
-                  <span className="truncate text-[13px] text-ink-2">{m.plan_name}</span>
-                  <span className="text-right font-mono text-[12.5px] text-ink-2">{m.monthly_price_aed ?? '—'}</span>
-                  <span className="font-mono text-[11.5px] text-ink-3">{m.last_paid_date ?? '—'}</span>
-                  <span>
+                  <span role="cell" className="truncate text-[13px] text-ink-2">{m.plan_name}</span>
+                  <span role="cell" className="text-right font-mono text-[12.5px] text-ink-2">{m.monthly_price_aed ?? '—'}</span>
+                  <span role="cell" className="font-mono text-[11.5px] text-ink-3">{m.last_paid_date ?? '—'}</span>
+                  <span role="cell">
                     <span className={cn('inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11.5px] font-semibold capitalize', STATUS_PILL[m.payment_status] ?? 'bg-warn-soft text-warn')}>
                       {m.payment_status}
                     </span>
                   </span>
-                  <PaymentActions
-                    membershipId={m.id}
-                    currentStatus={m.payment_status}
-                    hasStripePlan={!!m.provider_plan_ref}
-                    stripeConnected={stripeConnected}
-                  />
+                  <span role="cell">
+                    <PaymentActions
+                      membershipId={m.id}
+                      currentStatus={m.payment_status}
+                      hasStripePlan={!!m.provider_plan_ref}
+                      stripeConnected={stripeConnected}
+                    />
+                  </span>
                 </div>
               )
             })}
@@ -282,7 +290,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
                     <div key={i} className={cn('flex items-center gap-2.5 px-4 py-2.5', i < (reminders ?? []).length - 1 && 'border-b border-line')}>
                       <span className="flex-1 truncate text-[13px] text-ink">{athleteProfile?.full_name ?? 'Member'}</span>
                       <span className={cn('font-mono text-[10px] font-semibold uppercase rounded px-1.5 py-px', stageTone)}>{r.stage}</span>
-                      <span className="font-mono text-[10.5px] text-ink-faint">{formatShortDate(r.sent_at)}</span>
+                      <span className="font-mono text-[10.5px] text-ink-3">{formatShortDate(r.sent_at)}</span>
                     </div>
                   )
                 })
@@ -311,7 +319,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
                     <div className="text-[13.5px] font-medium text-ink">{athlete?.full_name ?? 'Athlete'}</div>
                     <div className="mt-0.5 text-[11.5px] text-ink-3">{o.overridden_reason} · by {coach?.full_name ?? 'Coach'}</div>
                   </div>
-                  <div className="font-mono text-[11px] text-ink-faint">{o.overridden_at ? formatShortDate(o.overridden_at) : ''}</div>
+                  <div className="font-mono text-[11px] text-ink-3">{o.overridden_at ? formatShortDate(o.overridden_at) : ''}</div>
                 </div>
               )
             })
@@ -328,7 +336,9 @@ function RevenueKpi({ label, value, accent, warn }: { label: string; value: numb
     <div>
       <div className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.06em] text-[#FAFAFA]/50">{label}</div>
       <div className={cn('font-mono text-2xl font-bold tracking-[-0.02em]', color)}>{Math.round(value).toLocaleString('en-US')}</div>
-      <div className="mt-0.5 text-[11px] text-[#FAFAFA]/40">AED / mo</div>
+      {/* /40 composites to 3.66:1 on the #0A0A0A hero — fails AA for 11px text
+          (the hero is dark in BOTH themes, so no token covers it). /55 = 6.0:1. */}
+      <div className="mt-0.5 text-[11px] text-[#FAFAFA]/55">AED / mo</div>
     </div>
   )
 }

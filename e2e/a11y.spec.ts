@@ -54,3 +54,42 @@ test('owner dashboard home has no serious a11y violations', async ({ browser }) 
   await expectNoBlockingViolations(page)
   await ctx.close()
 })
+
+// The 2026-07-17 audit found 7 real a11y defects on the redesigned staff pages
+// — every one of them on a page this gate did NOT scan (it covered 4 surfaces
+// while the redesign touched 7). Scanning the rest is what stops the next
+// redesign from re-introducing them.
+for (const [label, path] of [
+  ['payments', '/dashboard/payments'],
+  ['classes', '/dashboard/classes'],
+  ['front desk', '/dashboard/desk'],
+  ['people directory', '/dashboard/members'],
+] as const) {
+  test(`owner ${label} has no serious a11y violations`, async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: authFile('owner') })
+    const page = await ctx.newPage()
+    await page.goto(path)
+    await page.waitForLoadState('networkidle')
+    await expectNoBlockingViolations(page)
+    await ctx.close()
+  })
+}
+
+// The phone bottom bar holds 4 slots; everything else must stay reachable
+// through "More" (a staff owner otherwise loses Reports/Retention entirely).
+test('mobile overflow menu reaches nav items the bottom bar cannot hold', async ({ browser }) => {
+  const ctx = await browser.newContext({ storageState: authFile('owner'), viewport: { width: 390, height: 844 } })
+  const page = await ctx.newPage()
+  await page.goto('/dashboard')
+  await page.waitForLoadState('networkidle')
+
+  await expect(page.getByRole('link', { name: 'Reports' })).toBeHidden()
+  await page.getByRole('button', { name: 'More' }).click()
+  const reports = page.getByRole('navigation', { name: 'More' }).getByRole('link', { name: 'Reports' })
+  await expect(reports).toBeVisible()
+  await expectNoBlockingViolations(page)
+
+  await reports.click()
+  await expect(page).toHaveURL(/\/dashboard\/reports/)
+  await ctx.close()
+})

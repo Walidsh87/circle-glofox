@@ -65,6 +65,8 @@ export const ar: typeof en = {
     athletesSection: 'الرياضيون',
     signOut: 'تسجيل الخروج',
     programStore: 'متجر البرامج',
+    more: 'المزيد',
+    closeMenu: 'إغلاق القائمة',
   },
   common: { kg: 'kg', saving: 'جارٍ الحفظ…', rx: 'RX', dash: '—' },
   timer: {
